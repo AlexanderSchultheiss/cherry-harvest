@@ -25,7 +25,8 @@ public class GitUtil {
                     .setDirectory(Paths.get(repoParentDir, repositoryName).toFile())
                     .call();
         } catch (final GitAPIException e) {
-            Logger.error("Failed to load git repo from " + remoteUri, e);
+            System.out.println("Failed to load git repo from " + remoteUri);
+            e.printStackTrace();
             throw e;
         }
     }
@@ -38,7 +39,8 @@ public class GitUtil {
 
             return new Git(repository);
         } catch (final IOException e) {
-            Logger.error("Was not able to load git repo: ", e);
+            System.out.println("Failed to load git repo from " + repoDir.toString());
+            e.printStackTrace();
             throw e;
         }
     }
@@ -54,7 +56,8 @@ public class GitUtil {
             git = Git.init().setDirectory(repoDir).call();
             return git;
         } catch (GitAPIException e) {
-            Logger.error("Was not able to create git repo: ", e);
+            System.out.println("Was not able to create git repo: " + repoDir.toString());
+            e.printStackTrace();
             throw e;
         }
     }

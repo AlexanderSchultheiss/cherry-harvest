@@ -25,10 +25,14 @@ public class Repository {
         git = GitUtil.loadGitRepo(path.toFile());
     }
 
+    public Path path(){
+        return path;
+    }
+
     /**
      * Lists local branches available in VariantsRepository (git branch)
      */
-    private List<Ref> getLocalBranches() throws GitAPIException, IOException {
+    private List<Ref> getLocalBranches() throws GitAPIException {
         return git.branchList().call();
     }
 
@@ -36,17 +40,16 @@ public class Repository {
         try( RevWalk walk = new RevWalk(git.getRepository()) ) {
             ObjectId objectId = ObjectId.fromString(id);
             RevCommit commit = walk.parseCommit(objectId);
-            return createCommit(commit);
+            return createCommit(id, commit);
         } catch (IOException e) {
             e.printStackTrace();
             throw e;
         }
     }
 
-    private Commit createCommit(RevCommit rev){
+    private Commit createCommit(String id, RevCommit rev){
         String message = rev.getFullMessage();
         Date time = new Date(seconds2milliseconds(rev.getCommitTime()));
-        String id = rev.getId().toString();
         return new Commit(id, null, message, time);
     }
 
