@@ -2,6 +2,7 @@ package cherry;
 
 import cherry.CherrySource;
 import cherry.CherryTarget;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import util.*;
 
 import java.io.BufferedReader;
@@ -17,12 +18,13 @@ public class CherrySearch {
         repository = new Repository(path);
     }
 
-    public List<CherryPick> findAllCherryPicks(final Path pathToRepo){
+    public List<CherryPick> findAllCherryPicks(){
+
         // go through all pairs of branches? or can we somehow use git semantics to limit pairs of branches?
         return new ArrayList<>();
     }
 
-    public List<CherryPick> findCherryPicks(Branch upstream, Branch head) throws IOException, UnequalCherryCandidatesException{
+    public List<CherryPick> findCherryPicks(Branch upstream, Branch head) throws IOException, GitAPIException {
         // https://stackoverflow.com/questions/2922652/git-is-there-a-way-to-figure-out-where-a-commit-was-cherry-picked-from
         // call git cherry upstream head -> record '-' output
         // call git cherry head upstream -> record '-' output
@@ -35,10 +37,6 @@ public class CherrySearch {
         final List<String> upstr2head =  cherry(upstream, head);
         // call git cherry head upstream -> record '-' output
         final List<String> head2upstr = cherry(head, upstream);
-
-        if(head2upstr.size() != upstr2head.size()){
-            throw new UnequalCherryCandidatesException();
-        }
 
         Map<String, Commit> commitsHead2Upstr = getCommits(head2upstr);
         Map<String, Commit> commitsUpstr2Head = getCommits(upstr2head);
@@ -53,7 +51,7 @@ public class CherrySearch {
         return parseOutput(executeCommand(command));
     }
 
-    private List<CherryPick> computeCherryPicks(Map<String,Commit> output1, Map<String, Commit> output2) {
+    private List<CherryPick> computeCherryPicks(Map<String,Commit> output1, Map<String, Commit> output2) throws GitAPIException, IOException {
         List<CherryPick> cherryPicks = new ArrayList<>();
 
         if(output1.size() == 1 && output2.size() == 1){
@@ -67,16 +65,18 @@ public class CherrySearch {
         return cherryPicks;
     }
 
-    private List<CherryPick> matchCandidates(Map<String, Commit> output1, Map<String, Commit> output2) {
+    private List<CherryPick> matchCandidates(Map<String, Commit> output1, Map<String, Commit> output2) throws GitAPIException, IOException {
         List<CherryPick> cherryPicks = new ArrayList<>();
         cherryPicks.addAll(computeDirectMatches(output1, output2));
         cherryPicks.addAll(computeDirectMatches(output2, output1));
-        cherryPicks.addAll(matchByMessageEquality(output1, output2));
+        cherryPicks.addAll(matchByPatchId(output1, output2));
 
         return cherryPicks;
     }
 
-    // with side effects: removes commits in CherryPicks from lists
+    /**
+
+     */
     private List<CherryPick> computeDirectMatches(Map<String, Commit> targetCandidates, Map<String, Commit> sourceCandidates){
         List<CherryPick> cherryPicks = new ArrayList<>();
         Collection<Commit> targetCandidatesList = new ArrayList<>(targetCandidates.values());
@@ -88,9 +88,8 @@ public class CherrySearch {
                 String sourceId = messageComponents[messageComponents.length - 1];
                 sourceId = sourceId.strip().replace(")", "");
 
-                Commit source = sourceCandidates.get(sourceId);
-
-                if(source != null){
+                if(sourceCandidates.containsKey(sourceId)){
+                    Commit source = sourceCandidates.get(sourceId);
                     cherryPicks.add(createCherryPick(source, commit));
                 } else {
                     System.out.println("Source commit with id " + sourceId +" could not be found!");
@@ -104,7 +103,6 @@ public class CherrySearch {
         return cherryPicks;
     }
 
-    // For now based on (hash) equality, but would similarity be more useful?
     private List<CherryPick> matchByMessageEquality(Map<String, Commit> commits1, Map<String, Commit> commits2) {
         List<CherryPick> cherryPicks = new ArrayList<>();
 
@@ -114,11 +112,10 @@ public class CherrySearch {
             message2commit.put(commit.message(), commit);
         }
 
-        //
         Collection<Commit> toBeMatched = new ArrayList(commits1.values());
         for(Commit commit : toBeMatched){
-            Commit matchingCommit = message2commit.get(commit.message());
-            if(matchingCommit != null){
+            if(message2commit.containsKey(commit.message())){
+                Commit matchingCommit = message2commit.get(commit.message());
                 cherryPicks.add(determineSourceAndTarget(matchingCommit, commit));
                 commits1.remove(commit.id());
                 commits2.remove(matchingCommit.id());
@@ -129,6 +126,31 @@ public class CherrySearch {
 
         return cherryPicks;
     }
+
+    private List<CherryPick> matchByPatchId(Map<String, Commit> commits1, Map<String, Commit> commits2) throws GitAPIException, IOException {
+        Map<String, Commit> patch2commit = new HashMap<>();
+        List<CherryPick> cherryPicks = new ArrayList<>();
+
+        for(Commit commit : commits2.values()){
+            String patchId = repository.getPatchId(commit);
+            patch2commit.put(patchId, commit);
+        }
+
+        Collection<Commit> toBeMatched = new ArrayList(commits1.values());
+        for(Commit commit : toBeMatched){
+            String patchId = repository.getPatchId(commit);
+
+            if(patch2commit.containsKey(patchId)){
+                Commit matchingCommit = patch2commit.get(patchId);
+                cherryPicks.add(determineSourceAndTarget(matchingCommit, commit));
+                commits1.remove(commit.id());
+                commits2.remove(matchingCommit.id());
+            }
+        }
+
+        return cherryPicks;
+    }
+
 
     private CherryPick determineSourceAndTarget(Commit commit1, Commit commit2){
         return commit1.after(commit2)? createCherryPick(commit2, commit1) : createCherryPick(commit1, commit2);
@@ -175,7 +197,6 @@ public class CherrySearch {
             if("-".equals(outputComponents[0])) cherryCandidates.add(outputComponents[1]);
         }
 
-        System.out.println(cherryCandidates);
         return cherryCandidates;
     }
 }
