@@ -19,6 +19,7 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -38,8 +39,15 @@ public class Repository {
     /**
      * Lists local branches available in VariantsRepository (git branch)
      */
-    private List<Ref> getLocalBranches() throws GitAPIException {
-        return git.branchList().call();
+    public List<Branch> getLocalBranches() throws GitAPIException {
+        List<Ref> branchList = git.branchList().call();
+        List<Branch> branches = new ArrayList<>();
+
+        for(Ref b : branchList){
+            branches.add(new Branch(b.getName()));
+        }
+
+        return branches;
     }
 
     public Commit getCommitById(String id) throws IOException {

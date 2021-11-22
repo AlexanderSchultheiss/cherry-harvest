@@ -16,7 +16,7 @@ public class Main {
         final CherrySearch cherrySearch;
         try {
             cherrySearch = new CherrySearch(pathToGitRepository);
-            final List<CherryPick> cherryPicks = cherrySearch.findCherryPicks(new Branch("master"), new Branch("newb"));
+            final List<CherryPick> cherryPicks = cherrySearch.findAllCherryPicks();
             System.out.println(cherryPicks.toString());
         } catch (IOException | GitAPIException e) {
             e.printStackTrace();

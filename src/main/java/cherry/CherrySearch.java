@@ -1,7 +1,5 @@
 package cherry;
 
-import cherry.CherrySource;
-import cherry.CherryTarget;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import util.*;
 
@@ -18,10 +16,19 @@ public class CherrySearch {
         repository = new Repository(path);
     }
 
-    public List<CherryPick> findAllCherryPicks(){
+    public List<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
+        final ArrayList<Branch> branches = new ArrayList<>(repository.getLocalBranches());
+        List<CherryPick> cherryPicks = new ArrayList<>();
 
-        // go through all pairs of branches? or can we somehow use git semantics to limit pairs of branches?
-        return new ArrayList<>();
+        for(int i = 0; i < branches.size()-1 ; ++i){
+            Branch upstream =  branches.get(i);
+
+            for(Branch head : branches.subList(i+1, branches.size())){
+                cherryPicks.addAll(findCherryPicks(upstream, head));
+            }
+        }
+
+        return cherryPicks;
     }
 
     public List<CherryPick> findCherryPicks(Branch upstream, Branch head) throws IOException, GitAPIException {
