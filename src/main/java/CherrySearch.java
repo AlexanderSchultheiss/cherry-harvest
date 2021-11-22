@@ -7,10 +7,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class CherrySearch {
     private Repository repository;
@@ -42,9 +39,10 @@ public class CherrySearch {
             throw new UnequalCherryCandidatesException();
         }
 
-        List<Commit> commitsHead2Upstr = getCommits(head2upstr);
-        List<Commit> commitsUpstr2Head = getCommits(upstr2head);
-        cherries = matchCandidates(commitsHead2Upstr, commitsUpstr2Head);
+        Map<String, Commit> commitsHead2Upstr = getCommits(head2upstr);
+        Map<String, Commit> commitsUpstr2Head = getCommits(upstr2head);
+
+        cherries = computeCherryPicks(commitsHead2Upstr, commitsUpstr2Head);
 
         return cherries;
     }
@@ -54,13 +52,76 @@ public class CherrySearch {
         return parseOutput(executeCommand(command));
     }
 
-    private List<CherryPick> matchCandidates(List<Commit> output1, List<Commit> output2) {
+    private List<CherryPick> computeCherryPicks(Map<String,Commit> output1, Map<String, Commit> output2) {
         List<CherryPick> cherryPicks = new ArrayList<>();
 
         if(output1.size() == 1 && output2.size() == 1){
             // immediate match, just need to figure out source and target
-            cherryPicks.add(determineSourceAndTarget(output1.get(0), output2.get(0));
+            Commit commit1 = output1.values().iterator().next();
+            Commit commit2 = output2.values().iterator().next() ;
+            cherryPicks.add(determineSourceAndTarget(commit1, commit2));
+        } else {
+            cherryPicks = matchCandidates(output1, output2);
         }
+        return cherryPicks;
+    }
+
+    private List<CherryPick> matchCandidates(Map<String, Commit> output1, Map<String, Commit> output2) {
+        List<CherryPick> cherryPicks = new ArrayList<>();
+        cherryPicks.addAll(computeDirectMatches(output1, output2));
+        cherryPicks.addAll(computeDirectMatches(output2, output1));
+        cherryPicks.addAll(matchByMessageEquality(output1, output2));
+
+        return cherryPicks;
+    }
+
+    // with side effects: removes commits in CherryPicks from lists
+    private List<CherryPick> computeDirectMatches(Map<String, Commit> targetCandidates, Map<String, Commit> sourceCandidates){
+        List<CherryPick> cherryPicks = new ArrayList<>();
+        for(Commit commit : targetCandidates.values()){
+            String message = commit.message();
+
+            if(message.contains("cherry picked from commit")){
+                String[] messageComponents = message.split("\s");
+                String sourceId = messageComponents[messageComponents.length - 1];
+                sourceId = sourceId.replace(")", "");
+
+                Commit source = sourceCandidates.get(sourceId);
+
+                if(source != null){
+                    cherryPicks.add(createCherryPick(source, commit));
+                } else {
+                    System.out.println("Source commit with id " + sourceId +" could not be found!");
+                }
+
+                targetCandidates.remove(commit.id());
+                sourceCandidates.remove(sourceId);
+            }
+        }
+
+        return cherryPicks;
+    }
+
+    // For now based on (hash) equality, but would similarity be more useful?
+    private List<CherryPick> matchByMessageEquality(Map<String, Commit> commits1, Map<String, Commit> commits2){
+        List<CherryPick> cherryPicks = new ArrayList<>();
+
+        // build map from message to commit for one commit list
+        Map<String, Commit> message2commit = new HashMap<>();
+        for(Commit commit : commits2.values()){
+            message2commit.put(commit.message(), commit);
+        }
+
+        //
+        for(Commit commit : commits1.values()){
+            Commit matchingCommit = message2commit.get(commit.message());
+            if(matchingCommit != null){
+                cherryPicks.add(determineSourceAndTarget(matchingCommit, commit));
+                commits1.remove(commit.message());
+                commits2.remove(matchingCommit.message());
+            }
+        }
+
         return cherryPicks;
     }
 
@@ -72,17 +133,17 @@ public class CherrySearch {
         return new CherryPick(new CherrySource(src), new CherryTarget(target));
     }
 
-    private List<Commit> getCommits(List<String> commitIds) throws IOException {
-        List<Commit> commits = new ArrayList<>();
+    private Map<String, Commit> getCommits(List<String> commitIds) throws IOException {
+        Map<String, Commit> commits = new HashMap();
 
         for(String id : commitIds){
-            commits.add(repository.getCommitById(id));
+            commits.put(id, repository.getCommitById(id));
         }
 
         return commits;
     }
 
-    private static List<String> executeCommand(final String[] command) throws IOException {
+    private List<String> executeCommand(final String[] command) throws IOException {
         ProcessBuilder pb = new ProcessBuilder(command);
         List<String> output = new ArrayList<>();
         pb.redirectErrorStream(true);
@@ -100,7 +161,7 @@ public class CherrySearch {
         return output;
     }
 
-    private static List<String> parseOutput(List<String> output){
+    private List<String> parseOutput(List<String> output){
         List<String> cherryCandidates = new ArrayList<String>();
 
         for(String line: output){
