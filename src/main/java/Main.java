@@ -1,5 +1,6 @@
 import cherry.CherryPick;
 import cherry.CherrySearch;
+import cherry.CherrySource;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import util.Branch;
 
@@ -17,7 +18,10 @@ public class Main {
         try {
             cherrySearch = new CherrySearch(pathToGitRepository);
             final List<CherryPick> cherryPicks = cherrySearch.findAllCherryPicks();
-            System.out.println(cherryPicks.toString());
+
+            for(CherryPick c : cherryPicks){
+                System.out.println(c);
+            }
         } catch (IOException | GitAPIException e) {
             e.printStackTrace();
         }

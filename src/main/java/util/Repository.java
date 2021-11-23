@@ -50,6 +50,13 @@ public class Repository {
         return branches;
     }
 
+    /**
+     * Uses id to find commit in the repository
+     * @param id Name of the commit
+     * @return  Handle for commit, representing commit in the repository
+     * @throws IOException
+     */
+
     public Commit getCommitById(String id) throws IOException {
         try( RevWalk walk = new RevWalk(git.getRepository()) ) {
             ObjectId objectId = ObjectId.fromString(id);
@@ -61,6 +68,10 @@ public class Repository {
         }
     }
 
+    /**
+        Computes diff between commit and its parent,
+        which is then used to generate patch id
+     */
     public String getPatchId(Commit commit) throws IOException, GitAPIException {
         // source: https://stackoverflow.com/questions/38664776/how-do-i-do-git-show-sha1-using-jgit
         ObjectId newTreeId = git.getRepository().resolve(commit.id() + "^{tree}");
