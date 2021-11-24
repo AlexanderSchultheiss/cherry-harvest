@@ -35,5 +35,3 @@
 * investigate merges and rebase in the context of cherry 
 * until now, only 1:1 matches for cherry picks considered
     * think about whether this is always the case (excl. --no-commit) or there are exceptions
-* order of cherry output enough to match commits to form a CherryPick?
-    * seems to be the case in mini example repository, but might just be by accident -> need to think about it

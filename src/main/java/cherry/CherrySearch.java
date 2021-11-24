@@ -1,19 +1,21 @@
 package cherry;
 
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import util.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Path;
 import java.util.*;
 
 public class CherrySearch {
+    final Logger LOGGER = LoggerFactory.getLogger(CherrySearch.class);
     private Repository repository;
 
-    public CherrySearch(Path path) throws IOException {
-        repository = new Repository(path);
+    public CherrySearch(Repository repo) throws IOException {
+        repository = repo;
     }
 
     /**
@@ -22,16 +24,22 @@ public class CherrySearch {
      */
 
     public List<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
+        LOGGER.info("Check out all remote, not-yet-local branches");
+        repository.checkoutAllBranches();
         final ArrayList<Branch> branches = new ArrayList<>(repository.getLocalBranches());
         List<CherryPick> cherryPicks = new ArrayList<>();
 
         for(int i = 0; i < branches.size()-1 ; ++i){
-            Branch upstream =  branches.get(i);
+            Branch branch1 =  branches.get(i);
 
-            for(Branch head : branches.subList(i+1, branches.size())){
-                cherryPicks.addAll(findCherryPicks(upstream, head));
+            for(Branch branch2 : branches.subList(i+1, branches.size())){
+                LOGGER.info("Searching for cherry picks in " + branch1.name() + " and " + branch2.name());
+                List<CherryPick> cherries = findCherryPicks(branch1, branch2);
+                LOGGER.info("Found " + cherries.size() + " CherryPicks");
+                cherryPicks.addAll(cherries);
             }
         }
+
 
         return cherryPicks;
     }
@@ -39,8 +47,8 @@ public class CherrySearch {
     /**
      * Finds cherry picks in two given (distinct) branches
      *
-     * @param upstream  Branch that may hold commits representing cherry sources or targets
-     * @param head      Branch that may hold commits representing cherry sources or targets
+     * @param branch1 that may hold commits representing cherry sources or targets
+     * @param branch2      Branch that may hold commits representing cherry sources or targets
      * @return          Cherry picks that were identified
      * @throws IOException
      * @throws GitAPIException
@@ -53,16 +61,14 @@ public class CherrySearch {
     // or use patch id / commit messages to match candidates
     // when matched, determine which is source and which target by checking time stamps
 
-    public List<CherryPick> findCherryPicks(Branch upstream, Branch head) throws IOException, GitAPIException {
-        List<CherryPick> cherries = new ArrayList<>();
+    public List<CherryPick> findCherryPicks(Branch branch1, Branch branch2) throws IOException, GitAPIException {
+        final List<String> branch1AsHead = cherry(branch2, branch1);
+        final List<String> branch2AsHead = cherry(branch1, branch2);
 
-        final List<String> upstr2head =  cherry(upstream, head);
-        final List<String> head2upstr = cherry(head, upstream);
+        Map<String, Commit> commitsBranch1 = getCommits(branch1AsHead, branch1);
+        Map<String, Commit> commitsBranch2 = getCommits(branch2AsHead, branch2);
 
-        Map<String, Commit> commitsHead2Upstr = getCommits(head2upstr);
-        Map<String, Commit> commitsUpstr2Head = getCommits(upstr2head);
-
-        cherries = computeCherryPicks(commitsHead2Upstr, commitsUpstr2Head);
+        List<CherryPick> cherries = computeCherryPicks(commitsBranch2, commitsBranch1);
 
         return cherries;
     }
@@ -134,13 +140,15 @@ public class CherrySearch {
                     Commit source = sourceCandidates.get(sourceId);
                     cherryPicks.add(createCherryPick(source, commit));
                 } else {
-                    System.out.println("Source commit with id " + sourceId +" could not be found!");
+                    LOGGER.info("Source commit with id " + sourceId +" could not be found!");
                 }
 
                 targetCandidates.remove(commit.id());
                 sourceCandidates.remove(sourceId);
             }
         }
+
+        if(cherryPicks.size() != 0) LOGGER.info("Matched " + cherryPicks.size() + " CherryPicks by source id in message");
 
         return cherryPicks;
     }
@@ -170,7 +178,7 @@ public class CherrySearch {
                 commits1.remove(commit.id());
                 commits2.remove(matchingCommit.id());
             } else {
-                System.out.println("Matching commit for commit with id " + commit.id() +" could not be found!");
+                LOGGER.info("Matching commit for commit with id " + commit.id() +" could not be found!");
             }
         }
 
@@ -209,6 +217,8 @@ public class CherrySearch {
             }
         }
 
+        if(cherryPicks.size() != 0) LOGGER.info("Matched " + cherryPicks.size() + " CherryPicks by PatchId");
+
         return cherryPicks;
     }
 
@@ -233,11 +243,11 @@ public class CherrySearch {
      * @return
      * @throws IOException
      */
-    private Map<String, Commit> getCommits(List<String> commitIds) throws IOException {
+    private Map<String, Commit> getCommits(List<String> commitIds, Branch branch) throws IOException {
         Map<String, Commit> commits = new HashMap();
 
         for(String id : commitIds){
-            commits.put(id, repository.getCommitById(id));
+            commits.put(id, repository.getCommitHandleById(id, branch));
         }
 
         return commits;
