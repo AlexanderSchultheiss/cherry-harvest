@@ -49,6 +49,22 @@ public class Repository {
     }
 
     /**
+     * Lists local branches available in VariantsRepository (git branch)
+     */
+    public List<Branch> getRemoteBranches() throws GitAPIException {
+        List<Ref> branchList = git.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
+        List<Branch> branches = new ArrayList<>();
+
+        for(Ref b : branchList){
+            branches.add(new Branch(b.getName()));
+        }
+
+        return branches;
+    }
+
+
+
+    /**
      * Uses id to find commit in the repository
      * @param id Name of the commit
      * @return  Handle for commit, representing commit in the repository

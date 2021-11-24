@@ -25,8 +25,9 @@ public class CherrySearch {
 
     public List<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
         LOGGER.info("Check out all remote, not-yet-local branches");
-        repository.checkoutAllBranches();
-        final ArrayList<Branch> branches = new ArrayList<>(repository.getLocalBranches());
+        //repository.checkoutAllBranches();
+        //final ArrayList<Branch> branches = new ArrayList<>(repository.getLocalBranches());
+        final ArrayList<Branch> branches = new ArrayList<>(repository.getRemoteBranches());
         List<CherryPick> cherryPicks = new ArrayList<>();
 
         for(int i = 0; i < branches.size()-1 ; ++i){
