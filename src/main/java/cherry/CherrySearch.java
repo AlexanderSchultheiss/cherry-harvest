@@ -24,9 +24,6 @@ public class CherrySearch {
      */
 
     public List<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
-        LOGGER.info("Check out all remote, not-yet-local branches");
-        //repository.checkoutAllBranches();
-        //final ArrayList<Branch> branches = new ArrayList<>(repository.getLocalBranches());
         final ArrayList<Branch> branches = new ArrayList<>(repository.getRemoteBranches());
         List<CherryPick> cherryPicks = new ArrayList<>();
 
@@ -34,9 +31,9 @@ public class CherrySearch {
             Branch branch1 =  branches.get(i);
 
             for(Branch branch2 : branches.subList(i+1, branches.size())){
-                LOGGER.info("Searching for cherry picks in " + branch1.name() + " and " + branch2.name());
+                // LOGGER.info("Searching for cherry picks in " + branch1.name() + " and " + branch2.name());
                 List<CherryPick> cherries = findCherryPicks(branch1, branch2);
-                LOGGER.info("Found " + cherries.size() + " CherryPicks");
+                // LOGGER.info("Found " + cherries.size() + " CherryPicks");
                 cherryPicks.addAll(cherries);
             }
         }
@@ -56,8 +53,8 @@ public class CherrySearch {
      */
 
     // see https://stackoverflow.com/questions/2922652/git-is-there-a-way-to-figure-out-where-a-commit-was-cherry-picked-from :
-    // call git cherry upstream head -> record '-' output
-    // call git cherry head upstream -> record '-' output
+    // call <git cherry upstream head> -> record '-' output
+    // call <git cherry head upstream> -> record '-' output
     // need to match those -> either try to find commit messages including id of original commit (when -x option used)
     // or use patch id / commit messages to match candidates
     // when matched, determine which is source and which target by checking time stamps
@@ -70,6 +67,14 @@ public class CherrySearch {
         Map<String, Commit> commitsBranch2 = getCommits(branch2AsHead, branch2);
 
         List<CherryPick> cherries = computeCherryPicks(commitsBranch2, commitsBranch1);
+
+        if(commitsBranch1.size() != 0){
+            LOGGER.info("Non-matched commits from branch 1: "+ commitsBranch1.values());
+        }
+
+        if(commitsBranch2.size() != 0){
+            LOGGER.info("Non-matched commits from branch 2: "+ commitsBranch2.values());
+        }
 
         return cherries;
     }
@@ -92,6 +97,8 @@ public class CherrySearch {
             Commit commit1 = output1.values().iterator().next();
             Commit commit2 = output2.values().iterator().next() ;
             cherryPicks.add(determineSourceAndTarget(commit1, commit2));
+            output1.clear();
+            output2.clear();
         } else if(output1.size() == 0 || output2.size() == 0) {
            return cherryPicks;
         } else {
@@ -149,7 +156,7 @@ public class CherrySearch {
             }
         }
 
-        if(cherryPicks.size() != 0) LOGGER.info("Matched " + cherryPicks.size() + " CherryPicks by source id in message");
+        // if(cherryPicks.size() != 0) LOGGER.info("Matched " + cherryPicks.size() + " CherryPicks by source id in message");
 
         return cherryPicks;
     }
@@ -218,7 +225,7 @@ public class CherrySearch {
             }
         }
 
-        if(cherryPicks.size() != 0) LOGGER.info("Matched " + cherryPicks.size() + " CherryPicks by PatchId");
+        // if(cherryPicks.size() != 0) LOGGER.info("Matched " + cherryPicks.size() + " CherryPicks by PatchId");
 
         return cherryPicks;
     }

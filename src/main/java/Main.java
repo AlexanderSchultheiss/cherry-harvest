@@ -12,7 +12,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public class Main {
@@ -31,24 +33,27 @@ public class Main {
             cherrySearch = new CherrySearch(repository);
             LOGGER.info("Starting cherry search.");
             final List<CherryPick> cherryPicks = cherrySearch.findAllCherryPicks();
-
-            LOGGER.info("_______________________________________");
             LOGGER.info("Finished cherry search.");
 
             if(cherryPicks.isEmpty()){
                 LOGGER.info("No cherry picks found!");
             } else {
-                LOGGER.info("Size: " + cherryPicks.size());
+                LOGGER.info("Number of identified cherry picks: " + cherryPicks.size());
+
+                // Remove duplicate CherryPicks
+                Set<CherryPick> cherrySet = new HashSet<>(cherryPicks);
+                LOGGER.info("Number of unique cherry picks: " + cherrySet.size());
+
+                Gson gson = new Gson();
+                String[] pathSegments = pathToGitRepository.toString().split(Pattern.quote(File.separator));
+                LOGGER.info(pathSegments[pathSegments.length-1]);
+                FileWriter writer = new FileWriter("output/" + pathSegments[pathSegments.length - 1] +".json");
+                gson.toJson(cherrySet, writer);
+
+                writer.flush();
+                writer.close();
             }
 
-            Gson gson = new Gson();
-            String[] pathSegments = pathToGitRepository.toString().split(Pattern.quote(File.separator));
-            LOGGER.info(pathSegments[pathSegments.length-1]);
-            FileWriter writer = new FileWriter("output/" + pathSegments[pathSegments.length - 1] +".json");
-            gson.toJson(cherryPicks, writer);
-
-            writer.flush();
-            writer.close();
             repository.close();
         } catch (IOException | GitAPIException e) {
             e.printStackTrace();

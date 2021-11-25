@@ -35,3 +35,5 @@
 * investigate merges and rebase in the context of cherry 
 * until now, only 1:1 matches for cherry picks considered
     * think about whether this is always the case (excl. --no-commit) or there are exceptions
+* How to avoid duplicates while computing cherry picks?
+* How could we filter pairs of branches that do not need to be considered?
