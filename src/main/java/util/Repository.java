@@ -89,10 +89,10 @@ public class Repository {
         ObjectId oldTreeId = git.getRepository().resolve(commit.id() + "^^{tree}");
 
         if(newTreeId == null){
-            LOGGER.error("Could not resolve commit with id " + commit.id());
+            LOGGER.error("Could not resolve tree for commit with id " + commit.id());
             return Optional.empty();
         } else if (oldTreeId == null){
-            LOGGER.error("Could not resolve parent commit with id " + commit.id());
+            LOGGER.error("Could not resolve parent tree for commit with id " + commit.id());
             LOGGER.error("This error could originate from dealing with the root commit.");
             return Optional.empty();
         }

@@ -25,15 +25,16 @@ public class ScanCherrySearch implements CherrySearch {
         Set<Commit> commits = repository.getAllCommits();
 
         for (Commit c : commits) {
-            Optional<String> patchID = repository.getPatchId(c);
+            Optional<String> patchOptional = repository.getPatchId(c);
 
-            if(patchID.isPresent()){
-                if (patchid2commits.containsKey(patchID.get())) {
-                    patchid2commits.get(patchID.get()).add(c);
+            if(patchOptional.isPresent()){
+                String patchID = patchOptional.get();
+                if (patchid2commits.containsKey(patchID)) {
+                    patchid2commits.get(patchID).add(c);
                 } else {
                     Set<Commit> similarCommits = new HashSet<>();
                     similarCommits.add(c);
-                    patchid2commits.put(patchID.get(), similarCommits);
+                    patchid2commits.put(patchID, similarCommits);
                 }
             }
         }
