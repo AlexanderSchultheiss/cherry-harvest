@@ -18,8 +18,8 @@ public class ScanCherrySearch implements CherrySearch {
     }
 
     @Override
-    public List<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
-        List<CherryPick> cherryPicks = new ArrayList<>();
+    public Set<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
+        Set<CherryPick> cherryPicks = new HashSet<>();
         Map<String, Set<Commit>> patchid2commits = new HashMap<>();
 
         Set<Commit> commits = repository.getAllCommits();
