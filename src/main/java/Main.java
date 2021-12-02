@@ -32,16 +32,12 @@ public class Main {
             Repository repository = new Repository(pathToGitRepository);
             cherrySearch = new ScanCherrySearch(repository);
             LOGGER.info("Starting cherry search.");
-            final List<CherryPick> cherryPicks = cherrySearch.findAllCherryPicks();
+            final Set<CherryPick> cherrySet = cherrySearch.findAllCherryPicks();
             LOGGER.info("Finished cherry search.");
 
-            if(cherryPicks.isEmpty()){
+            if(cherrySet.isEmpty()){
                 LOGGER.info("No cherry picks found!");
             } else {
-                LOGGER.info("Number of identified cherry picks: " + cherryPicks.size());
-
-                // Remove duplicate CherryPicks
-                Set<CherryPick> cherrySet = new HashSet<>(cherryPicks);
                 LOGGER.info("Number of unique cherry picks: " + cherrySet.size());
 
                 Gson gson = new Gson();

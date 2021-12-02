@@ -1,1 +1,1682 @@
-[]
+[
+  {
+    "source": {
+      "commit": {
+        "id": "f4f70a0223e57fda5346dc7f019acec6fbda208b",
+        "message": "chore(build): change min sdk to 14\n\nBasedexclassloader needs minsdk 14\n```\nNewClassLoaderInjector.java:139: Error: Class requires API level 14 (current min is 10): dalvik.system.BaseDexClassLoader [NewApi]\n          final Field pathListField \u003d findField(BaseDexClassLoader.class, \"pathList\");\n                                                ~~~~~~~~~~~~~~~~~~\n```\n\nTEST PLAN:\n\npass `./gradlew check`\n",
+        "timestamp": "Dec 5, 2019, 7:30:08 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "f7ce546344b619f5da951c9ef7bdb3be1ed43ebc",
+        "message": "Merge pull request #1297 from simpleton/dev\n\nchore(build): change min sdk to 14",
+        "timestamp": "Dec 5, 2019, 10:17:18 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "88057c3a8ae61236624bba51f646dd3701c2df4a",
+        "message": "[tinker] Update the way to inject stable-ids\n",
+        "timestamp": "Sep 9, 2021, 11:04:21 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "0a306026c867aeed3659e385333174e710577184",
+        "message": "Merge pull request #1603 from littleCrash/master\n\n[tinker] Update the way to inject stable-ids",
+        "timestamp": "Oct 9, 2021, 9:42:01 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "2c9539bf2a4f770ead5124edcfa37b191c878c3d",
+        "message": "change patchinfo error log to warning\n",
+        "timestamp": "May 10, 2017, 8:16:55 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "c61d87618b257e51b1d455e8350c130eb5692315",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "May 15, 2017, 9:48:41 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "6ff21392d590c109f217c3ae770f8c534e0b225e",
+        "message": "Change to using TextUtils\n",
+        "timestamp": "Mar 12, 2020, 8:54:09 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "cf67a21dcd58ec4136add77962cd13e120581f28",
+        "message": "Merge pull request #1354 from Hk-tang/use-textutils\n\nUse TextUtils",
+        "timestamp": "Mar 25, 2020, 10:51:21 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4716de102fe383a8550b6fd2cd63c906d9a1be38",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into shwenzhang\n\n# Conflicts:\n#\tbuild.gradle\n",
+        "timestamp": "Aug 5, 2016, 8:55:23 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "40557db4b58c75489800d97b608b763ca2335e35",
+        "message": "[tinker] tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:32:29 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "8907f584e73ace1dd53a38521815112a9b390d56",
+        "message": "[tinker] fix rest issues figured out by coverity.\n",
+        "timestamp": "Nov 17, 2017, 11:03:03 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "737aee2e78e4901018eec2059f221218010f9784",
+        "message": "[tinker] fix rest figured out issues.\n",
+        "timestamp": "Nov 17, 2017, 11:04:28 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "86c0d4595fce3aee9e02ca7163a18d95135944e5",
+        "message": "1. [enhancement] remove dex_art type\n",
+        "timestamp": "Nov 29, 2016, 9:47:24 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "8e807736703cf8829cb1180929d442b6cb019ce1",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 29, 2016, 9:57:37 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "c4e7f6bccec8d8dc47affa7d2ef3c96dcf7a4d09",
+        "message": "解决打包时报错 Too many classes in --main-dex-list, main dex capacity exceeded fix:issues 942\n",
+        "timestamp": "Nov 9, 2018, 2:48:50 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "838f6a55e144aa64aef16aae673a50002aebea88",
+        "message": "Merge pull request #970 from android-notes/fixbug\n\n解决打包时报错 Too many classes in --main-dex-list, main dex capacity exceed…",
+        "timestamp": "Dec 9, 2018, 12:55:40 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "ae498ba0f6091949eb57e025deaf209ee46cbf36",
+        "message": "1. [enhancement] fix spell error\n",
+        "timestamp": "Nov 18, 2016, 7:29:11 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "43029f049094cc704ba6a2bc412b20fd7c9176b6",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 18, 2016, 7:30:29 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "9dd6dc265d87be9518d25a833591c7e86e964114",
+        "message": "support customize define gradle project buildDir path.\n",
+        "timestamp": "Oct 31, 2020, 7:42:10 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "d7c7e607bcac34fef24dcd298e6839566b5c88a1",
+        "message": "Merge pull request #1481 from yanbober/issues1480_support_builddir\n\nsupport customize define gradle project buildDir path.",
+        "timestamp": "Nov 16, 2020, 7:09:57 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "519657ae31bdfa15debea61eab9e67454fab06c2",
+        "message": "Merge branch \u0027master\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Mar 26, 2018, 5:53:57 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "cdc64edc3f17e649d95c79ae1226f1987aeeadbb",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Feb 10, 2020, 4:30:48 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "65f1cc5ce792bb21e392f7bdc830e7538e9be41f",
+        "message": "[tinker] Change version to 1.9.14.5.\n",
+        "timestamp": "Dec 13, 2019, 6:04:55 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "2b325e2a6972c5e8364d254edcf19047d18f14c7",
+        "message": "[tinker] Change version to 1.9.14.5.\n",
+        "timestamp": "Dec 13, 2019, 6:59:57 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "50d8698c0b9c8359a669122331e46b7391d72d90",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 25, 2017, 9:30:25 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "05e689a38e4e4690a078af8460f59c44bb033cfb",
+        "message": "[tinker] CI AGAIN tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:55:01 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "cd1ee7c1a743019c1bb6459c4d82a9f4ea35282b",
+        "message": "Fix issue-866, make applyResourceTask dependsOn mergeResourcesTask.\n",
+        "timestamp": "Dec 10, 2018, 3:49:38 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "c739141ee9b9dfb8c9685c8887a54127a1cb4b91",
+        "message": "Merge pull request #985 from wstczlt/master\n\nFix issue-866, 修复对较大功能使用热修复时，偶现的ClassCastException: AbsSavedState$1 -\u003e XXX$SavedState",
+        "timestamp": "Dec 10, 2018, 7:13:14 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "cdc64edc3f17e649d95c79ae1226f1987aeeadbb",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Feb 10, 2020, 4:30:48 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "05e689a38e4e4690a078af8460f59c44bb033cfb",
+        "message": "[tinker] CI AGAIN tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:55:01 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "6f187d299977cc892932902a2f0280bced064ab5",
+        "message": "[tinker] Update version to 1.9.14.9.\n",
+        "timestamp": "Oct 15, 2020, 11:56:34 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "34e9b46fa7f781e997f37fd2e9fb2b6c8af4ce50",
+        "message": "Merge branch \u0027master\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Oct 20, 2020, 8:22:20 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "5d0ed0bed618898bdaad37ceed8bfd481ca4d69d",
+        "message": "* just compat for latest version\n",
+        "timestamp": "Aug 6, 2019, 4:43:08 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "b4cf77511c51f7529904b3c2e8b893825e08e3e7",
+        "message": "Merge pull request #1178 from lizhangqu/dev\n\n* just compat for latest version",
+        "timestamp": "Aug 21, 2019, 4:57:59 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "427e4994345f8fec93ba36f732c4ed55df133e4b",
+        "message": "* Fix for r8 disabled and kotlin code change\n",
+        "timestamp": "Oct 11, 2019, 11:30:33 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "1b157d84f10ef322c0e7ef305a82d9b1c6d5635c",
+        "message": "Merge pull request #1250 from lizhangqu/dev\n\n* Fix for r8 disabled and kotlin code change",
+        "timestamp": "Nov 14, 2019, 8:10:55 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "519657ae31bdfa15debea61eab9e67454fab06c2",
+        "message": "Merge branch \u0027master\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Mar 26, 2018, 5:53:57 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "dca59ee21847d7066d8925c4eae46754cd8bbb31",
+        "message": "[tinker] tagged commit: update version to 1.9.14.6.\n",
+        "timestamp": "Mar 11, 2020, 9:38:15 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "5ac9e4edf8f3ca729406e368fc77644423c9e319",
+        "message": "fix some device PathClassLoader bebind BootClassLoader which lead to ClassNotFoundException\n",
+        "timestamp": "Jan 3, 2020, 8:20:51 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "244678ef7902bd02587f2d9f7e742d594fa95ca3",
+        "message": "Merge pull request #1326 from yuanyang1991/fix_pathclassloader_bebind_bootclassloader\n\nfix some device PathClassLoader bebind BootClassLoader which lead to …",
+        "timestamp": "Mar 4, 2020, 7:50:52 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "2b571ec48bae87065d792309eaf70c29aa77d06b",
+        "message": "Fix Android 9.0 Inlined method resolution crossed dex file boundary\n\nFix Android 9.0 Inlined method resolution crossed dex file boundary",
+        "timestamp": "Apr 5, 2019, 5:01:32 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "084049b18d73bc5507de7b51790b41ae9a66bbd2",
+        "message": "Merge pull request #1061 from lizhangqu/dev\n\nFix Android 9.0 Inlined method resolution crossed dex file boundary",
+        "timestamp": "Apr 5, 2019, 5:36:43 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "9d5886cc92183ec61497783173cbb2eba09c0222",
+        "message": "Rename method generalUnsignedApk to generateUnsignedApk\n",
+        "timestamp": "Sep 28, 2016, 12:33:15 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "642d987ad905ba5ce4e55d43083c2fc86046a9da",
+        "message": "Merge pull request #77 from junyuecao/dev\n\nRename method generalUnsignedApk to generateUnsignedApk",
+        "timestamp": "Sep 28, 2016, 4:39:45 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "cdc64edc3f17e649d95c79ae1226f1987aeeadbb",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Feb 10, 2020, 4:30:48 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "40557db4b58c75489800d97b608b763ca2335e35",
+        "message": "[tinker] tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:32:29 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "a72bb8857e214c8892fcfa64c81ae3104a9fbd62",
+        "message": "Add RType navigation\n",
+        "timestamp": "Sep 11, 2018, 12:39:58 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "e69b3540fcdde7884b0b1e38a8c5481dd250dc28",
+        "message": "Merge pull request #923 from xingstarx/dev\n\nAdd RType navigation",
+        "timestamp": "Sep 26, 2018, 8:56:12 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "48b0058a640e6872dd01f55924071a09337f50d3",
+        "message": "fix wording and wrong link\n",
+        "timestamp": "Sep 24, 2016, 9:03:00 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "ccd4665345766063c20c0fb40d2cecc6c34086e9",
+        "message": "Merge pull request #2 from xszconfig/fix-wording\n\nfix wording and wrong link",
+        "timestamp": "Sep 24, 2016, 10:07:32 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "a72bb8857e214c8892fcfa64c81ae3104a9fbd62",
+        "message": "Add RType navigation\n",
+        "timestamp": "Sep 11, 2018, 12:39:58 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "8bb94ee1f79239a0d197dd02be4af7af40db6e2d",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 19, 2018, 10:11:40 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "a2fd5ceef883b029744253c7eb7e62fb7112943b",
+        "message": "Update README.md",
+        "timestamp": "Apr 26, 2019, 2:29:36 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "394462a156aea4fa3dcb5652ec8f7fa46b796f9a",
+        "message": "Merge branch \u0027master\u0027 of https://github.com/tencent/Tinker into dev\n",
+        "timestamp": "Jun 11, 2019, 1:57:07 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "50d8698c0b9c8359a669122331e46b7391d72d90",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 25, 2017, 9:30:25 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "40557db4b58c75489800d97b608b763ca2335e35",
+        "message": "[tinker] tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:32:29 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "36b3d0c8c6503e15d9b18498b9c093c7a5e18eba",
+        "message": "Fix mistakenly inject project",
+        "timestamp": "Nov 2, 2018, 3:09:47 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "73ce9341b96f49ede258a5a8e47d2a12732afb7d",
+        "message": "Merge pull request #964 from lizhangqu/master\n\nFix mistakenly inject project",
+        "timestamp": "Dec 9, 2018, 12:57:08 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "5dd8ed80f4867f0e23bec0f2f2f2497507897f55",
+        "message": "增加提升合成进程优先级方法\n",
+        "timestamp": "Jul 10, 2019, 5:46:26 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "ab72d3ac11a634f1e5aff8bcb9f2c27318a62a5c",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/tencent/Tinker into dev\n",
+        "timestamp": "Jul 23, 2019, 12:16:52 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "f985fd567f4d0f9f0f227b835cd44cf94d7adbd4",
+        "message": "[tinker] fix #1232\n",
+        "timestamp": "Sep 19, 2019, 5:47:11 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "7d7dbace9387f042e3807c1fb2ac691bf8f8ce7e",
+        "message": "Merge pull request #1233 from burone/dev\n\nFix issue #1232",
+        "timestamp": "Nov 14, 2019, 7:52:46 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4ca92a53e3255e1bb464d2cb1969f59723fd68ed",
+        "message": "Fix `applyResourceMapping` for all types of resource names with \u0027.\u0027\n(not just style resources may have names with \u0027.\u0027)\n",
+        "timestamp": "Sep 2, 2019, 9:58:07 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "6650dfd676c1d77a78bfedfaf2ba73f0d67fe581",
+        "message": "Merge pull request #1209 from dotcink/dev\n\nFix `applyResourceMapping` for all types of resource names with \u0027.\u0027",
+        "timestamp": "Sep 20, 2019, 4:00:59 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4741be58f468420d0a5c0dfd8e6adbd34d9918d4",
+        "message": "[dexdiff] bugfix: \u0027Index out of bound\u0027 when remove classes.\n",
+        "timestamp": "Jul 28, 2016, 8:54:54 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "e0c70b553bed01070f57883ceba9654e75dc658c",
+        "message": "Merge branch \u0027unstable/dexdiff-remove-class-bugfix\u0027 into \u0027dev\u0027\n\n[dexdiff] bugfix: \u0027Index out of bound\u0027 when remove classes.\n\nSee merge request !7\n",
+        "timestamp": "Jul 28, 2016, 8:57:17 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "a8fdc2390936495b6ad54cc9d232f53b4cba554a",
+        "message": "Fixed issues related to Gradle 6 and Android Studio 4.0 gradle plugin\n",
+        "timestamp": "Feb 5, 2020, 11:20:42 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "5eee5ec56422ed9f210235885d1669d2fb749040",
+        "message": "Merge pull request #1347 from fmoda3/upgrade-to-gradle-6-and-as-4\n\nFixed issues related to Gradle 6 and Android Studio 4.0 gradle plugin",
+        "timestamp": "Mar 4, 2020, 7:57:32 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "07635be1e646564e6aac5699b6f294fe8393dbcb",
+        "message": "修复一处AGP 4.0.x版本的兼容问题\n\nSigned-off-by: noproxy \u003ctoxzcp@gmail.com\u003e\n",
+        "timestamp": "Jan 14, 2021, 5:29:32 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "1b687c8f282f599a177fc9f20a943d5ca8dfd33e",
+        "message": "Merge pull request #1512 from noproxy/dev\n\n修复一处AGP 4.0.x版本的兼容问题",
+        "timestamp": "Mar 4, 2021, 8:18:33 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "e69b3540fcdde7884b0b1e38a8c5481dd250dc28",
+        "message": "Merge pull request #923 from xingstarx/dev\n\nAdd RType navigation",
+        "timestamp": "Sep 26, 2018, 8:56:12 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "8bb94ee1f79239a0d197dd02be4af7af40db6e2d",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 19, 2018, 10:11:40 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "979ff2d5f4fdbffa441c4ab788d9a625ab3f86c1",
+        "message": "fix generate public resource id error\n",
+        "timestamp": "Sep 26, 2016, 12:14:08 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "7b8a1c3cb6502d511796c8ed6853e593458e36a8",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into dev\n",
+        "timestamp": "Sep 26, 2016, 12:16:34 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "8e8108e5cf1668bc4a4e33c5ac971e61f44a590d",
+        "message": "Remove interception of dex re-optimizating。\n",
+        "timestamp": "Nov 30, 2019, 8:39:22 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "fd51943b5debc9c76c32ac1365ca9eba8ac3eea6",
+        "message": "Merge pull request #1294 from burone/fix-always-interpret\n\nRemove interception of dex re-optimizating",
+        "timestamp": "Dec 5, 2019, 10:18:15 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "8aa8faaa9d5d34d389613b3ed15d01f48e75dfab",
+        "message": "* compat for 3.2.0-beta05\n",
+        "timestamp": "Aug 6, 2018, 7:13:08 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "eeffcd1508aff6dc67c496ea45a4eba8caa2c92c",
+        "message": "Merge pull request #899 from lizhangqu/compat\n\nCompat for AGP 3.2.0-beta05",
+        "timestamp": "Aug 7, 2018, 4:44:39 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "5dd8ed80f4867f0e23bec0f2f2f2497507897f55",
+        "message": "增加提升合成进程优先级方法\n",
+        "timestamp": "Jul 10, 2019, 5:46:26 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "0a7b36acf19fb84a3f51c780a323e6cfc8d795ad",
+        "message": "Merge pull request #1157 from dodola/dev\n\n增加提升合成进程优先级方法",
+        "timestamp": "Jul 17, 2019, 2:15:46 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "3eade80693d12a801a071d4bd07d840b98a94340",
+        "message": "[tinker] Fix: stackoverflow caused by bsdiff.\n",
+        "timestamp": "Nov 25, 2020, 8:06:20 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "f9029da3be6477a47d8d47d85190cf8f647c79de",
+        "message": "Merge branch \u0027dev_1\u0027\n",
+        "timestamp": "Dec 2, 2020, 12:32:17 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "519657ae31bdfa15debea61eab9e67454fab06c2",
+        "message": "Merge branch \u0027master\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Mar 26, 2018, 5:53:57 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "05e689a38e4e4690a078af8460f59c44bb033cfb",
+        "message": "[tinker] CI AGAIN tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:55:01 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "3bca569427b55d4adec07101f2321c81b02a1d5c",
+        "message": "fix the missing `break` introduced by 8be71815d8bfacae6ba0ccba43244b52c18d1c86\n\nSigned-off-by: noproxy \u003ctoxzcp@gmail.com\u003e\n",
+        "timestamp": "May 15, 2019, 10:13:59 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "ee665c2eacd02a07e9d19b2309b81477beec924c",
+        "message": "Merge pull request #1098 from noproxy/dev\n\nfix the missing `break`",
+        "timestamp": "May 15, 2019, 10:30:13 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "66a2f5db7171b69a97011c2789173a03259d8e2f",
+        "message": "Merge pull request #1206 from lizhangqu/dev\n\n* compat for agp removing all transform task",
+        "timestamp": "Sep 4, 2019, 7:20:32 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "753bb55d68ee93c654a4e7dadcd2f441b1c78216",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/tencent/Tinker into dev\n",
+        "timestamp": "Sep 18, 2019, 7:07:38 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "979ff2d5f4fdbffa441c4ab788d9a625ab3f86c1",
+        "message": "fix generate public resource id error\n",
+        "timestamp": "Sep 26, 2016, 12:14:08 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "13e0eeb3ffd83cc60f61496dab58a5593398c63c",
+        "message": "Merge branch \u0027unstable/fix_gen_public_resource\u0027 into \u0027dev\u0027\n\nfix generate public resource id error\n\nSee merge request !49\n",
+        "timestamp": "Sep 26, 2016, 12:16:14 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "ab3ecc91d515e43ff0b55db2ab6334cb4d7d7f78",
+        "message": "[tinker] Adding tinker adapter for Ark, and support Ark application hot-fix update\n\nAuthor: yinguofeng \u003cyingguofeng@huawei.com\u003e\nAuthor: yinyonghong \u003cyinyonghong@huawei.com\u003e\nAuthor: huanghao \u003chuanghao@huawei.com\u003e\n",
+        "timestamp": "Aug 20, 2019, 4:13:20 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "9bebcc15746acc3a09c5e5703151b8000e9fa52f",
+        "message": "Merge pull request #1191 from dongjinguang-china/dev\n\n[tinker] Adding tinker adapter for Ark, and support Ark application h…",
+        "timestamp": "Aug 21, 2019, 5:02:36 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "f4a883926a6fd8295ca519474b98b5051a55fe7d",
+        "message": "edit tinker version to 1.7.10\n",
+        "timestamp": "May 4, 2017, 5:36:54 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "5f886c93ea845742d0b5d2bba8b510d743888ff2",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "May 8, 2017, 11:00:45 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "9dd6dc265d87be9518d25a833591c7e86e964114",
+        "message": "support customize define gradle project buildDir path.\n",
+        "timestamp": "Oct 31, 2020, 7:42:10 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "68ddbc847b1cc2e16f285ff7ca5bf41ec3e85b0f",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 25, 2020, 8:08:11 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "07af56e5a2db1b62e77c15a12d1fba85ec0c4dc4",
+        "message": "Merge pull request #6 from shwhl/patch-1\n\nupdate README.md",
+        "timestamp": "Sep 25, 2016, 6:39:35 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "1e5430096c51aabdaa3a2d339e84559263945a0d",
+        "message": "Merge remote-tracking branch \u0027Tencent/dev\u0027 into dev\n",
+        "timestamp": "Sep 26, 2016, 3:24:55 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "40557db4b58c75489800d97b608b763ca2335e35",
+        "message": "[tinker] tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:32:29 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "05e689a38e4e4690a078af8460f59c44bb033cfb",
+        "message": "[tinker] CI AGAIN tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:55:01 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "8e62766c6fca59e38f055eb2109c5556ba07d01a",
+        "message": "Add lost copyright notice.\n",
+        "timestamp": "Aug 30, 2019, 7:23:53 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "463419833f54a7d614323ab9900b54796c5f3c57",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/Tinker\n",
+        "timestamp": "Aug 30, 2019, 7:24:25 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "dca59ee21847d7066d8925c4eae46754cd8bbb31",
+        "message": "[tinker] tagged commit: update version to 1.9.14.6.\n",
+        "timestamp": "Mar 11, 2020, 9:38:15 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "05e689a38e4e4690a078af8460f59c44bb033cfb",
+        "message": "[tinker] CI AGAIN tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:55:01 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "57a988040ba328acac74a46a850b4cc72b082862",
+        "message": "Annotations with identical EncodedValues but different visibilities are\nno longer viewed as the same Annotation during patch generation\n",
+        "timestamp": "Mar 5, 2020, 7:43:30 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "8f656bd0af4963620bb66b9e34a18bf94d6ea82d",
+        "message": "Merge pull request #1351 from fmoda3/fix-annotation-comparison\n\nAnnotations with identical EncodedValues but different visibilities are",
+        "timestamp": "Mar 25, 2020, 10:52:45 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "a010cba6e21b35433da52a6a03a99af95b258593",
+        "message": "* Fix multidex task changed in agp 3.5.0\n",
+        "timestamp": "Jun 14, 2019, 5:59:10 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "ee433364ee3d928b09469e6c5e7e037daf20d1cc",
+        "message": "Merge pull request #1129 from lizhangqu/multidex\n\n* Fix multidex task changed in latest agp version",
+        "timestamp": "Jun 17, 2019, 9:41:09 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "cdc3516796897e3501388b2fa418acbe3752d48c",
+        "message": "update README.md\n\nkeep same format",
+        "timestamp": "Sep 25, 2016, 6:30:11 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "1e5430096c51aabdaa3a2d339e84559263945a0d",
+        "message": "Merge remote-tracking branch \u0027Tencent/dev\u0027 into dev\n",
+        "timestamp": "Sep 26, 2016, 3:24:55 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "50d8698c0b9c8359a669122331e46b7391d72d90",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 25, 2017, 9:30:25 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "cdc64edc3f17e649d95c79ae1226f1987aeeadbb",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Feb 10, 2020, 4:30:48 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "50d8698c0b9c8359a669122331e46b7391d72d90",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 25, 2017, 9:30:25 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "dca59ee21847d7066d8925c4eae46754cd8bbb31",
+        "message": "[tinker] tagged commit: update version to 1.9.14.6.\n",
+        "timestamp": "Mar 11, 2020, 9:38:15 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "e8b57520f888799e977c36c943e57f6aa410bf0e",
+        "message": "Update CONTRIBUTING.md\n\nJust some linguistic correction.",
+        "timestamp": "Sep 27, 2016, 1:27:15 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "3772619d6e45291c002106cf2c582c985703ab67",
+        "message": "Merge pull request #59 from junyuecao/patch-1\n\nUpdate CONTRIBUTING.md",
+        "timestamp": "Sep 27, 2016, 2:44:46 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "cb880a15905550e111f624c74267b20f8b48234a",
+        "message": "fix module tinker-android-loader published as java-runtime dependency, close #1074\n\nSigned-off-by: noproxy \u003ctoxzcp@gmail.com\u003e\n",
+        "timestamp": "May 6, 2019, 10:01:17 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "9ba803dca40da22ea97133dfe53f53df03e1fe8c",
+        "message": "Merge pull request #1089 from noproxy/dev\n\nfix issue #1074",
+        "timestamp": "May 6, 2019, 10:17:27 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "3e30fb43149e0d79c6a6cfd06a37c38b88330b8a",
+        "message": "[tinker] Sync up SharePatchInfo in no-op loader with normal loader\n\n1. Sync up SharePatchInfo in no-op loader.\n2. Fix some obvious coding style issue.\n",
+        "timestamp": "May 17, 2020, 1:28:47 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "07e413005192f370b7f6520b0bb64da0030171cb",
+        "message": "Merge pull request #1395 from simpleton/dev\n\n[tinker] Sync up SharePatchInfo in no-op loader with normal loader",
+        "timestamp": "Jun 10, 2020, 5:40:12 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "256b4967bee6d1b777c5e0c70ebcfcb0fffddff7",
+        "message": "[tinker]when lock exception,Thread.sleep() would unexpect to wai, fix it\n",
+        "timestamp": "Nov 28, 2019, 3:24:12 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "0271f8b333b45dea22dc9648e8780c931c7c8966",
+        "message": "Merge pull request #1289 from zhiwei-wu/dev\n\n[tinker]when lock exception,Thread.sleep() would unexpect to wai, fix it",
+        "timestamp": "Dec 18, 2019, 4:44:12 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "639facb89f5092cc13f82b167204aa5e18156a53",
+        "message": "Update README.md",
+        "timestamp": "Jun 11, 2019, 1:59:16 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "40e7b82be3ea9208917befdb7eb989f2633bcb35",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/tencent/Tinker into dev\n",
+        "timestamp": "Jun 11, 2019, 2:00:50 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "e8b57520f888799e977c36c943e57f6aa410bf0e",
+        "message": "Update CONTRIBUTING.md\n\nJust some linguistic correction.",
+        "timestamp": "Sep 27, 2016, 1:27:15 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "be33cd9b9d82adc230a81bade9b9f541a0871922",
+        "message": "Merge remote-tracking branch \u0027github/master\u0027 into dev\n",
+        "timestamp": "Sep 27, 2016, 3:21:00 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4409091d551e87e7b5ee085782a84082a2b74e89",
+        "message": "1. [enhancement] update tinker version to 1.7.5\n",
+        "timestamp": "Nov 18, 2016, 7:40:24 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "93ecc9351367badc02a91fac25764bee50e6e6a6",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 18, 2016, 8:45:06 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "f8c4187bd5420e1b8f05c9f6447d22bc9a13aae8",
+        "message": "Update merge_mapping.py (#435)\n\nfix spelling mistake",
+        "timestamp": "Apr 9, 2017, 12:25:17 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "69c3446e06eaaea0cbe2341a04271729495f6cfd",
+        "message": "Merge remote-tracking branch \u0027github/master\u0027 into dev\n",
+        "timestamp": "Apr 10, 2017, 7:19:15 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "73ce9341b96f49ede258a5a8e47d2a12732afb7d",
+        "message": "Merge pull request #964 from lizhangqu/master\n\nFix mistakenly inject project",
+        "timestamp": "Dec 9, 2018, 12:57:08 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "645683ae706d471b5863e6cc5bdd02b21f2c5c68",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Dec 25, 2018, 8:39:35 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "a8b2941624cd882709add1fce6e6700677ed2de1",
+        "message": "fix: No such property: variantConfiguration\n",
+        "timestamp": "Mar 16, 2020, 4:56:09 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "f1bca8f395c1ae487283f4b68016f90928e3d541",
+        "message": "Merge pull request #1358 from o0starshine0o/dev\n\nfix: No such property: variantConfiguration",
+        "timestamp": "Mar 25, 2020, 10:50:37 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "be934d6f11a3e3e94de69f9e06f990f6400fee33",
+        "message": "Optimize reference links for java doc\n",
+        "timestamp": "Sep 26, 2016, 10:59:50 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "657222c207adcc41950b07880103c1cc9189b6fa",
+        "message": "Merge pull request #28 from junyuecao/dev\n\nOptimize reference links for java doc",
+        "timestamp": "Sep 27, 2016, 7:53:52 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "b3606550c318735aa33e2aaa599e4d9b6678e0c1",
+        "message": "1. 修复代码扫描中发现的问题\n2. 清除readme以及注释中的员工姓名(doc create以外)\n",
+        "timestamp": "Jul 28, 2016, 9:00:19 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "95416369bb25ab08754bfde4eb9a8532e4a80d04",
+        "message": "Merge branch \u0027unstable/shwenzhang\u0027 into \u0027dev\u0027\n\n1. 修复代码扫描中发现的问题\n\n1. 修复代码扫描中发现的问题\n2. 清除readme以及注释中的员工姓名(doc create以外)\n\nSee merge request !8\n",
+        "timestamp": "Jul 29, 2016, 6:57:01 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "9dc4f3a6212d8f1e944f428427ec2c840865a255",
+        "message": "* Android Gradle Plugin 3.4.0+ R8 support\n",
+        "timestamp": "May 25, 2019, 3:47:56 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "25e2960cddfc98be434640df15e2574bbbecf009",
+        "message": "Merge pull request #1112 from lizhangqu/r8\n\n* Android Gradle Plugin 3.4.0+ R8 support",
+        "timestamp": "May 25, 2019, 11:50:20 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "943de4e8b06a25d109830bfd1e3a4ed68aecaf8c",
+        "message": "chore(build): upgrade osdeterctor to 1.6.0\n",
+        "timestamp": "Aug 31, 2018, 10:25:56 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "dbbc47085600a638b4df4b08ae029a9731587a96",
+        "message": "Merge pull request #917 from simpleton/dev\n\nupgrade os-detector version to latest(1.6.0)",
+        "timestamp": "Sep 4, 2018, 9:09:53 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "8bd2931ee2830cbc2529b1db34a27ef4faf68304",
+        "message": "Update README.md",
+        "timestamp": "Dec 19, 2019, 8:30:32 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "017fb1b601b6dc31fa5da6f635f113a5eac1f461",
+        "message": "Update README.md",
+        "timestamp": "Dec 19, 2019, 8:56:45 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "fedf75353f4708f8af209c78f2ea11b41cbe16f7",
+        "message": "[enhancement] change readme tinker version to 1.9.0\n",
+        "timestamp": "Nov 1, 2017, 8:04:45 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "9097c96b4144fb89ce874f8b374506c84e91baf5",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 1, 2017, 11:10:44 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "210ee603ed434b4460bdbd42a0547776d23c3023",
+        "message": "* support android gradle plugin 3.4.0, ignore dex keep\n",
+        "timestamp": "May 24, 2019, 8:25:03 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "8e926c5d80ac8fb8e51f1057e72fc4b641579fae",
+        "message": "Merge pull request #1110 from lizhangqu/3.4.0\n\n* support android gradle plugin 3.4.0, ignore dex keep",
+        "timestamp": "May 25, 2019, 11:52:33 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "3772619d6e45291c002106cf2c582c985703ab67",
+        "message": "Merge pull request #59 from junyuecao/patch-1\n\nUpdate CONTRIBUTING.md",
+        "timestamp": "Sep 27, 2016, 2:44:46 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "be33cd9b9d82adc230a81bade9b9f541a0871922",
+        "message": "Merge remote-tracking branch \u0027github/master\u0027 into dev\n",
+        "timestamp": "Sep 27, 2016, 3:21:00 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "d7c7e607bcac34fef24dcd298e6839566b5c88a1",
+        "message": "Merge pull request #1481 from yanbober/issues1480_support_builddir\n\nsupport customize define gradle project buildDir path.",
+        "timestamp": "Nov 16, 2020, 7:09:57 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "68ddbc847b1cc2e16f285ff7ca5bf41ec3e85b0f",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 25, 2020, 8:08:11 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "6d079cefe55a8ac8f081d94807e6e247a37a63aa",
+        "message": "Correct log output spelling\n",
+        "timestamp": "Sep 27, 2016, 10:53:55 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "0b24c8ba648f5b01fe50eb318c46437f1cdc1b5e",
+        "message": "Merge pull request #56 from junyuecao/dev\n\nCorrect log output spelling",
+        "timestamp": "Sep 27, 2016, 10:58:43 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "5477c4ac47001d3f6f90981da1cd05de7e1c7457",
+        "message": "修复热修后 SharedLibrary R 类中的资源 ID 与 AssetManager 中 Package ID 不一致导致的资源找不到问题\n",
+        "timestamp": "Apr 7, 2020, 3:43:08 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "6d0216b0f84a147fcbe247dcb8c0518986c951ef",
+        "message": "Merge pull request #1372 from lbtrace/bugfix_resource_not_found\n\n修复热修后 SharedLibrary R 类中的资源 ID 与 AssetManager 中 Package ID 不一致导致的资源找不到问题",
+        "timestamp": "Apr 20, 2020, 2:54:19 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "41391cf7b84edf47d0f5ddd4130f5f6f10905745",
+        "message": "[tinker] bugfix: TinkerApplicationInlineFence is not kept in main dex automatically.\n",
+        "timestamp": "Sep 18, 2019, 8:09:53 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "8dfbf114715a3382bdc42faa017b0a916564ed58",
+        "message": "Merge branch \u0027hotfix/1.9.14.x\u0027 into dev\n",
+        "timestamp": "Sep 18, 2019, 8:11:24 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4716de102fe383a8550b6fd2cd63c906d9a1be38",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into shwenzhang\n\n# Conflicts:\n#\tbuild.gradle\n",
+        "timestamp": "Aug 5, 2016, 8:55:23 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "50d8698c0b9c8359a669122331e46b7391d72d90",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 25, 2017, 9:30:25 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "8f04297bd29534f88e800747109e932e0ef619e0",
+        "message": "[enhancement] increase wait time for oppo/vivo\n",
+        "timestamp": "Feb 22, 2018, 4:41:45 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "d22ab8c1847dbe889d39aadd91887c59a538008f",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Mar 8, 2018, 4:12:30 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "f006dd10664ef0578b1aaa75ad1ee95066464bdc",
+        "message": "[tinker-sample] fix cannot found task assembleDebug issue in gradle 2.2.0\n",
+        "timestamp": "Sep 26, 2016, 3:24:33 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "1debc0d31d9ec8ea283502f30b837a94f97bb029",
+        "message": "Merge pull request #15 from dodola/dev\n\n[tinker-sample] Fixes #3",
+        "timestamp": "Sep 26, 2016, 3:50:09 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "dca59ee21847d7066d8925c4eae46754cd8bbb31",
+        "message": "[tinker] tagged commit: update version to 1.9.14.6.\n",
+        "timestamp": "Mar 11, 2020, 9:38:15 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "40557db4b58c75489800d97b608b763ca2335e35",
+        "message": "[tinker] tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:32:29 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "50d8698c0b9c8359a669122331e46b7391d72d90",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Nov 25, 2017, 9:30:25 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "519657ae31bdfa15debea61eab9e67454fab06c2",
+        "message": "Merge branch \u0027master\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Mar 26, 2018, 5:53:57 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4716de102fe383a8550b6fd2cd63c906d9a1be38",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into shwenzhang\n\n# Conflicts:\n#\tbuild.gradle\n",
+        "timestamp": "Aug 5, 2016, 8:55:23 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "dca59ee21847d7066d8925c4eae46754cd8bbb31",
+        "message": "[tinker] tagged commit: update version to 1.9.14.6.\n",
+        "timestamp": "Mar 11, 2020, 9:38:15 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "80002a462fd6d02f86ba66888bccb536ed74519d",
+        "message": "1. 过滤Android N的情况\n2. 对于Xposed在Sample给出处理方案\n3. 增加可以通过sp禁用tinker\n",
+        "timestamp": "Jul 26, 2016, 10:14:39 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "7e494df45c5937e2c1481b3f064162d2536c7b2c",
+        "message": "Merge branch \u0027unstable/shwenzhang\u0027 into \u0027dev\u0027\n\n1. 过滤Android N的情况\n\n2. 对于Xposed在Sample给出处理方案\n3. 增加可以通过sp禁用tinker\n\nSee merge request !5\n",
+        "timestamp": "Jul 26, 2016, 10:41:57 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4716de102fe383a8550b6fd2cd63c906d9a1be38",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into shwenzhang\n\n# Conflicts:\n#\tbuild.gradle\n",
+        "timestamp": "Aug 5, 2016, 8:55:23 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "05e689a38e4e4690a078af8460f59c44bb033cfb",
+        "message": "[tinker] CI AGAIN tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:55:01 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "b6779efb04da71524ec6aefdef97b54a83c2122d",
+        "message": "[tinker] update version code to 1.9.5\n",
+        "timestamp": "Mar 16, 2018, 12:44:46 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "5d48d7dfbd82e36b3113265052718c74d2d9046d",
+        "message": "[tinker] update version code to 1.9.5\n",
+        "timestamp": "Mar 25, 2018, 2:15:22 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "eab6387a69975ffd3eefe67fa31970b179c4a87f",
+        "message": "Merge branch \u0027unstable/dexdiff-no-md5-kept\u0027 into \u0027dev\u0027\n\n[dexdiff] 合入不保留MD5版本\n\nP.S. 改动之后dexdiff的输出与旧版互不兼容。\n\nSee merge request !11\n",
+        "timestamp": "Aug 1, 2016, 9:59:38 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "5037822389e408f09c74801f065f7c3f388854be",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into shwenzhang\n",
+        "timestamp": "Aug 1, 2016, 10:01:33 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "5216b905a717079692c45d5d9f2f4fdd2af491f7",
+        "message": "fix build path PatternSyntaxException. \n",
+        "timestamp": "Mar 14, 2021, 1:29:13 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "c2a4c60889308ec54b74b503fdfda9d107d1fb33",
+        "message": "Merge pull request #1538 from yanbober/bugfix_exception\n\nfix bug for #1525 #1508 ",
+        "timestamp": "Mar 17, 2021, 4:22:46 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "cedc32cb0a14dcd0ff18e7884fbeab73ca7db434",
+        "message": "[tinker] update sample-android version to 1.9.14.12\n",
+        "timestamp": "Mar 11, 2021, 3:08:35 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "961d5b2090a55d87c96a9e057935ff38baca1f5e",
+        "message": "Merge pull request #1536 from passionli/sampleVersion\n\n[tinker] update sample-android version to 1.9.14.12",
+        "timestamp": "Mar 12, 2021, 4:22:03 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "8be71815d8bfacae6ba0ccba43244b52c18d1c86",
+        "message": "fixes #1084\nadd option to enable trimming dex to remove loader classes for every dex;\nadd option to suppress the loader classes existence in any dex.\n\nSigned-off-by: noproxy \u003ctoxzcp@gmail.com\u003e\n",
+        "timestamp": "May 14, 2019, 9:14:49 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "b4ab960032771309a6b714f5d0595cf52c8106b5",
+        "message": "Merge pull request #1096 from noproxy/dev\n\nfixes #1084",
+        "timestamp": "May 15, 2019, 5:34:29 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "de31320aadc0a5655de2733a392ed0763ac810ca",
+        "message": "Fix TinkerPlugin compile error: applyResourceTask.dependsOn.\n",
+        "timestamp": "Dec 18, 2018, 5:01:26 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "06dc822f918cb3925e8dfc9d2c1128e7d33e1e6c",
+        "message": "Merge pull request #996 from wstczlt/master\n\nIssue-994,  Fix TinkerPlugin compile error: applyResourceTask.dependsOn.",
+        "timestamp": "Dec 24, 2018, 8:25:31 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "cdc64edc3f17e649d95c79ae1226f1987aeeadbb",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Feb 10, 2020, 4:30:48 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "dca59ee21847d7066d8925c4eae46754cd8bbb31",
+        "message": "[tinker] tagged commit: update version to 1.9.14.6.\n",
+        "timestamp": "Mar 11, 2020, 9:38:15 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "f4484cdf5ee7e40e5dfb5216c93638642dbba31e",
+        "message": "[tinker] Update version to 1.9.14.8.\n",
+        "timestamp": "Sep 4, 2020, 7:34:45 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "983576f2f60f685ff0fd9396cb214dfd812785fc",
+        "message": "[tinker] Update version to 1.9.14.8.\n",
+        "timestamp": "Sep 27, 2020, 8:04:44 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "cdc3516796897e3501388b2fa418acbe3752d48c",
+        "message": "update README.md\n\nkeep same format",
+        "timestamp": "Sep 25, 2016, 6:30:11 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "07af56e5a2db1b62e77c15a12d1fba85ec0c4dc4",
+        "message": "Merge pull request #6 from shwhl/patch-1\n\nupdate README.md",
+        "timestamp": "Sep 25, 2016, 6:39:35 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "7614df842d5eeee89272d02107763ebfdf68edc6",
+        "message": "[enhancement]add tinker version to manifest file\n",
+        "timestamp": "Oct 24, 2017, 12:10:11 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "1e10c45c100af6b74d2c66c000928a3a03dccb1a",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Oct 31, 2017, 4:50:27 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4716de102fe383a8550b6fd2cd63c906d9a1be38",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into shwenzhang\n\n# Conflicts:\n#\tbuild.gradle\n",
+        "timestamp": "Aug 5, 2016, 8:55:23 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "519657ae31bdfa15debea61eab9e67454fab06c2",
+        "message": "Merge branch \u0027master\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Mar 26, 2018, 5:53:57 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "13e0eeb3ffd83cc60f61496dab58a5593398c63c",
+        "message": "Merge branch \u0027unstable/fix_gen_public_resource\u0027 into \u0027dev\u0027\n\nfix generate public resource id error\n\nSee merge request !49\n",
+        "timestamp": "Sep 26, 2016, 12:16:14 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "7b8a1c3cb6502d511796c8ed6853e593458e36a8",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into dev\n",
+        "timestamp": "Sep 26, 2016, 12:16:34 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "519657ae31bdfa15debea61eab9e67454fab06c2",
+        "message": "Merge branch \u0027master\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Mar 26, 2018, 5:53:57 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "40557db4b58c75489800d97b608b763ca2335e35",
+        "message": "[tinker] tagged commit: update version to 1.9.14.7.\n",
+        "timestamp": "May 10, 2020, 12:32:29 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "36b3d0c8c6503e15d9b18498b9c093c7a5e18eba",
+        "message": "Fix mistakenly inject project",
+        "timestamp": "Nov 2, 2018, 3:09:47 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "645683ae706d471b5863e6cc5bdd02b21f2c5c68",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Dec 25, 2018, 8:39:35 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "4716de102fe383a8550b6fd2cd63c906d9a1be38",
+        "message": "Merge remote-tracking branch \u0027origin/dev\u0027 into shwenzhang\n\n# Conflicts:\n#\tbuild.gradle\n",
+        "timestamp": "Aug 5, 2016, 8:55:23 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "cdc64edc3f17e649d95c79ae1226f1987aeeadbb",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/Tencent/tinker into dev\n",
+        "timestamp": "Feb 10, 2020, 4:30:48 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "0a7b36acf19fb84a3f51c780a323e6cfc8d795ad",
+        "message": "Merge pull request #1157 from dodola/dev\n\n增加提升合成进程优先级方法",
+        "timestamp": "Jul 17, 2019, 2:15:46 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "ab72d3ac11a634f1e5aff8bcb9f2c27318a62a5c",
+        "message": "Merge branch \u0027dev\u0027 of https://github.com/tencent/Tinker into dev\n",
+        "timestamp": "Jul 23, 2019, 12:16:52 PM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "59f89b11a2ff91aa682f749692116cd3a3fd6eed",
+        "message": "[tinker] correct the conditional expression in AndroidNClassLoader.findClass.\n",
+        "timestamp": "Apr 7, 2017, 10:37:13 AM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "6c099f8bd0075852d4702d72cbd8afd9ce242614",
+        "message": "Merge remote-tracking branch \u0027github/dev\u0027 into dev\n",
+        "timestamp": "Apr 10, 2017, 7:19:27 AM"
+      }
+    }
+  },
+  {
+    "source": {
+      "commit": {
+        "id": "9facc05a8c47405e56bb584c15f0099f5e874f8d",
+        "message": "修改applicationid获取的方式，避免设置flavors后applicationid不对\n",
+        "timestamp": "Apr 23, 2020, 12:46:37 PM"
+      }
+    },
+    "target": {
+      "commit": {
+        "id": "9d88db3515b95a8c80cfa3d6292a084a95b879ef",
+        "message": "Merge pull request #1384 from liuling07/dev\n\n修改applicationid获取的方式，避免设置flavors后applicationid不对",
+        "timestamp": "May 10, 2020, 1:07:13 PM"
+      }
+    }
+  }
+]
