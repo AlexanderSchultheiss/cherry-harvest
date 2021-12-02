@@ -1,11 +1,11 @@
 import cherry.CherryPick;
 import cherry.CherrySearch;
-import cherry.CherrySource;
+import cherry.GitCherrySearch;
+import cherry.ScanCherrySearch;
 import com.google.gson.Gson;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import util.Branch;
 import util.Repository;
 
 import java.io.File;
@@ -30,7 +30,7 @@ public class Main {
 
         try {
             Repository repository = new Repository(pathToGitRepository);
-            cherrySearch = new CherrySearch(repository);
+            cherrySearch = new ScanCherrySearch(repository);
             LOGGER.info("Starting cherry search.");
             final List<CherryPick> cherryPicks = cherrySearch.findAllCherryPicks();
             LOGGER.info("Finished cherry search.");

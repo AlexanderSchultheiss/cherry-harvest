@@ -37,3 +37,10 @@
     * think about whether this is always the case (excl. --no-commit) or there are exceptions
 * How to avoid duplicates while computing cherry picks?
 * How could we filter pairs of branches that do not need to be considered?
+* Check if hash/equals for commit is ok?
+  
+* Check for same branch (compare it with itself)
+* Commits 
+* diff2listOfCommits
+    * diff mehrfach
+    * id eindeutig

@@ -62,8 +62,6 @@ public class Repository {
         return branches;
     }
 
-
-
     /**
      * Uses id to find commit in the repository
      * @param id Name of the commit
@@ -75,7 +73,7 @@ public class Repository {
         try( RevWalk walk = new RevWalk(git.getRepository())) {
             ObjectId objectId = ObjectId.fromString(id);
             RevCommit commit = walk.parseCommit(objectId);
-            return createCommitHandle(id, commit, branch);
+            return createCommitHandle(commit, branch);
         } catch (IOException e) {
             throw e;
         }
@@ -85,10 +83,19 @@ public class Repository {
         Computes diff between commit and its parent,
         which is then used to generate patch id
      */
-    public String getPatchId(Commit commit) throws IOException, GitAPIException {
+    public Optional<String> getPatchId(Commit commit) throws IOException, GitAPIException {
         // source: https://stackoverflow.com/questions/38664776/how-do-i-do-git-show-sha1-using-jgit
         ObjectId newTreeId = git.getRepository().resolve(commit.id() + "^{tree}");
         ObjectId oldTreeId = git.getRepository().resolve(commit.id() + "^^{tree}");
+
+        if(newTreeId == null){
+            LOGGER.error("Could not resolve commit with id " + commit.id());
+            return Optional.empty();
+        } else if (oldTreeId == null){
+            LOGGER.error("Could not resolve parent commit with id " + commit.id());
+            LOGGER.error("This error could originate from dealing with the root commit.");
+            return Optional.empty();
+        }
 
         try( ObjectReader reader = git.getRepository().newObjectReader() ){
             CanonicalTreeParser newTree = new CanonicalTreeParser();
@@ -105,10 +112,21 @@ public class Repository {
             String patchId = formatter.getCalulatedPatchId().toString();
 
             formatter.close();
-            return patchId;
+            return Optional.of(patchId);
         } catch (IOException | GitAPIException e) {
             throw e;
         }
+    }
+
+    public Set<Commit> getAllCommits() throws IOException, GitAPIException {
+        Set<Commit> commits = new HashSet<>();
+        Iterable<RevCommit> revCommits = git.log().all().call();
+
+        for(RevCommit c : revCommits){
+            commits.add(createCommitHandle(c, null));
+        }
+
+        return commits;
     }
 
     public void checkoutAllBranches() throws GitAPIException, IOException {
@@ -155,7 +173,8 @@ public class Repository {
         return name2ref.values();
     }
 
-    private Commit createCommitHandle(String id, RevCommit rev, Branch branch){
+    private Commit createCommitHandle(RevCommit rev, Branch branch){
+        String id = rev.getName();
         String message = rev.getFullMessage();
         Date time = new Date(seconds2milliseconds(rev.getCommitTime()));
         return new Commit(id, branch, message, time);
