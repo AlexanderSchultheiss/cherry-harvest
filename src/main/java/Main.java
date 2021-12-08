@@ -48,7 +48,9 @@ public class Main {
 
                 Gson gson = new Gson();
                 String[] pathSegments = pathToGitRepository.toString().split(Pattern.quote(File.separator));
-                FileWriter writer = new FileWriter("output/" + pathSegments[pathSegments.length - 1] +".json");
+                String pathName = "output/" + pathSegments[pathSegments.length - 1] +".json";
+                LOGGER.info("Exporting cherry picks to " + pathName);
+                FileWriter writer = new FileWriter(pathName);
                 gson.toJson(cherrySet, writer);
 
                 writer.flush();

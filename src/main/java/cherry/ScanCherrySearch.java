@@ -22,8 +22,10 @@ public class ScanCherrySearch implements CherrySearch {
         Set<CherryPick> cherryPicks = new HashSet<>();
         Map<String, Set<Commit>> patchid2commits = new HashMap<>();
 
+        LOGGER.info("Fetching all eligible commits from repository.");
         Set<Commit> commits = repository.getAllCommitsWithOneParent();
 
+        LOGGER.info("Computing patch ids.");
         for (Commit c : commits) {
             Optional<String> patchOptional = repository.getPatchId(c);
 
@@ -39,6 +41,7 @@ public class ScanCherrySearch implements CherrySearch {
             }
         }
 
+        LOGGER.info("Computing cherry picks.");
         for (Set<Commit> commitSet : patchid2commits.values()) {
             if (commitSet.size() > 1) {
                 final List<Commit> commitList = new ArrayList<Commit>(commitSet);
