@@ -12,9 +12,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 public class Main {
@@ -29,10 +31,14 @@ public class Main {
         final CherrySearch cherrySearch;
 
         try {
+            long start = System.nanoTime();
             Repository repository = new Repository(pathToGitRepository);
             cherrySearch = new ScanCherrySearch(repository);
             LOGGER.info("Starting cherry search.");
             final Set<CherryPick> cherrySet = cherrySearch.findAllCherryPicks();
+            long end = System.nanoTime();
+            long elapsed = TimeUnit.NANOSECONDS.toSeconds(end-start);
+            LOGGER.info("Elapsed time: " + elapsed + "s");
             LOGGER.info("Finished cherry search.");
 
             if(cherrySet.isEmpty()){
@@ -42,7 +48,6 @@ public class Main {
 
                 Gson gson = new Gson();
                 String[] pathSegments = pathToGitRepository.toString().split(Pattern.quote(File.separator));
-                LOGGER.info(pathSegments[pathSegments.length-1]);
                 FileWriter writer = new FileWriter("output/" + pathSegments[pathSegments.length - 1] +".json");
                 gson.toJson(cherrySet, writer);
 

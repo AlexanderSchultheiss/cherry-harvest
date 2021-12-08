@@ -1,6 +1,5 @@
 package util;
 
-import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -9,7 +8,6 @@ import org.eclipse.jgit.diff.PatchIdDiffFormatter;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.SymbolicRef;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -19,11 +17,20 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class Repository {
     final Logger LOGGER = LoggerFactory.getLogger(Repository.class);
     private final Path path;
     private Git git;
+
+    public enum ListMode{
+        LOCAL,
+        REMOTE,
+        ALL
+    }
 
     public Repository(Path path) throws IOException {
         this.path = path;
@@ -35,38 +42,9 @@ public class Repository {
     }
 
     /**
-     * Lists local branches available in VariantsRepository (git branch)
-     */
-    public List<Branch> getLocalBranches() throws GitAPIException {
-        List<Ref> branchList = git.branchList().call();
-        List<Branch> branches = new ArrayList<>();
-
-        for(Ref b : branchList){
-            branches.add(new Branch(b.getName()));
-        }
-
-        return branches;
-    }
-
-    /**
-     * Lists local branches available in VariantsRepository (git branch)
-     */
-    public List<Branch> getRemoteBranches() throws GitAPIException {
-        List<Ref> branchList = git.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
-        List<Branch> branches = new ArrayList<>();
-
-        for(Ref b : branchList){
-            branches.add(new Branch(b.getName()));
-        }
-
-        return branches;
-    }
-
-    /**
      * Uses id to find commit in the repository
      * @param id Name of the commit
      * @return  Handle for commit, representing commit in the repository
-     * @throws IOException
      */
 
     public Commit getCommitHandleById(String id, Branch branch) throws IOException {
@@ -82,6 +60,8 @@ public class Repository {
     /**
         Computes diff between commit and its parent,
         which is then used to generate patch id
+        @param commit   Commit for which diff to parent (and patch id) is computed
+        @return         Patch id for diff between given commit and its parent
      */
     public Optional<String> getPatchId(Commit commit) throws IOException, GitAPIException {
         // source: https://stackoverflow.com/questions/38664776/how-do-i-do-git-show-sha1-using-jgit
@@ -93,11 +73,10 @@ public class Repository {
             return Optional.empty();
         } else if (oldTreeId == null){
             LOGGER.error("Could not resolve parent tree for commit with id " + commit.id());
-            LOGGER.error("This error could originate from dealing with the root commit.");
             return Optional.empty();
         }
 
-        try( ObjectReader reader = git.getRepository().newObjectReader() ){
+        try(ObjectReader reader = git.getRepository().newObjectReader() ){
             CanonicalTreeParser newTree = new CanonicalTreeParser();
             newTree.reset(reader, newTreeId);
 
@@ -109,7 +88,7 @@ public class Repository {
             formatter.setRepository(git.getRepository());
             formatter.format(diffEntries);
 
-            String patchId = formatter.getCalulatedPatchId().toString();
+            String patchId = formatter.getCalulatedPatchId().getName();
 
             formatter.close();
             return Optional.of(patchId);
@@ -119,58 +98,56 @@ public class Repository {
     }
 
     public Set<Commit> getAllCommits() throws IOException, GitAPIException {
-        Set<Commit> commits = new HashSet<>();
-        Iterable<RevCommit> revCommits = git.log().all().call();
+        return getCommits(Optional.empty());
+    }
 
-        for(RevCommit c : revCommits){
-            commits.add(createCommitHandle(c, null));
-        }
+    public Set<Commit> getAllCommitsWithOneParent() throws IOException, GitAPIException {
+        return getCommits(Optional.of((c -> c.getParentCount() == 1)));
+    }
+
+    /**
+     * Retrieves commits from repository and filters them, if a predicate is given
+     *
+     * @param predicateOptional     Predicate for filtering the commits
+     * @return  (Optionally filtered) Set of commit handles
+     */
+    private Set<Commit> getCommits(Optional<Predicate<RevCommit>> predicateOptional) throws IOException, GitAPIException {
+        Set<Commit> commits;
+        Iterable<RevCommit> revCommits = git.log().all().call();
+        Predicate<RevCommit> predicate = predicateOptional.isEmpty()? (c -> true) : predicateOptional.get();
+
+        commits = StreamSupport.stream(revCommits.spliterator(), false)
+                .filter(predicate)
+                .map(c -> createCommitHandle(c, null))
+                .collect(Collectors.toSet());
 
         return commits;
     }
 
-    public void checkoutAllBranches() throws GitAPIException, IOException {
-        List<Ref> branchList = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
-        Collection<Ref> branches = filterNonLocalBranches(branchList);
-        for(Ref b : branches){
-            String refName = b.getName();
-            if(refName.startsWith("refs/remotes/") && !(b instanceof SymbolicRef)){
-                String branchName = b.getName().replace("refs/remotes/origin/", "");
-                git.checkout().
-                        setCreateBranch(true).
-                        setName(branchName).
-                        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
-                        setStartPoint("origin/" + branchName).
-                        call();
-            }
-        }
-    }
+    public List<Branch> getBranches(Repository.ListMode mode) throws GitAPIException {
+        List<Branch> branches = new ArrayList<>();
+        List<Ref> refList;
 
-    private Collection<Ref> filterNonLocalBranches(List<Ref> branches) {
-        Map<String, Ref> name2ref = new HashMap<>();
-
-        for(Ref b : branches){
-            if(!(b instanceof SymbolicRef)) {
-                String name = b.getName();
-                String shortName;
-                if (name.startsWith("refs/remotes/")) {
-                    shortName = name.replace("refs/remotes/origin/", "");
-                } else if (name.startsWith("refs/heads/")) {
-                    shortName = b.getName().replace("refs/heads/", "");
-                } else {
-                    LOGGER.debug("Cannot process branch " + name);
-                    continue;
-                }
-
-                if (name2ref.containsKey(shortName)) {
-                    name2ref.remove(shortName);
-                } else {
-                    name2ref.put(shortName, b);
-                }
-            }
+        switch (mode){
+            case ALL:
+                refList = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
+                break;
+            case REMOTE:
+                refList = git.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
+                break;
+            case LOCAL:
+                refList = git.branchList().call();
+                break;
+            default:
+                LOGGER.warn("List Mode not known - will only get local branches.");
+                refList = git.branchList().call();
         }
 
-        return name2ref.values();
+        for(Ref b : refList){
+            branches.add(new Branch(b.getName()));
+        }
+
+        return branches;
     }
 
     private Commit createCommitHandle(RevCommit rev, Branch branch){

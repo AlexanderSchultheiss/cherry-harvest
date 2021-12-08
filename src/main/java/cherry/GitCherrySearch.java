@@ -24,7 +24,7 @@ public class GitCherrySearch implements CherrySearch {
      */
 
     public Set<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
-        final ArrayList<Branch> branches = new ArrayList<>(repository.getRemoteBranches());
+        final ArrayList<Branch> branches = new ArrayList<Branch>(repository.getBranches(Repository.ListMode.REMOTE));
         Set<CherryPick> cherryPicks = new HashSet<>();
 
         for(int i = 0; i < branches.size()-1 ; ++i){
