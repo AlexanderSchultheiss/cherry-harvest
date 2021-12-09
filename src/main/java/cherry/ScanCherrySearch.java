@@ -26,31 +26,48 @@ public class ScanCherrySearch implements CherrySearch {
         Set<Commit> commits = repository.getAllCommitsWithOneParent();
 
         LOGGER.info("Computing patch ids.");
-        for (Commit c : commits) {
-            Optional<String> patchOptional = repository.getPatchId(c);
-
-            if(patchOptional.isPresent()){
-                String patchID = patchOptional.get();
-                if (patchid2commits.containsKey(patchID)) {
-                    patchid2commits.get(patchID).add(c);
-                } else {
-                    Set<Commit> similarCommits = new HashSet<>();
-                    similarCommits.add(c);
-                    patchid2commits.put(patchID, similarCommits);
-                }
-            }
-        }
+        patchid2commits = repository.computeCherryPickCandidates();
 
         LOGGER.info("Computing cherry picks.");
         for (Set<Commit> commitSet : patchid2commits.values()) {
-            if (commitSet.size() > 1) {
-                final List<Commit> commitList = new ArrayList<Commit>(commitSet);
+            if (commitSet.size() > 2) {
+                cherryPicks.addAll(matchOldestWithRest(commitSet));
+            } else if (commitSet.size() == 2){
+                Commit[] c = new Commit[2];
+                commitSet.toArray(c);
+                cherryPicks.add(CherryPick.determineSourceAndTarget(c[0], c[1]));
+            }
+        }
 
-                for (int i = 0; i < commitList.size() - 1; ++i) {
-                    for (int j = i+1; j < commitList.size(); ++j){
-                        cherryPicks.add(CherryPick.determineSourceAndTarget(commitList.get(i), commitList.get(j)));
-                    }
-                }
+        return cherryPicks;
+    }
+
+    private CherrySource findSourceCommit(Set<Commit> commitSet) {
+        Commit oldest = Collections.min(commitSet, Comparator.comparing(Commit::timestamp));
+        CherrySource source = new CherrySource(oldest);
+        return source;
+    }
+
+    private Set<CherryPick> matchAll(Set<Commit> commitSet){
+        final List<Commit> commitList = new ArrayList<Commit>(commitSet);
+        Set<CherryPick> cherryPicks = new HashSet<>();
+
+        for (int i = 0; i < commitList.size() - 1; ++i) {
+            for (int j = i+1; j < commitList.size(); ++j){
+                cherryPicks.add(CherryPick.determineSourceAndTarget(commitList.get(i), commitList.get(j)));
+            }
+        }
+
+        return cherryPicks;
+    }
+
+    private Set<CherryPick> matchOldestWithRest(Set<Commit> commitSet){
+        CherrySource source = findSourceCommit(commitSet);
+        Set<CherryPick> cherryPicks = new HashSet<>();
+
+        for(Commit c: commitSet){
+            if(c != source.commit()){
+                cherryPicks.add(new CherryPick(source, new CherryTarget(c)));
             }
         }
 

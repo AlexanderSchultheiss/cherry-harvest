@@ -6,14 +6,10 @@ import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.PatchIdDiffFormatter;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
-import org.eclipse.jgit.errors.MissingObjectException;
-import org.eclipse.jgit.errors.StopWalkException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -21,11 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -40,14 +34,17 @@ public class Repository {
         ALL
     }
 
+
     public Repository(Path path) throws IOException {
         this.path = path;
         git = GitUtil.loadGitRepo(path.toFile());
     }
 
+
     public Path path() {
         return path;
     }
+
 
     /**
      * Uses id to find commit in the repository
@@ -66,15 +63,16 @@ public class Repository {
         }
     }
 
+
     /**
-     * Computes diff between commit and its parent, which is then used to generate patch id
+     * Computes patch id for diff between commit and its parent
      *
      * (Properties of patch id, see https://git-scm.com/docs/git-patch-id:
      * A patch id is "'reasonably stable', but at the same time also reasonably unique,
      * i.e., two patches that have the same 'patch ID' are almost guaranteed to be the same thing.
      * IOW, you can use this thing to look for likely duplicate commits.")
      *
-     * @param commit Commit for which patch id for diff to parent is computed
+     * @param commit Commit handle for which patch id for diff to parent is computed
      * @return Patch id for diff between given commit and its parent
      */
     public Optional<String> getPatchId(Commit commit) throws IOException, GitAPIException {
@@ -111,13 +109,76 @@ public class Repository {
         }
     }
 
+
+    /**
+     * Computes patch id for diff between commit and its parent
+     *
+     * (Properties of patch id, see https://git-scm.com/docs/git-patch-id:
+     * A patch id is "'reasonably stable', but at the same time also reasonably unique,
+     * i.e., two patches that have the same 'patch ID' are almost guaranteed to be the same thing.
+     * IOW, you can use this thing to look for likely duplicate commits.")
+     *
+     * @param revCommit Commit for which patch id for diff to parent is computed
+     * @return Patch id for diff between given commit and its parent
+     */
+
+    private Optional<String> getPatchId(RevCommit revCommit) throws IOException, GitAPIException {
+        RevCommit parentCommit = revCommit.getParent(0);
+
+        CanonicalTreeParser currentTreeParser = new CanonicalTreeParser();
+        CanonicalTreeParser prevTreeParser = new CanonicalTreeParser();
+
+        try (ObjectReader reader = git.getRepository().newObjectReader()) {
+            if (revCommit.getTree() == null) {
+                throw new RuntimeException("Could not obtain RevTree from child commit " + revCommit.getId());
+            }
+            if (parentCommit.getTree() == null) {
+                throw new RuntimeException("Could not obtain RevTree from parent commit " + parentCommit.getId());
+            }
+
+            currentTreeParser.reset(reader, revCommit.getTree());
+            prevTreeParser.reset(reader, parentCommit.getTree());
+        }
+
+        Optional<String> patchIdOptional = Optional.empty();
+
+        try(PatchIdDiffFormatter formatter = new PatchIdDiffFormatter()) {
+            formatter.setRepository(git.getRepository());
+            formatter.format(currentTreeParser, prevTreeParser);
+
+            String patchId = formatter.getCalulatedPatchId().getName();
+            patchIdOptional = Optional.of(patchId);
+        }
+
+        return patchIdOptional;
+    }
+
+
     public Set<Commit> getAllCommits() throws IOException, GitAPIException {
         return getCommits(Optional.empty());
     }
 
+
     public Set<Commit> getAllCommitsWithOneParent() throws IOException, GitAPIException {
-        //return getCommits(Optional.of((c -> c.getParentCount() == 1)));
         return getCommits(Optional.of(new ParentRevFilter(1,1)));
+    }
+
+
+    /**
+     * Provides commit handles for a (sub-)set of the commits in the repository, depending on the filter
+     *
+     * @param revFilterOptional Predicate for filtering the commits
+     * @return (Optionally filtered) Set of commit handles
+     */
+
+    private Set<Commit> getCommits(Optional<RevFilter> revFilterOptional) throws IOException, GitAPIException {
+        Iterable <RevCommit> revCommits = getRevCommits(revFilterOptional);
+
+        Set<Commit> commits = StreamSupport.stream(revCommits.spliterator(), false)
+                .map(c -> createCommitHandle(c, null))
+                .collect(Collectors.toSet());
+
+        return commits;
     }
 
     /**
@@ -126,8 +187,9 @@ public class Repository {
      * @param revFilterOptional Predicate for filtering the commits
      * @return (Optionally filtered) Set of commit handles
      */
-    private Set<Commit> getCommits(Optional<RevFilter> revFilterOptional) throws IOException, GitAPIException {
-        Set<Commit> commits;
+
+    private Iterable<RevCommit> getRevCommits(Optional<RevFilter> revFilterOptional) throws GitAPIException, IOException {
+
         LogCommand log = git.log().all();
 
         if(revFilterOptional.isPresent()){
@@ -137,14 +199,39 @@ public class Repository {
 
         Iterable<RevCommit> revCommits = log.call();
 
-        commits = StreamSupport.stream(revCommits.spliterator(), false)
-                .map(c -> createCommitHandle(c, null))
-                .collect(Collectors.toSet());
-
-        return commits;
+        return revCommits;
     }
 
-    /** Gets local / remote / all branches from repository, depending on given ListMode
+    /**
+     * Computes cherry pick candidates based on patch ids.
+     *
+     * @return Commits that have the same patch id, organized as a map of patch id to commits
+     */
+
+    public Map<String, Set<Commit>> computeCherryPickCandidates() throws GitAPIException, IOException {
+        Map<String, Set<Commit>> patch2commits = new HashMap<>();
+        Iterable<RevCommit> revCommits = getRevCommits(Optional.of(new ParentRevFilter(1,1)));
+
+        for(RevCommit rev: revCommits){
+            Optional<String> patchOptional = this.getPatchId(rev);
+
+            if(patchOptional.isPresent()){
+                String patchID = patchOptional.get();
+                if (patch2commits.containsKey(patchID)) {
+                    patch2commits.get(patchID).add(createCommitHandle(rev, null));
+                } else {
+                    Set<Commit> similarCommits = new HashSet<>();
+                    similarCommits.add(createCommitHandle(rev, null));
+                    patch2commits.put(patchID, similarCommits);
+                }
+            }
+        }
+
+        return patch2commits;
+    }
+
+
+    /** Gets specific branches from repository, as specified by ListMode
 
         @param mode     Specifies which branches to get (local/remote/all)
         @return         List of branch handles
@@ -174,6 +261,15 @@ public class Repository {
 
         return branches;
     }
+
+
+    /**
+     * Creates Commit handle for given RevCommit (internal jgit representation of a commit)
+     *
+     * @param rev    RevCommit that is going to be represent by Commit handle
+     * @param branch Branch which is considered in this case
+     * @return
+     */
 
     private Commit createCommitHandle(RevCommit rev, Branch branch) {
         String id = rev.getName();
