@@ -10,6 +10,7 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -77,36 +78,18 @@ public class Repository {
      */
     public Optional<String> getPatchId(Commit commit) throws IOException, GitAPIException {
         // source: https://stackoverflow.com/questions/38664776/how-do-i-do-git-show-sha1-using-jgit
-        ObjectId newTreeId = git.getRepository().resolve(commit.id() + "^{tree}");
-        ObjectId oldTreeId = git.getRepository().resolve(commit.id() + "^^{tree}");
+        ObjectId currentTreeId = git.getRepository().resolve(commit.id() + "^{tree}");
+        ObjectId parentTreeId = git.getRepository().resolve(commit.id() + "^^{tree}");
 
-        if (newTreeId == null) {
+        if (currentTreeId == null) {
             LOGGER.error("Could not resolve tree for commit with id " + commit.id());
             return Optional.empty();
-        } else if (oldTreeId == null) {
+        } else if (parentTreeId == null) {
             LOGGER.error("Could not resolve parent tree for commit with id " + commit.id());
             return Optional.empty();
         }
 
-        try (ObjectReader reader = git.getRepository().newObjectReader()) {
-            CanonicalTreeParser newTree = new CanonicalTreeParser();
-            newTree.reset(reader, newTreeId);
-
-            CanonicalTreeParser oldTree = new CanonicalTreeParser();
-            oldTree.reset(reader, oldTreeId);
-
-            List<DiffEntry> diffEntries = git.diff().setNewTree(newTree).setOldTree(oldTree).call();
-            PatchIdDiffFormatter formatter = new PatchIdDiffFormatter();
-            formatter.setRepository(git.getRepository());
-            formatter.format(diffEntries);
-
-            String patchId = formatter.getCalulatedPatchId().getName();
-
-            formatter.close();
-            return Optional.of(patchId);
-        } catch (IOException | GitAPIException e) {
-            throw e;
-        }
+        return computePatchId(currentTreeId, parentTreeId);
     }
 
 
@@ -124,23 +107,38 @@ public class Repository {
 
     private Optional<String> getPatchId(RevCommit revCommit) throws IOException, GitAPIException {
         RevCommit parentCommit = revCommit.getParent(0);
+        RevTree currentTree = revCommit.getTree();
+        RevTree parentTree = parentCommit.getTree();
+
+        if (currentTree == null) {
+            throw new RuntimeException("Could not obtain RevTree from child commit " + revCommit.getId());
+        }
+        if (parentTree== null) {
+            throw new RuntimeException("Could not obtain RevTree from parent commit " + parentCommit.getId());
+        }
+
+        return computePatchId(currentTree, parentTree);
+    }
+
+    /**
+     * Helper function to compute patch id for diff between two trees
+     *
+     * @param currentTreeId ObjectId (representing a tree) that is considered in the diff as child
+     * @param prevTreeId    ObjectId (representing a tree) that is considered in the diff as parent
+     * @return Patch id for diff between given trees
+     */
+
+    private Optional<String> computePatchId(ObjectId currentTreeId, ObjectId prevTreeId) throws IOException {
+        Optional<String> patchIdOptional = Optional.empty();
 
         CanonicalTreeParser currentTreeParser = new CanonicalTreeParser();
         CanonicalTreeParser prevTreeParser = new CanonicalTreeParser();
 
+
         try (ObjectReader reader = git.getRepository().newObjectReader()) {
-            if (revCommit.getTree() == null) {
-                throw new RuntimeException("Could not obtain RevTree from child commit " + revCommit.getId());
-            }
-            if (parentCommit.getTree() == null) {
-                throw new RuntimeException("Could not obtain RevTree from parent commit " + parentCommit.getId());
-            }
-
-            currentTreeParser.reset(reader, revCommit.getTree());
-            prevTreeParser.reset(reader, parentCommit.getTree());
+            currentTreeParser.reset(reader, currentTreeId);
+            prevTreeParser.reset(reader, prevTreeId);
         }
-
-        Optional<String> patchIdOptional = Optional.empty();
 
         try(PatchIdDiffFormatter formatter = new PatchIdDiffFormatter()) {
             formatter.setRepository(git.getRepository());
@@ -181,6 +179,7 @@ public class Repository {
         return commits;
     }
 
+
     /**
      * Retrieves commits from repository and filters them, if a predicate is given
      *
@@ -201,6 +200,7 @@ public class Repository {
 
         return revCommits;
     }
+
 
     /**
      * Computes cherry pick candidates based on patch ids.
@@ -236,6 +236,7 @@ public class Repository {
         @param mode     Specifies which branches to get (local/remote/all)
         @return         List of branch handles
      */
+
     public List<Branch> getBranches(Repository.ListMode mode) throws GitAPIException {
         List<Branch> branches = new ArrayList<>();
         List<Ref> refList;

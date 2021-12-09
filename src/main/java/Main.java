@@ -44,7 +44,7 @@ public class Main {
             if(cherrySet.isEmpty()){
                 LOGGER.info("No cherry picks found!");
             } else {
-                LOGGER.info("Number of unique cherry picks: " + cherrySet.size());
+                LOGGER.info("Number of cherry picks: " + cherrySet.size());
 
                 Gson gson = new Gson();
                 String[] pathSegments = pathToGitRepository.toString().split(Pattern.quote(File.separator));
