@@ -16,6 +16,11 @@ import java.nio.file.Path;
 
 import java.util.Set;
 
+
+/**
+ Filter cherry search results that are stored in JSON file
+ */
+
 public class ResultsFilter {
     final static Logger LOGGER = LoggerFactory.getLogger(ResultsFilter.class);
 
@@ -35,9 +40,11 @@ public class ResultsFilter {
         }
 
         try {
+            // ObjectMapper needed to be able to interpret JSON object as Set<CherryPick>
             ObjectMapper objectMapper = new ObjectMapper();
             Set<CherryPick> cherryPicks = objectMapper.readValue(path.toFile(), new TypeReference<Set<CherryPick>>(){});
 
+            // Initialize filters that are then applied to the cherry pick candidates
             Filter filter = new OrFilter(new MessageFilter(), new TimeFilter());
             Set<CherryPick> filtered = filter.filter(cherryPicks);
 

@@ -10,7 +10,10 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 
-// Taken from SPLVariant Repo
+/**
+ * Copied from SPLVariant Repo
+ *
+ */
 
 public class GitUtil {
 

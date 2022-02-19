@@ -9,24 +9,27 @@ import util.Repository;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * ScanCherrySearch enables search for cherry picks by scanning all the commits in a repository,
+ * looking for matching commits based on patch id.
+ *
+ * @author Maike
+ */
+
 public class ScanCherrySearch implements CherrySearch {
     final Logger LOGGER = LoggerFactory.getLogger(ScanCherrySearch.class);
     private Repository repository;
 
     public ScanCherrySearch(Repository repo) throws IOException {
-        repository = repo;
+        this.repository = repo;
     }
 
     @Override
     public Set<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
         Set<CherryPick> cherryPicks = new HashSet<>();
-        Map<String, Set<Commit>> patchid2commits = new HashMap<>();
 
-        LOGGER.info("Fetching all eligible commits from repository.");
-        Set<Commit> commits = repository.getAllCommitsWithOneParent();
-
-        LOGGER.info("Computing patch ids.");
-        patchid2commits = repository.computeCherryPickCandidates();
+        LOGGER.info("Fetching all eligible commits from repository and computing fetch ids.");
+        Map<String, Set<Commit>> patchid2commits = repository.computeCherryPickCandidates();
 
         LOGGER.info("Computing cherry picks.");
         for (Set<Commit> commitSet : patchid2commits.values()) {
@@ -42,13 +45,14 @@ public class ScanCherrySearch implements CherrySearch {
         return cherryPicks;
     }
 
-    private CherrySource findSourceCommit(Set<Commit> commitSet) {
-        Commit oldest = Collections.min(commitSet, Comparator.comparing(Commit::timestamp));
-        CherrySource source = new CherrySource(oldest);
-        return source;
-    }
-
-    private Set<CherryPick> matchAll(Set<Commit> commitSet){
+    /**
+     * Matches all commits in set pairwise (except to themselves),
+     * as all have the same patch id.
+     *
+     * @param commitSet Set of commits having the same patch id
+     * @return Set of possible CherryPicks
+     */
+    public Set<CherryPick> matchAll(Set<Commit> commitSet){
         final List<Commit> commitList = new ArrayList<Commit>(commitSet);
         Set<CherryPick> cherryPicks = new HashSet<>();
 
@@ -61,16 +65,42 @@ public class ScanCherrySearch implements CherrySearch {
         return cherryPicks;
     }
 
-    private Set<CherryPick> matchOldestWithRest(Set<Commit> commitSet){
-        CherrySource source = findSourceCommit(commitSet);
+    /**
+     * Matches all commits in the set to the oldest commit (except to itself),
+     * as it is assumed to be the "original" commit.
+     * The oldest commit serves as the CherrySource in all CherryPicks,
+     * the other commits are the CherryTarget, respectively.
+     *
+     * @param commitSet Set of commits having the same patch id
+     * @return Set of possible CherryPicks
+     */
+    public Set<CherryPick> matchOldestWithRest(Set<Commit> commitSet){
         Set<CherryPick> cherryPicks = new HashSet<>();
 
-        for(Commit c: commitSet){
-            if(c != source.commit()){
-                cherryPicks.add(new CherryPick(source, new CherryTarget(c)));
+        if(commitSet.size() > 1){
+            // TODO: new CherrySource object for each CherryPick, or reused in every CherryPick?
+            // (should not make a difference due to equals method in commit?)
+            CherrySource source = findSourceCommit(commitSet);
+
+            for(Commit c: commitSet){
+                if(!c.equals(source.commit())){
+                    cherryPicks.add(new CherryPick(source, new CherryTarget(c)));
+                }
             }
         }
 
         return cherryPicks;
+    }
+
+    /**
+     * Picks a commit as the CherrySource from a given set of commits.
+     *
+     * @param commitSet Set of commits having the same patch id
+     * @return Oldest commit as CherrySource
+     */
+    private CherrySource findSourceCommit(Set<Commit> commitSet) {
+        Commit oldest = Collections.min(commitSet, Comparator.comparing(Commit::timestamp));
+        CherrySource source = new CherrySource(oldest);
+        return source;
     }
 }

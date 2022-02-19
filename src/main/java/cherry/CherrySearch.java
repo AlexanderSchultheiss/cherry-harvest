@@ -3,8 +3,8 @@ package cherry;
 import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
+
 
 public interface CherrySearch {
     /**
@@ -12,5 +12,5 @@ public interface CherrySearch {
      *
      * @return  Set of possible cherry picks
      */
-    public Set<CherryPick> findAllCherryPicks() throws GitAPIException, IOException;
+     Set<CherryPick> findAllCherryPicks() throws GitAPIException, IOException;
 }

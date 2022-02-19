@@ -10,6 +10,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 
+/**
+ * GitCherrySearch enables search for cherry picks based on <git cherry> command.
+ * GitCherrySearch is kind of deprecated - using ScanCherrySearch is recommended instead, as it is much faster.
+ *
+ * @author Maike
+ */
+
+@Deprecated
 public class GitCherrySearch implements CherrySearch {
     final Logger LOGGER = LoggerFactory.getLogger(GitCherrySearch.class);
     private Repository repository;
@@ -22,7 +30,6 @@ public class GitCherrySearch implements CherrySearch {
         Finds all cherry picks in the given repository
         by computing cherry picks for all relevant pairs of branches
      */
-
     public Set<CherryPick> findAllCherryPicks() throws GitAPIException, IOException {
         final ArrayList<Branch> branches = new ArrayList<Branch>(repository.getBranches(Repository.ListMode.REMOTE));
         Set<CherryPick> cherryPicks = new HashSet<>();
@@ -31,13 +38,10 @@ public class GitCherrySearch implements CherrySearch {
             Branch branch1 =  branches.get(i);
 
             for(Branch branch2 : branches.subList(i+1, branches.size())){
-                // LOGGER.info("Searching for cherry picks in " + branch1.name() + " and " + branch2.name());
                 List<CherryPick> cherries = findCherryPicks(branch1, branch2);
-                // LOGGER.info("Found " + cherries.size() + " CherryPicks");
                 cherryPicks.addAll(cherries);
             }
         }
-
 
         return cherryPicks;
     }
@@ -51,15 +55,14 @@ public class GitCherrySearch implements CherrySearch {
      * @throws IOException
      * @throws GitAPIException
      */
-
-    // see https://stackoverflow.com/questions/2922652/git-is-there-a-way-to-figure-out-where-a-commit-was-cherry-picked-from :
-    // call <git cherry upstream head> -> record '-' output
-    // call <git cherry head upstream> -> record '-' output
-    // need to match those -> either try to find commit messages including id of original commit (when -x option used)
-    // or use patch id / commit messages to match candidates
-    // when matched, determine which is source and which target by checking time stamps
-
     public List<CherryPick> findCherryPicks(Branch branch1, Branch branch2) throws IOException, GitAPIException {
+        // see https://stackoverflow.com/questions/2922652/git-is-there-a-way-to-figure-out-where-a-commit-was-cherry-picked-from :
+        // call <git cherry upstream head> -> record '-' output
+        // call <git cherry head upstream> -> record '-' output
+        // need to match those -> either try to find commit messages including id of original commit (when -x option used)
+        // or use patch id / commit messages to match candidates
+        // when matched, determine which is source and which target by checking time stamps
+
         final List<String> branch1AsHead = cherry(branch2, branch1);
         final List<String> branch2AsHead = cherry(branch1, branch2);
 
@@ -79,15 +82,25 @@ public class GitCherrySearch implements CherrySearch {
         return cherries;
     }
 
-    /*
+    /**
         "Wrapper" for shell command <git cherry upstream head>
 
-        @return Relevant output that has been parsed to be used within this program
+        @return Relevant output that has been parsed to be used in this context
      */
     private List<String> cherry(Branch upstream, Branch head) throws IOException {
         final String[] command = {"git", "cherry", upstream.name(), head.name()};
         return parseOutput(executeCommand(command));
     }
+
+    /**
+     * Computes CherryPicks by using strategies depending on the size of the input.
+     *
+     * @param output1   Set of commits eligible for cherry picks from one direction (i.e. git cherry branch1 branch2)
+     * @param output2   Set of commits eligible for cherry picks from other direction (git cherry branch2 branch1)
+     * @return  Set of CherryPicks with commits for which a match was found
+     * @throws GitAPIException
+     * @throws IOException
+     */
 
     private List<CherryPick> computeCherryPicks(Map<String,Commit> output1, Map<String, Commit> output2) throws GitAPIException, IOException {
         List<CherryPick> cherryPicks = new ArrayList<>();
@@ -100,13 +113,25 @@ public class GitCherrySearch implements CherrySearch {
             output1.clear();
             output2.clear();
         } else if(output1.size() == 0 || output2.size() == 0) {
+            // no match possible
            return cherryPicks;
         } else {
+            // use matching strategies if no direct match is possible
             cherryPicks = matchCandidates(output1, output2);
         }
 
         return cherryPicks;
     }
+
+    /**
+     * Finds matching commits from two given sets.
+     *
+     * @param output1   Set of commits eligible for cherry picks from one direction (i.e. git cherry branch1 branch2)
+     * @param output2   Set of commits eligible for cherry picks from other direction (git cherry branch2 branch1)
+     * @return  Set of CherryPicks with commits for which a match was found
+     * @throws GitAPIException
+     * @throws IOException
+     */
 
     private List<CherryPick> matchCandidates(Map<String, Commit> output1, Map<String, Commit> output2) throws GitAPIException, IOException {
         List<CherryPick> cherryPicks = new ArrayList<>();
@@ -127,7 +152,7 @@ public class GitCherrySearch implements CherrySearch {
      *         (esp. achieved by -x option for <git cherry-pick>)
      *
      * @param targetCandidates  Commits that could be identified as CherryTarget due to source id in commit message
-     * @param sourceCandidates  Commits that could be identified as CherrySource due to being included as a source in commit message
+     * @param sourceCandidates  Commits that could be identified as CherrySource due to being included as a source id in commit message
      * @return  Matches based on cherry pick information in commit messages
      */
     private List<CherryPick> computeDirectMatches(Map<String, Commit> targetCandidates, Map<String, Commit> sourceCandidates){
@@ -136,10 +161,10 @@ public class GitCherrySearch implements CherrySearch {
         for(Commit commit : targetCandidatesList){
             String message = commit.message();
 
-            // TODO: use more generic way to look for source id e.g. use regex to find 40 chars long SHA1?
-            //            (but how could we ensure then that this id refers to a cherry pick?)
-
             if(message.contains("cherry picked from commit")){
+                // TODO: use more generic way to look for source id e.g. use regex to find SHA1?
+                //            (but how could we ensure then that this id refers to a cherry pick?)
+
                 String[] messageComponents = message.split("\s");
                 String sourceId = messageComponents[messageComponents.length - 1];
                 sourceId = sourceId.strip().replace(")", "");
@@ -228,8 +253,6 @@ public class GitCherrySearch implements CherrySearch {
             }
 
         }
-
-        // if(cherryPicks.size() != 0) LOGGER.info("Matched " + cherryPicks.size() + " CherryPicks by PatchId");
 
         return cherryPicks;
     }

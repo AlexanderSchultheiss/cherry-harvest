@@ -5,6 +5,11 @@ import filter.Filter;
 
 import java.util.Set;
 
+/**
+ * OrFilter allows to combine the result sets of two filters
+ *
+ * @author Maike
+ */
 public class OrFilter implements Filter {
     Filter left;
     Filter right;

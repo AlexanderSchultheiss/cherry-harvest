@@ -4,7 +4,6 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.PatchIdDiffFormatter;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
@@ -24,7 +23,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class Repository {
+/**
+ * Repository provides wrapper for git functionality.
+ *
+ * @author Maike
+ */
+
+public class Repository implements AutoCloseable{
     final Logger LOGGER = LoggerFactory.getLogger(Repository.class);
     private final Path path;
     private Git git;
@@ -53,7 +58,6 @@ public class Repository {
      * @param id Name of the commit
      * @return Handle for commit, representing commit in the repository
      */
-
     public Commit getCommitHandleById(String id, Branch branch) throws IOException {
         try (RevWalk walk = new RevWalk(git.getRepository())) {
             ObjectId objectId = ObjectId.fromString(id);
@@ -210,6 +214,7 @@ public class Repository {
 
     public Map<String, Set<Commit>> computeCherryPickCandidates() throws GitAPIException, IOException {
         Map<String, Set<Commit>> patch2commits = new HashMap<>();
+
         Iterable<RevCommit> revCommits = getRevCommits(Optional.of(new ParentRevFilter(1,1)));
 
         for(RevCommit rev: revCommits){
@@ -279,6 +284,7 @@ public class Repository {
         return new Commit(id, branch, message, time);
     }
 
+    @Override
     public void close() {
         git.close();
     }

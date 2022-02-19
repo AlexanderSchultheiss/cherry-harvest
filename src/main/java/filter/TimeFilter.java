@@ -5,18 +5,25 @@ import filter.Filter;
 
 import java.util.*;
 
-public class TimeFilter implements Filter {
-    // Default difference in milliseconds between two commits to be considered for rebase
-    // TODO: check (empirically) what would be a good default threshold
+/**
+ * TimeFilter filters CherryPick objects based on time difference between commits
+ * as a heuristic to distinguish rebase and cherry pick
+ *
+ * @author Maike
+ */
 
-    long diffThreshold;
+// TODO: Implement filter based on parent relation instead,
+//          as this might not work as expected, since we only have timestamps of original commit time!
+
+public class TimeFilter implements Filter {
+    long diffThreshold; // Default difference in milliseconds between two commits to be considered for rebase
 
     public TimeFilter(long diff){
         this.diffThreshold = diff;
     }
 
     public TimeFilter(){
-        diffThreshold = 60000;
+        this(60000);
     }
 
     public Set<CherryPick> filter(Set<CherryPick> cherryPicks){
@@ -30,6 +37,7 @@ public class TimeFilter implements Filter {
             CherryPick current = cpArray[i];
             boolean rebase = false;
 
+            // check in both directions whether commit builds a chain with successor or predecessor (time-wise)
             if(i-1 >= 0){
                 CherryPick previous = cpArray[i-1];
                 rebase = timeDifferenceBelowThreshold(previous, current)? true : false;
@@ -40,6 +48,7 @@ public class TimeFilter implements Filter {
                 rebase = timeDifferenceBelowThreshold(current, next)? true : false;
             }
 
+            // if not the case -> this could be a true cherry pick
             if(!rebase){
                 filtered.add(current);
             }
