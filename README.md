@@ -51,3 +51,8 @@ Challenges that I see:
 
 ## Custom Commit Equality Check
 If `git cherry` cannot be used as expected, we have to implement our own commit equality check. Two commits should be considered equal if the applied the same changes. Changes are identified by their content (i.e., the added or removed line) and their context (i.e., the lines that come directly before and after the change).
+
+# How to Use API 
+* See Main.java as an example of how to use API 
+  * Provide path to git repository as an argument to Repository
+  * Choose between ScanCherrySearch (internal computation) and GitCherrySearch (uses git cherry command) to compute cherry picks
