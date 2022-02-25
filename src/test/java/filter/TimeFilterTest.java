@@ -1,2 +1,4 @@
-package filter;public class TimeFilterTest {
+package filter;
+
+public class TimeFilterTest {
 }

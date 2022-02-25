@@ -1,2 +1,4 @@
-package filter;public class MessageFilterTest {
+package filter;
+
+public class MessageFilterTest {
 }
