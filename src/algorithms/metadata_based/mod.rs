@@ -1,1 +1,1 @@
-mod message_scan;
+pub mod message_scan;

@@ -1,2 +1,2 @@
-mod diff_exact;
-mod diff_similarity;
+pub mod diff_exact;
+pub mod diff_similarity;
