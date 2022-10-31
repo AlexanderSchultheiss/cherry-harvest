@@ -1,3 +1,5 @@
+mod algorithms;
+
 use git2::{Error, Repository};
 use std::fs::File;
 use temp_dir::TempDir;
