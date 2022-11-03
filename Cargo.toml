@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 git2 = "0.15.0"
 temp-dir = "0.1.11"
+env_logger = "0.9.1"
