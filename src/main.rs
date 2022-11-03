@@ -1,4 +1,3 @@
-use std::env::args;
 #[macro_use]
 extern crate log;
 

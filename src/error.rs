@@ -2,7 +2,8 @@ use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    RepoLoadError(String),
+    RepoCloneError(git2::Error),
+    RepoLoadError(git2::Error),
 }
 
 #[derive(Debug)]
@@ -17,7 +18,7 @@ impl Error {
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::RepoLoadError(string) => write!(f, "{}", string),
+            Self::RepoLoadError(error) | Self::RepoCloneError(error) => write!(f, "{}", error),
         }
     }
 }
