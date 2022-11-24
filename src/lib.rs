@@ -1,6 +1,7 @@
 use crate::algorithms::Harvester;
 use crate::git::{CommitData, LoadedRepository, RepoLocation};
 use git2::{BranchType, Commit};
+use log::debug;
 
 pub mod algorithms;
 mod error;
@@ -26,9 +27,17 @@ pub fn search_with<T: Harvester>(p0: &str, harvester: T) -> Vec<CherryGroup> {
                 .branches(Some(BranchType::Remote))
                 .unwrap()
                 .map(|f| f.unwrap())
-                .map(|s| s.0.get().peel_to_commit().unwrap())
+                .filter_map(|s| {
+                    // TODO: Fix unclean error handling
+                    if s.0.name() != Ok(Some("origin/HEAD")) {
+                        Some(s.0.get().peel_to_commit().unwrap())
+                    } else {
+                        None
+                    }
+                })
                 .collect::<Vec<Commit>>();
             for head in branch_heads {
+                debug!("{}", head.id());
                 let mut rev_walk = repository.revwalk().unwrap();
                 rev_walk.push(head.id()).unwrap();
                 for id in rev_walk.map(|c| c.unwrap()) {
