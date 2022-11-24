@@ -5,6 +5,8 @@ use std::fmt::{Display, Formatter};
 use std::path::Path;
 use temp_dir::TempDir;
 
+pub use util::clone_or_load;
+
 pub enum RepoLocation<'a> {
     FileSystem(&'a Path),
     Website(&'a str),
@@ -46,13 +48,14 @@ pub enum LoadedRepository {
     },
 }
 
+#[derive(Debug, Clone)]
 pub struct CommitData {
-    id: String,
-    message: String,
-    diff: Vec<String>,
-    author: String,
-    committer: String,
-    time: Time,
+    pub id: String,
+    pub message: String,
+    pub diff: Vec<String>,
+    pub author: String,
+    pub committer: String,
+    pub time: Time,
 }
 
 impl CommitData {
