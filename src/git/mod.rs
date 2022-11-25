@@ -1,12 +1,12 @@
 mod util;
 
-use git2::{Diff, DiffFormat, Repository, Time};
+use git2::{Commit, Diff, DiffFormat, Repository, Time};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
 use temp_dir::TempDir;
 
+use crate::error::Error;
 pub use util::clone_or_load;
-pub use util::commit_diff;
 
 pub enum RepoLocation<'a> {
     FileSystem(&'a Path),
@@ -68,6 +68,16 @@ impl<'repo> From<Diff<'repo>> for DiffData {
         .unwrap();
         Self { lines }
     }
+}
+
+/// Determine the diff of the given commit (i.e., the changes that were applied by this commit.
+///
+/// # Errors
+/// Returns a GitDiff error, if git2 returns an error during diffing.
+///
+pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<DiffData, Error> {
+    // Call the internal utility function for retrieving a git2::Diff, and then convert it
+    util::commit_diff(repository, commit).map(DiffData::from)
 }
 
 #[derive(Debug, Clone)]

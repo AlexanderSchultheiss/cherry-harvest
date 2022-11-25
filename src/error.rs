@@ -1,9 +1,11 @@
+use git2::Error as GError;
 use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    RepoCloneError(git2::Error),
-    RepoLoadError(git2::Error),
+    RepoClone(GError),
+    RepoLoad(GError),
+    GitDiff(GError),
 }
 
 #[derive(Debug)]
@@ -18,7 +20,9 @@ impl Error {
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::RepoLoadError(error) | Self::RepoCloneError(error) => write!(f, "{}", error),
+            Self::RepoLoad(error) | Self::RepoClone(error) | Self::GitDiff(error) => {
+                write!(f, "{}", error)
+            }
         }
     }
 }

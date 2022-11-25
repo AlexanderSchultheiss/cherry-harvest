@@ -52,7 +52,7 @@ pub fn search_with<T: Harvester>(p0: &str, harvester: T) -> Vec<CherryGroup> {
                                 }
                             }
                             .to_string(),
-                            diff: DiffData::from(commit_diff(&repository, &c).unwrap()),
+                            diff: commit_diff(&repository, &c).unwrap(),
                             author: c.author().to_string(),
                             committer: c.committer().to_string(),
                             time: c.time(),

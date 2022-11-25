@@ -26,7 +26,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
                 }
                 Err(error) => {
                     error!("was not able to load {}; reason: {}", repo_location, error);
-                    Err(Error::new(ErrorKind::RepoLoadError(error)))
+                    Err(Error::new(ErrorKind::RepoLoad(error)))
                 }
             }
         }
@@ -44,7 +44,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
                 }
                 Err(error) => {
                     error!("was not able to clone {}; reason: {}", repo_location, error);
-                    return Err(Error::new(ErrorKind::RepoCloneError(error)));
+                    return Err(Error::new(ErrorKind::RepoClone(error)));
                 }
             };
 
@@ -58,21 +58,33 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
 }
 
 /// Determine the diff of the given commit (i.e., the changes that were applied by this commit.
+///
+/// # Errors
+/// Returns a GitDiff error, if git2 returns an error during diffing.
+///
 pub fn commit_diff<'a, 'b>(
     repository: &'a Repository,
     commit: &'b Commit,
-) -> Result<Diff<'a>, git2::Error> {
-    repository.diff_tree_to_tree(
-        // Retrieve the parent commit and map it to an Option variant
-        commit.parent(0).map(|c| c.tree().unwrap()).ok().as_ref(),
-        Some(&commit.tree().unwrap()),
-        None,
-    )
+) -> Result<Diff<'a>, Error> {
+    repository
+        .diff_tree_to_tree(
+            // Retrieve the parent commit and map it to an Option variant.
+            // If there is no parent, the commit is considered as the root
+            commit.parent(0).map(|c| c.tree().unwrap()).ok().as_ref(),
+            Some(&commit.tree().unwrap()),
+            None,
+        )
+        .map_err(|e| {
+            error!("Was not able to retrieve diff for {}: {}", commit.id(), e);
+            Error::new(ErrorKind::GitDiff(e))
+        })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::git::DiffData;
+    use git2::Oid;
 
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -88,6 +100,32 @@ mod tests {
         let loaded_repo = clone_or_load(&location).unwrap();
         if let LocalRepo { path, .. } = loaded_repo {
             assert_eq!(path, location.to_str());
+        }
+    }
+
+    #[test]
+    fn diff_commit() {
+        init();
+
+        let expected: Vec<&str> = vec!["F diff --git a/src/git/util.rs b/src/git/util.rs\nindex bbdccd5..3af944b 100644\n--- a/src/git/util.rs\n+++ b/src/git/util.rs\n",
+                                       "H @@ -64,7 +64,7 @@ pub fn commit_diff<'a, 'b>(\n", "  ) -> Result<Diff<'a>, git2::Error> {\n", 
+                                       "      repository.diff_tree_to_tree(\n", 
+                                       "          // Retrieve the parent commit and map it to an Option variant\n", 
+                                       "-         commit.parent(0).map(|c| c.tree())?.ok().as_ref(),\n",
+                                       "+         commit.parent(0).map(|c| c.tree().unwrap()).ok().as_ref(),\n",
+                                       "          Some(&commit.tree().unwrap()),\n",
+                                       "          None,\n", "      )\n"];
+
+        use std::env;
+        // We try to open this project's repository
+        let path_buf = env::current_dir().unwrap();
+        let location = RepoLocation::FileSystem(path_buf.as_path());
+        let loaded_repo = clone_or_load(&location).unwrap();
+        let oid = Oid::from_str("fe849e49cfe6239068ab45fa6680979c59e1bbd9").unwrap();
+        if let LocalRepo { repository, .. } = loaded_repo {
+            let commit = repository.find_commit(oid).unwrap();
+            let diff = DiffData::from(commit_diff(&repository, &commit).unwrap());
+            assert_eq!(expected, diff.lines)
         }
     }
 
