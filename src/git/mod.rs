@@ -1,11 +1,12 @@
 mod util;
 
-use git2::{Repository, Time};
-use std::fmt::{Display, Formatter};
+use git2::{Diff, DiffFormat, Repository, Time};
+use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
 use temp_dir::TempDir;
 
 pub use util::clone_or_load;
+pub use util::commit_diff;
 
 pub enum RepoLocation<'a> {
     FileSystem(&'a Path),
@@ -49,10 +50,31 @@ pub enum LoadedRepository {
 }
 
 #[derive(Debug, Clone)]
+pub struct DiffData {
+    pub lines: Vec<String>,
+}
+
+impl<'repo> From<Diff<'repo>> for DiffData {
+    fn from(diff: Diff) -> Self {
+        let mut lines = vec![];
+        diff.print(DiffFormat::Patch, |_, _, c| {
+            lines.push(format!(
+                "{} {}",
+                c.origin(),
+                String::from_utf8(Vec::from(c.content())).unwrap()
+            ));
+            true
+        })
+        .unwrap();
+        Self { lines }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct CommitData {
     pub id: String,
     pub message: String,
-    pub diff: Vec<String>,
+    pub diff: DiffData,
     pub author: String,
     pub committer: String,
     pub time: Time,
@@ -62,7 +84,7 @@ impl CommitData {
     pub fn new(
         id: String,
         message: String,
-        diff: Vec<String>,
+        diff: DiffData,
         author: String,
         committer: String,
         time: Time,

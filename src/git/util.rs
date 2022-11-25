@@ -1,11 +1,11 @@
 use crate::error::{Error, ErrorKind};
 use crate::git::LoadedRepository::{LocalRepo, WebRepo};
 use crate::git::{LoadedRepository, RepoLocation};
-use git2::Repository;
+use git2::{Commit, Diff, Repository, Tree};
 use log::{debug, error};
 use temp_dir::TempDir;
 
-/// Clones a repository into a temporary directory, or loads an existing repository from the filesystem.
+/// Clone a repository into a temporary directory, or load an existing repository from the filesystem.
 ///
 /// # Errors
 /// Returns an ErrorKind::RepoCloneError, iff the given string literal was interpreted as
@@ -55,6 +55,19 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
             })
         }
     }
+}
+
+/// Determine the diff of the given commit (i.e., the changes that were applied by this commit.
+pub fn commit_diff<'a, 'b>(
+    repository: &'a Repository,
+    commit: &'b Commit,
+) -> Result<Diff<'a>, git2::Error> {
+    repository.diff_tree_to_tree(
+        // Retrieve the parent commit and map it to an Option variant
+        commit.parent(0).map(|c| c.tree())?.ok().as_ref(),
+        Some(&commit.tree().unwrap()),
+        None,
+    )
 }
 
 #[cfg(test)]

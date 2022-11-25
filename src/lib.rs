@@ -1,5 +1,5 @@
 use crate::algorithms::Harvester;
-use crate::git::{CommitData, LoadedRepository, RepoLocation};
+use crate::git::{commit_diff, CommitData, DiffData, LoadedRepository, RepoLocation};
 use git2::{BranchType, Commit, DiffFormat, Error, Oid, Tree};
 use log::debug;
 
@@ -40,39 +40,9 @@ pub fn search_with<T: Harvester>(p0: &str, harvester: T) -> Vec<CherryGroup> {
                 debug!("{}", head.id());
                 let mut rev_walk = repository.revwalk().unwrap();
                 rev_walk.push(head.id()).unwrap();
-                let mut p: Option<Tree> = Option::None;
 
                 for id in rev_walk.map(|c| c.unwrap()) {
                     if let Ok(c) = repository.find_commit(id) {
-                        let mut diff = vec![];
-                        repository
-                            .diff_tree_to_tree(
-                                match c.parent_id(0) {
-                                    Ok(pid) => {
-                                        p = repository
-                                            .find_commit(pid)
-                                            .map(|p| p.tree().unwrap())
-                                            .ok();
-                                        p.as_ref()
-                                    }
-                                    Err(_) => None,
-                                },
-                                Some(&repository.find_commit(id).unwrap().tree().unwrap()),
-                                None,
-                            )
-                            .unwrap()
-                            .print(DiffFormat::Patch, |a, b, c| {
-                                // diff.push(format!("{:#?}\n", a));
-                                // diff.push(format!("{:#?}", b));
-                                diff.push(format!(
-                                    "{} {}",
-                                    c.origin(),
-                                    String::from_utf8(Vec::from(c.content())).unwrap()
-                                ));
-                                true
-                            })
-                            .unwrap();
-
                         let c = CommitData {
                             id: c.id().to_string(),
                             message: {
@@ -82,7 +52,7 @@ pub fn search_with<T: Harvester>(p0: &str, harvester: T) -> Vec<CherryGroup> {
                                 }
                             }
                             .to_string(),
-                            diff,
+                            diff: DiffData::from(commit_diff(&repository, &c).unwrap()),
                             author: c.author().to_string(),
                             committer: c.committer().to_string(),
                             time: c.time(),
