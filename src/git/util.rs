@@ -64,7 +64,7 @@ pub fn commit_diff<'a, 'b>(
 ) -> Result<Diff<'a>, git2::Error> {
     repository.diff_tree_to_tree(
         // Retrieve the parent commit and map it to an Option variant
-        commit.parent(0).map(|c| c.tree())?.ok().as_ref(),
+        commit.parent(0).map(|c| c.tree().unwrap()).ok().as_ref(),
         Some(&commit.tree().unwrap()),
         None,
     )
