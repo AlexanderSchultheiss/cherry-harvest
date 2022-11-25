@@ -1,7 +1,7 @@
 use crate::error::{Error, ErrorKind};
 use crate::git::LoadedRepository::{LocalRepo, WebRepo};
 use crate::git::{LoadedRepository, RepoLocation};
-use git2::{Commit, Diff, Repository, Tree};
+use git2::{BranchType, Commit, Diff, Repository, Tree};
 use log::{debug, error};
 use temp_dir::TempDir;
 
@@ -78,6 +78,35 @@ pub fn commit_diff<'a, 'b>(
             error!("Was not able to retrieve diff for {}: {}", commit.id(), e);
             Error::new(ErrorKind::GitDiff(e))
         })
+}
+
+/// Collect the branch heads (i.e., most recent commits) of all remote branches
+pub fn remote_branch_heads(repository: &Repository) -> Vec<Commit> {
+    repository
+        .branches(Some(BranchType::Remote))
+        .unwrap()
+        .map(|f| f.unwrap())
+        .filter_map(|s| {
+            match s.0.name() {
+                Ok(name) => {
+                    if name != Some("origin/HEAD") {
+                        Some(
+                            s.0.get().peel_to_commit().expect(
+                                "Was not able to peel to commit while retrieving branches.",
+                            ),
+                        )
+                    } else {
+                        //
+                        None
+                    }
+                }
+                Err(err) => {
+                    error!("Error while retrieving branch heads: {}", err);
+                    None
+                }
+            }
+        })
+        .collect::<Vec<Commit>>()
 }
 
 #[cfg(test)]

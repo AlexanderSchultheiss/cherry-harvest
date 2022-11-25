@@ -1,4 +1,4 @@
-use crate::algorithms::Harvester;
+use crate::method::SearchMethod;
 use crate::git::CommitData;
 use crate::CherryGroup;
 use std::collections::HashMap;
@@ -6,8 +6,8 @@ use std::collections::HashMap;
 #[derive(Default)]
 pub struct MessageScan();
 
-impl Harvester for MessageScan {
-    fn harvest(&self, commits: &Vec<CommitData>) -> Vec<CherryGroup> {
+impl SearchMethod for MessageScan {
+    fn search(&self, commits: &Vec<CommitData>) -> Vec<CherryGroup> {
         // TODO: Filter multiple finds
         let search_str = "(cherry picked from commit ";
         commits

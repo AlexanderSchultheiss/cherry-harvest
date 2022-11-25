@@ -1,5 +1,5 @@
 use cherry_harvest;
-use cherry_harvest::algorithms::MessageScan;
+use cherry_harvest::method::MessageScan;
 use log::LevelFilter;
 use std::env;
 

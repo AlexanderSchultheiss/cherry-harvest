@@ -7,6 +7,7 @@ use temp_dir::TempDir;
 
 use crate::error::Error;
 pub use util::clone_or_load;
+pub use util::remote_branch_heads;
 
 pub enum RepoLocation<'a> {
     FileSystem(&'a Path),
