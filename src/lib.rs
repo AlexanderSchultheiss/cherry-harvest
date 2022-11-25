@@ -10,24 +10,51 @@ pub use git::RepoLocation;
 pub use method::MessageScan;
 pub use method::SearchMethod;
 
-pub struct CherryGroup {
+pub struct SearchResult {
     pub search_method: String,
-    pub cherry_ids: Vec<String>,
+    pub commit_pair: [String; 2],
 }
 
-impl CherryGroup {
-    fn new(search_method: String, cherry_ids: Vec<String>) -> Self {
+impl SearchResult {
+    fn new(search_method: String, cherry_ids: [String; 2]) -> Self {
         Self {
             search_method,
-            cherry_ids,
+            commit_pair: cherry_ids,
         }
     }
 }
 
+/// Search for cherry picks with all given search methods.
+///
+/// # Examples
+/// TODO: Update after implementing other search methods
+/// ```
+/// use cherry_harvest::{MessageScan, RepoLocation};
+///
+/// let method = MessageScan::default();
+/// // link to a test repository
+/// let server = "https://github.com/AlexanderSchultheiss/cherries-one";
+/// let groups = cherry_harvest::search_with(&RepoLocation::Server(server), method);
+/// assert_eq!(groups.len(), 2);
+/// let expected_commits = vec![
+///     "b7d2e4b330165ae92e4442fb8ccfa067acd62d44",
+///     "018a1bde4fb5e987157a6e8f07a7d378d5f19484",
+///     "4e39e242712568e6f9f5b6ff113839603b722683",
+///     "dd594eff3dcb36e5f4bbe47176b94f6011993c71",
+/// ];
+///
+/// for group in groups {
+/// assert_eq!(group.search_method, "MessageScan");
+///     group
+///         .commit_pair
+///         .iter()
+///         .for_each(|c| assert!(expected_commits.contains(&c.as_str())))
+/// }
+/// ```
 pub fn search_with_multiple(
     repo_location: &RepoLocation,
     methods: Vec<Box<dyn SearchMethod>>,
-) -> Vec<CherryGroup> {
+) -> Vec<SearchResult> {
     let commits = match git::clone_or_load(repo_location).unwrap() {
         LoadedRepository::LocalRepo { repository, .. } => {
             collect_commits(&repository, BranchType::Local)
@@ -40,13 +67,44 @@ pub fn search_with_multiple(
     methods.iter().flat_map(|m| m.search(&commits)).collect()
 }
 
+/// Search for cherry picks with the given search method.
+///
+/// # Examples
+/// ```
+/// use cherry_harvest::{MessageScan, RepoLocation};
+///
+/// // initialize the search method
+/// let method = MessageScan::default();
+/// // link to a test repository
+/// let server = "https://github.com/AlexanderSchultheiss/cherries-one";
+/// // execute the search for cherry picks
+/// let groups = cherry_harvest::search_with(&RepoLocation::Server(server), method);
+///
+/// // we expect two cherry picks
+/// assert_eq!(groups.len(), 2);
+/// // in which a total of four commits are involved
+/// let expected_commits = vec![
+///     "b7d2e4b330165ae92e4442fb8ccfa067acd62d44",
+///     "018a1bde4fb5e987157a6e8f07a7d378d5f19484",
+///     "4e39e242712568e6f9f5b6ff113839603b722683",
+///     "dd594eff3dcb36e5f4bbe47176b94f6011993c71",
+/// ];
+/// for group in groups {
+///     assert_eq!(group.search_method, "MessageScan");
+///     group
+///         .commit_pair
+///         .iter()
+///         .for_each(|c| assert!(expected_commits.contains(&c.as_str())))
+/// }
+/// ```
 pub fn search_with<T: SearchMethod + 'static>(
     repo_location: &RepoLocation,
     method: T,
-) -> Vec<CherryGroup> {
+) -> Vec<SearchResult> {
     search_with_multiple(repo_location, vec![Box::new(method)])
 }
 
+/// Collect the commits of all local or all remote branches depending on the given BranchType
 fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<CommitData> {
     let branch_heads = branch_heads(repository, branch_type);
     debug!("Found {} {:?} branches", branch_heads.len(), branch_type,);
