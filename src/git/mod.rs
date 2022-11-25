@@ -1,26 +1,27 @@
 mod util;
 
-use git2::{Commit, Diff, DiffFormat, Repository, Time};
+use git2::{Diff, DiffFormat, Repository, Time};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
 use temp_dir::TempDir;
 
-use crate::error::Error;
+pub use util::branch_heads;
 pub use util::clone_or_load;
-pub use util::remote_branch_heads;
+pub use util::commit_diff;
+pub use util::history_for_commit;
 
 pub enum RepoLocation<'a> {
-    FileSystem(&'a Path),
-    Website(&'a str),
+    Filesystem(&'a Path),
+    Server(&'a str),
 }
 
 impl<'a> RepoLocation<'a> {
     pub fn to_str(&self) -> &str {
         match self {
-            RepoLocation::FileSystem(path) => path
+            RepoLocation::Filesystem(path) => path
                 .to_str()
                 .expect("was not able to convert path to string"),
-            RepoLocation::Website(url) => url,
+            RepoLocation::Server(url) => url,
         }
     }
 }
@@ -28,10 +29,10 @@ impl<'a> RepoLocation<'a> {
 impl<'a> Display for RepoLocation<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RepoLocation::FileSystem(_) => {
+            RepoLocation::Filesystem(_) => {
                 write!(f, "\"{}\"", self.to_str())
             }
-            RepoLocation::Website(url) => {
+            RepoLocation::Server(url) => {
                 write!(f, "\"{}\"", url)
             }
         }
@@ -43,7 +44,7 @@ pub enum LoadedRepository {
         path: String,
         repository: Repository,
     },
-    WebRepo {
+    RemoteRepo {
         url: String,
         repository: Repository,
         directory: TempDir,
@@ -69,16 +70,6 @@ impl<'repo> From<Diff<'repo>> for DiffData {
         .unwrap();
         Self { lines }
     }
-}
-
-/// Determine the diff of the given commit (i.e., the changes that were applied by this commit.
-///
-/// # Errors
-/// Returns a GitDiff error, if git2 returns an error during diffing.
-///
-pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<DiffData, Error> {
-    // Call the internal utility function for retrieving a git2::Diff, and then convert it
-    util::commit_diff(repository, commit).map(DiffData::from)
 }
 
 #[derive(Debug, Clone)]

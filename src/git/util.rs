@@ -1,7 +1,7 @@
 use crate::error::{Error, ErrorKind};
-use crate::git::LoadedRepository::{LocalRepo, WebRepo};
-use crate::git::{LoadedRepository, RepoLocation};
-use git2::{BranchType, Commit, Diff, Repository, Tree};
+use crate::git::LoadedRepository::{LocalRepo, RemoteRepo};
+use crate::git::{CommitData, DiffData, LoadedRepository, RepoLocation};
+use git2::{BranchType, Commit, Oid, Repository};
 use log::{debug, error};
 use temp_dir::TempDir;
 
@@ -14,7 +14,7 @@ use temp_dir::TempDir;
 /// Returns an ErrorKind::RepoLoadError, iff the given string literal was interpreted as path
 pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, Error> {
     match repo_location {
-        RepoLocation::FileSystem(path) => {
+        RepoLocation::Filesystem(path) => {
             debug!("loading repo from {}", repo_location);
             match Repository::open(path) {
                 Ok(repo) => {
@@ -30,7 +30,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
                 }
             }
         }
-        RepoLocation::Website(url) => {
+        RepoLocation::Server(url) => {
             debug!("started cloning of {}", repo_location);
             // In case of repositories hosted online
             // Create a new temporary directory into which the repo can be cloned
@@ -48,7 +48,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
                 }
             };
 
-            Ok(WebRepo {
+            Ok(RemoteRepo {
                 url: String::from(*url),
                 repository: repo,
                 directory: temp_dir,
@@ -62,10 +62,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
 /// # Errors
 /// Returns a GitDiff error, if git2 returns an error during diffing.
 ///
-pub fn commit_diff<'a, 'b>(
-    repository: &'a Repository,
-    commit: &'b Commit,
-) -> Result<Diff<'a>, Error> {
+pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<DiffData, Error> {
     repository
         .diff_tree_to_tree(
             // Retrieve the parent commit and map it to an Option variant.
@@ -74,22 +71,25 @@ pub fn commit_diff<'a, 'b>(
             Some(&commit.tree().unwrap()),
             None,
         )
+        .map(DiffData::from)
         .map_err(|e| {
             error!("Was not able to retrieve diff for {}: {}", commit.id(), e);
             Error::new(ErrorKind::GitDiff(e))
         })
 }
 
-/// Collect the branch heads (i.e., most recent commits) of all remote branches
-pub fn remote_branch_heads(repository: &Repository) -> Vec<Commit> {
+/// Collect the branch heads (i.e., most recent commits) of all local or remote branches.
+///
+/// This functions explicitly filters the HEAD, in order to not consider the current HEAD branch twice.
+pub fn branch_heads(repository: &Repository, branch_type: BranchType) -> Vec<Commit> {
     repository
-        .branches(Some(BranchType::Remote))
+        .branches(Some(branch_type))
         .unwrap()
         .map(|f| f.unwrap())
         .filter_map(|s| {
             match s.0.name() {
                 Ok(name) => {
-                    if name != Some("origin/HEAD") {
+                    if name != Some("origin/HEAD") && name != Some("HEAD") {
                         Some(
                             s.0.get().peel_to_commit().expect(
                                 "Was not able to peel to commit while retrieving branches.",
@@ -109,10 +109,41 @@ pub fn remote_branch_heads(repository: &Repository) -> Vec<Commit> {
         .collect::<Vec<Commit>>()
 }
 
+/// Collect all commits in the history of the given commit, including the commit itself.
+///
+/// If the repo has the commit history A->B->C->D, where A is the oldest commit,
+/// calling *history_for_commit(repo, C)* will return *vec![C, B, A]*.
+pub fn history_for_commit(repository: &Repository, commit_id: Oid) -> Vec<CommitData> {
+    debug!("{}", commit_id);
+    let mut rev_walk = repository.revwalk().unwrap();
+    rev_walk.push(commit_id).unwrap();
+
+    let mut commits = vec![];
+    for id in rev_walk.map(|c| c.unwrap()) {
+        if let Ok(c) = repository.find_commit(id) {
+            let c = CommitData {
+                id: c.id().to_string(),
+                message: {
+                    match c.message() {
+                        None => "",
+                        Some(v) => v,
+                    }
+                }
+                .to_string(),
+                diff: commit_diff(repository, &c).unwrap(),
+                author: c.author().to_string(),
+                committer: c.committer().to_string(),
+                time: c.time(),
+            };
+            commits.push(c);
+        }
+    }
+    commits
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::DiffData;
     use git2::Oid;
 
     fn init() {
@@ -125,7 +156,7 @@ mod tests {
         use std::env;
         // We try to open this project's repository
         let path_buf = env::current_dir().unwrap();
-        let location = RepoLocation::FileSystem(path_buf.as_path());
+        let location = RepoLocation::Filesystem(path_buf.as_path());
         let loaded_repo = clone_or_load(&location).unwrap();
         if let LocalRepo { path, .. } = loaded_repo {
             assert_eq!(path, location.to_str());
@@ -148,12 +179,12 @@ mod tests {
         use std::env;
         // We try to open this project's repository
         let path_buf = env::current_dir().unwrap();
-        let location = RepoLocation::FileSystem(path_buf.as_path());
+        let location = RepoLocation::Filesystem(path_buf.as_path());
         let loaded_repo = clone_or_load(&location).unwrap();
         let oid = Oid::from_str("fe849e49cfe6239068ab45fa6680979c59e1bbd9").unwrap();
         if let LocalRepo { repository, .. } = loaded_repo {
             let commit = repository.find_commit(oid).unwrap();
-            let diff = DiffData::from(commit_diff(&repository, &commit).unwrap());
+            let diff = commit_diff(&repository, &commit).unwrap();
             assert_eq!(expected, diff.lines)
         }
     }
@@ -161,9 +192,9 @@ mod tests {
     #[test]
     fn clone_remote_repo() {
         init();
-        let location = RepoLocation::Website("https://github.com/rust-lang/git2-rs.git");
+        let location = RepoLocation::Server("https://github.com/rust-lang/git2-rs.git");
         let loaded_repo = clone_or_load(&location).unwrap();
-        if let WebRepo { url, .. } = loaded_repo {
+        if let RemoteRepo { url, .. } = loaded_repo {
             assert_eq!(url, location.to_str());
         }
     }

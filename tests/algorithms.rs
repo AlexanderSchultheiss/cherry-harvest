@@ -1,7 +1,5 @@
-use cherry_harvest;
-use cherry_harvest::method::MessageScan;
+use cherry_harvest::{MessageScan, RepoLocation};
 use log::LevelFilter;
-use std::env;
 
 const CHERRIES_ONE: &str = "https://github.com/AlexanderSchultheiss/cherries-one";
 
@@ -15,9 +13,13 @@ fn init() {
 #[test]
 fn message_only() {
     init();
+    //  TODO: Use ground truth
     let harvester = MessageScan::default();
-    let cherries = cherry_harvest::search_with(CHERRIES_ONE, harvester);
-    assert_eq!(cherries.len(), 2);
+    let groups = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), harvester);
+    assert_eq!(groups.len(), 2);
+    for group in groups {
+        assert_eq!(group.search_method, "MessageScan")
+    }
 }
 
 #[test]

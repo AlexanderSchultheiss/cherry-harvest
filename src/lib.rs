@@ -1,68 +1,64 @@
-use crate::algorithms::Harvester;
-use crate::git::{commit_diff, CommitData, DiffData, LoadedRepository, RepoLocation};
-use git2::{BranchType, Commit, DiffFormat, Error, Oid, Tree};
+use crate::git::{branch_heads, history_for_commit, CommitData, LoadedRepository};
+use git2::{BranchType, Repository};
 use log::debug;
 
-pub mod algorithms;
 mod error;
 mod git;
+mod method;
+
+pub use git::RepoLocation;
+pub use method::MessageScan;
+pub use method::SearchMethod;
 
 pub struct CherryGroup {
-    cherry_ids: Vec<String>,
+    pub search_method: String,
+    pub cherry_ids: Vec<String>,
 }
 
 impl CherryGroup {
-    fn new(cherry_ids: Vec<String>) -> Self {
-        Self { cherry_ids }
+    fn new(search_method: String, cherry_ids: Vec<String>) -> Self {
+        Self {
+            search_method,
+            cherry_ids,
+        }
     }
 }
 
-pub fn search_with<T: Harvester>(p0: &str, harvester: T) -> Vec<CherryGroup> {
-    let location = RepoLocation::Website(p0);
-    match git::clone_or_load(&location).unwrap() {
-        LoadedRepository::LocalRepo { repository, .. }
-        | LoadedRepository::WebRepo { repository, .. } => {
-            let mut commits = Vec::new();
-            let branch_heads = repository
-                .branches(Some(BranchType::Remote))
-                .unwrap()
-                .map(|f| f.unwrap())
-                .filter_map(|s| {
-                    // TODO: Fix unclean error handling
-                    if s.0.name() != Ok(Some("origin/HEAD")) {
-                        Some(s.0.get().peel_to_commit().unwrap())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<Commit>>();
-            for head in branch_heads {
-                debug!("{}", head.id());
-                let mut rev_walk = repository.revwalk().unwrap();
-                rev_walk.push(head.id()).unwrap();
-
-                for id in rev_walk.map(|c| c.unwrap()) {
-                    if let Ok(c) = repository.find_commit(id) {
-                        let c = CommitData {
-                            id: c.id().to_string(),
-                            message: {
-                                match c.message() {
-                                    None => "",
-                                    Some(v) => v,
-                                }
-                            }
-                            .to_string(),
-                            diff: commit_diff(&repository, &c).unwrap(),
-                            author: c.author().to_string(),
-                            committer: c.committer().to_string(),
-                            time: c.time(),
-                        };
-                        commits.push(c);
-                    }
-                }
-            }
-            debug!("{:#?}", commits[0].diff);
-            harvester.harvest(&commits)
+pub fn search_with_multiple(
+    repo_location: &RepoLocation,
+    methods: Vec<Box<dyn SearchMethod>>,
+) -> Vec<CherryGroup> {
+    let commits = match git::clone_or_load(repo_location).unwrap() {
+        LoadedRepository::LocalRepo { repository, .. } => {
+            collect_commits(&repository, BranchType::Local)
         }
-    }
+        LoadedRepository::RemoteRepo { repository, .. } => {
+            collect_commits(&repository, BranchType::Remote)
+        }
+    };
+
+    methods.iter().flat_map(|m| m.search(&commits)).collect()
+}
+
+pub fn search_with<T: SearchMethod + 'static>(
+    repo_location: &RepoLocation,
+    method: T,
+) -> Vec<CherryGroup> {
+    search_with_multiple(repo_location, vec![Box::new(method)])
+}
+
+fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<CommitData> {
+    let branch_heads = branch_heads(repository, branch_type);
+    debug!("Found {} {:?} branches", branch_heads.len(), branch_type,);
+
+    let commits: Vec<CommitData> = branch_heads
+        .iter()
+        .flat_map(|h| history_for_commit(repository, h.id()))
+        .collect();
+    debug!(
+        "Found {} commits in {:?} branches",
+        commits.len(),
+        branch_type,
+    );
+    commits
 }
