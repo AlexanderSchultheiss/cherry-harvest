@@ -27,6 +27,7 @@ fn message_only() {
         assert_eq!(group.search_method, "MessageScan");
         group
             .commit_pair
+            .as_vec()
             .iter()
             .for_each(|c| assert!(expected_commits.contains(&c.as_str())))
     }

@@ -10,13 +10,21 @@ pub use git::RepoLocation;
 pub use method::MessageScan;
 pub use method::SearchMethod;
 
+pub struct CommitPair(String, String);
+
+impl CommitPair {
+    pub fn as_vec(&self) -> Vec<&String> {
+        vec![&self.0, &self.1]
+    }
+}
+
 pub struct SearchResult {
     pub search_method: String,
-    pub commit_pair: [String; 2],
+    pub commit_pair: CommitPair,
 }
 
 impl SearchResult {
-    fn new(search_method: String, cherry_ids: [String; 2]) -> Self {
+    fn new(search_method: String, cherry_ids: CommitPair) -> Self {
         Self {
             search_method,
             commit_pair: cherry_ids,
@@ -47,6 +55,7 @@ impl SearchResult {
 /// assert_eq!(group.search_method, "MessageScan");
 ///     group
 ///         .commit_pair
+///         .as_vec()
 ///         .iter()
 ///         .for_each(|c| assert!(expected_commits.contains(&c.as_str())))
 /// }
@@ -93,6 +102,7 @@ pub fn search_with_multiple(
 ///     assert_eq!(group.search_method, "MessageScan");
 ///     group
 ///         .commit_pair
+///         .as_vec()
 ///         .iter()
 ///         .for_each(|c| assert!(expected_commits.contains(&c.as_str())))
 /// }

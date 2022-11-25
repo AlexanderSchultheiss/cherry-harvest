@@ -1,6 +1,6 @@
 use crate::git::CommitData;
 use crate::method::SearchMethod;
-use crate::SearchResult;
+use crate::{CommitPair, SearchResult};
 
 #[derive(Default)]
 pub struct MessageScan();
@@ -22,7 +22,7 @@ impl SearchMethod for MessageScan {
                         let cherry_id = String::from(&c.message[index..end_index]);
                         return Some(SearchResult::new(
                             String::from(NAME),
-                            [c.id.clone(), cherry_id],
+                            CommitPair(c.id.clone(), cherry_id),
                         ));
                     }
                 }
