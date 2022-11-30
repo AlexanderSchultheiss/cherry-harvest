@@ -23,6 +23,11 @@ impl GroundTruth {
         });
     }
 
+    /// Retains only the ground truth entries that are valid for the ExactDiffMatch method
+    pub fn retain_exact_diff(&mut self) {
+        self.0.retain(|entry| !entry.changed);
+    }
+
     pub fn entries(&self) -> &Vec<GroundTruthEntry> {
         &self.0
     }

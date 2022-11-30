@@ -8,6 +8,7 @@ mod git;
 mod method;
 
 pub use git::RepoLocation;
+pub use method::ExactDiffMatch;
 pub use method::MessageScan;
 pub use method::SearchMethod;
 
