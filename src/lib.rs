@@ -14,6 +14,8 @@ pub use method::SearchMethod;
 
 pub struct CommitPair(String, String);
 
+// TODO: A commit can only be the target for a cherry-pick once? Or should the library return all possible source-target pairs?
+
 impl CommitPair {
     pub fn as_vec(&self) -> Vec<&String> {
         vec![&self.0, &self.1]
