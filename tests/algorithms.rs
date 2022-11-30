@@ -1,9 +1,8 @@
 mod ground_truth;
 
-use crate::ground_truth::{CherryPickMethod, GroundTruth};
+use crate::ground_truth::GroundTruth;
 use cherry_harvest::{MessageScan, RepoLocation};
 use log::LevelFilter;
-use std::fs::File;
 
 const CHERRIES_ONE: &str = "https://github.com/AlexanderSchultheiss/cherries-one";
 
@@ -15,30 +14,19 @@ fn init() -> GroundTruth {
         .try_init();
 
     // load and return ground truth for cherries_one
-    serde_yaml::from_reader(File::open("tests/resources/cherries_one_gt.yaml").unwrap()).unwrap()
+    GroundTruth::load("tests/resources/cherries_one_gt.yaml")
 }
 
 #[test]
 fn message_only() {
-    let ground_truth = init();
-    // filter the ground_truth for expected entries (i.e., cherry picks with message flag)
-    let ground_truth = ground_truth
-        .into_iter()
-        .filter(|entry| match entry.method {
-            CherryPickMethod::CLIGit {
-                message_flagged, ..
-            }
-            | CherryPickMethod::IDEGit {
-                message_flagged, ..
-            } => message_flagged,
-            CherryPickMethod::Manual => false,
-        })
-        .collect::<GroundTruth>();
+    let mut ground_truth = init();
+    ground_truth.retain_message_scan();
 
     let method = MessageScan::default();
     let groups = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
-    assert_eq!(groups.len(), ground_truth.len());
+    assert_eq!(groups.len(), ground_truth.entries().len());
     let expected_commits = ground_truth
+        .entries()
         .iter()
         .map(|entry| vec![&entry.source.0, &entry.target.0])
         .collect::<Vec<Vec<&String>>>();

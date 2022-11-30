@@ -1,7 +1,32 @@
 use serde::Deserialize;
 use serde::Serialize;
+use std::fs::File;
 
-pub type GroundTruth = Vec<GroundTruthEntry>;
+#[derive(Serialize, Deserialize)]
+pub struct GroundTruth(Vec<GroundTruthEntry>);
+
+impl GroundTruth {
+    pub fn load(path: &str) -> Self {
+        serde_yaml::from_reader(File::open(path).unwrap()).unwrap()
+    }
+
+    /// Retains only the ground truth entries that are valid for the MessageScan method
+    pub fn retain_message_scan(&mut self) {
+        self.0.retain(|entry| match entry.method {
+            CherryPickMethod::CLIGit {
+                message_flagged, ..
+            }
+            | CherryPickMethod::IDEGit {
+                message_flagged, ..
+            } => message_flagged,
+            CherryPickMethod::Manual => false,
+        });
+    }
+
+    pub fn entries(&self) -> &Vec<GroundTruthEntry> {
+        &self.0
+    }
+}
 
 #[derive(Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
 pub struct GroundTruthEntry {
