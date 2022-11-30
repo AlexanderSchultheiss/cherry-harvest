@@ -5,7 +5,7 @@ use git2::{BranchType, Commit, Oid, Repository};
 use log::{debug, error};
 use temp_dir::TempDir;
 
-/// Clone a repository into a temporary directory, or load an existing repository from the filesystem.
+/// Clones a repository into a temporary directory, or load an existing repository from the filesystem.
 ///
 /// # Errors
 /// Returns an ErrorKind::RepoCloneError, iff the given string literal was interpreted as
@@ -57,7 +57,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
     }
 }
 
-/// Determine the diff of the given commit (i.e., the changes that were applied by this commit.
+/// Determines the diff of the given commit (i.e., the changes that were applied by this commit.
 ///
 /// # Errors
 /// Returns a GitDiff error, if git2 returns an error during diffing.
@@ -78,7 +78,7 @@ pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<DiffData,
         })
 }
 
-/// Collect the branch heads (i.e., most recent commits) of all local or remote branches.
+/// Collects the branch heads (i.e., most recent commits) of all local or remote branches.
 ///
 /// This functions explicitly filters the HEAD, in order to not consider the current HEAD branch twice.
 pub fn branch_heads(repository: &Repository, branch_type: BranchType) -> Vec<Commit> {
@@ -109,12 +109,12 @@ pub fn branch_heads(repository: &Repository, branch_type: BranchType) -> Vec<Com
         .collect::<Vec<Commit>>()
 }
 
-/// Collect all commits in the history of the given commit, including the commit itself.
+/// Collects all commits in the history of the given commit, including the commit itself.
 ///
 /// If the repo has the commit history A->B->C->D, where A is the oldest commit,
 /// calling *history_for_commit(repo, C)* will return *vec![C, B, A]*.
 pub fn history_for_commit(repository: &Repository, commit_id: Oid) -> Vec<CommitData> {
-    debug!("{}", commit_id);
+    debug!("started collecting the history of {}", commit_id);
     let mut rev_walk = repository.revwalk().unwrap();
     rev_walk.push(commit_id).unwrap();
 

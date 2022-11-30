@@ -1,6 +1,7 @@
-use crate::git::{branch_heads, history_for_commit, CommitData, LoadedRepository};
+use crate::git::{CommitData, LoadedRepository};
 use git2::{BranchType, Repository};
-use log::debug;
+use log::info;
+use std::collections::HashMap;
 
 mod error;
 mod git;
@@ -32,7 +33,7 @@ impl SearchResult {
     }
 }
 
-/// Search for cherry picks with all given search methods.
+/// Searches for cherry picks with all given search methods.
 ///
 /// # Examples
 /// TODO: Update after implementing other search methods
@@ -64,6 +65,11 @@ pub fn search_with_multiple(
     repo_location: &RepoLocation,
     methods: Vec<Box<dyn SearchMethod>>,
 ) -> Vec<SearchResult> {
+    info!(
+        "started searching for cherry-picks in {} with {} method(s)",
+        repo_location,
+        methods.len()
+    );
     let commits = match git::clone_or_load(repo_location).unwrap() {
         LoadedRepository::LocalRepo { repository, .. } => {
             collect_commits(&repository, BranchType::Local)
@@ -72,11 +78,24 @@ pub fn search_with_multiple(
             collect_commits(&repository, BranchType::Remote)
         }
     };
+    let results = methods
+        .iter()
+        .flat_map(|m| m.search(&commits))
+        .collect::<Vec<SearchResult>>();
 
-    methods.iter().flat_map(|m| m.search(&commits)).collect()
+    info!("number of cherry-picks found by method:\n{:#?}", {
+        let mut result_map = HashMap::with_capacity(methods.len());
+        results
+            .iter()
+            .map(|r| &r.search_method)
+            .for_each(|m| *result_map.entry(m).or_insert(0) += 1);
+        result_map
+    });
+
+    results
 }
 
-/// Search for cherry picks with the given search method.
+/// Searches for cherry picks with the given search method.
 ///
 /// # Examples
 /// ```
@@ -116,16 +135,16 @@ pub fn search_with<T: SearchMethod + 'static>(
 
 /// Collect the commits of all local or all remote branches depending on the given BranchType
 fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<CommitData> {
-    let branch_heads = branch_heads(repository, branch_type);
-    debug!("Found {} {:?} branches", branch_heads.len(), branch_type,);
+    let branch_heads = git::branch_heads(repository, branch_type);
 
     let commits: Vec<CommitData> = branch_heads
         .iter()
-        .flat_map(|h| history_for_commit(repository, h.id()))
+        .flat_map(|h| git::history_for_commit(repository, h.id()))
         .collect();
-    debug!(
-        "Found {} commits in {:?} branches",
+    info!(
+        "found {} commits in {} {:?} branches",
         commits.len(),
+        branch_heads.len(),
         branch_type,
     );
     commits
