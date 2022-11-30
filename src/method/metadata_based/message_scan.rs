@@ -22,7 +22,8 @@ impl SearchMethod for MessageScan {
                         let cherry_id = String::from(&c.message[index..end_index]);
                         return Some(SearchResult::new(
                             String::from(NAME),
-                            CommitPair(c.id.clone(), cherry_id),
+                            // Pair of Source-Target
+                            CommitPair(cherry_id, c.id.clone()),
                         ));
                     }
                 }
