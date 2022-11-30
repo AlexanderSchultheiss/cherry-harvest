@@ -10,28 +10,36 @@ pub struct ExactDiffMatch();
 impl SearchMethod for ExactDiffMatch {
     fn search(&self, commits: &[CommitData]) -> Vec<SearchResult> {
         // map all commits to a hash of their diff
-        let mut commit_map: HashMap<DiffData, Vec<&String>> = HashMap::new();
-        commits
-            .iter()
-            .map(|c| (&c.diff, &c.id))
-            .for_each(|(diff, id)| {
-                commit_map.entry(diff.clone()).or_default().push(id);
-            });
+        let mut commit_map: HashMap<DiffData, Vec<&CommitData>> = HashMap::new();
+        commits.iter().for_each(|commit| {
+            commit_map
+                .entry(commit.diff.clone())
+                .or_default()
+                .push(commit);
+        });
 
         // then, return results for all entries with more than one commit mapped to them
-        // TODO: Sort by commit date to determine source and target?
         commit_map
             .iter()
-            .filter_map(|(_, ids)| if ids.len() > 1 { Some(ids) } else { None })
-            .flat_map(|ids| {
+            .filter_map(|(_, commits)| {
+                if commits.len() > 1 {
+                    Some(commits)
+                } else {
+                    None
+                }
+            })
+            .flat_map(|commits| {
                 let mut results = vec![];
-                for (index, id) in ids.iter().enumerate() {
-                    for second_id in ids[index..].iter() {
-                        if id != second_id {
-                            results.push(SearchResult::new(
-                                NAME.to_string(),
-                                CommitPair((*id).clone(), (*second_id).clone()),
-                            ));
+                for (index, commit) in commits.iter().enumerate() {
+                    for other_commit in commits[index..].iter() {
+                        if commit.id != other_commit.id {
+                            let commit_pair = if commit.time < other_commit.time {
+                                // commit is older than the other_commit
+                                CommitPair(commit.id.clone(), other_commit.id.clone())
+                            } else {
+                                CommitPair(other_commit.id.clone(), commit.id.clone())
+                            };
+                            results.push(SearchResult::new(NAME.to_string(), commit_pair));
                         }
                     }
                 }
