@@ -1,8 +1,9 @@
 mod util;
 
 use git2::{Diff, DiffFormat, Repository, Time};
+use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use temp_dir::TempDir;
 
 pub use util::branch_heads;
@@ -53,22 +54,47 @@ pub enum LoadedRepository {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DiffData {
+    pub hunks: Vec<Hunk>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Hunk {
+    pub old_file: Option<PathBuf>,
+    pub new_file: Option<PathBuf>,
     pub lines: Vec<String>,
 }
 
 impl<'repo> From<Diff<'repo>> for DiffData {
     fn from(diff: Diff) -> Self {
-        let mut lines = vec![];
-        diff.print(DiffFormat::Patch, |_, _, c| {
-            lines.push(format!(
-                "{} {}",
-                c.origin(),
-                String::from_utf8(Vec::from(c.content())).unwrap()
-            ));
+        let mut hunk_map = HashMap::<String, Hunk>::new();
+        diff.print(DiffFormat::Patch, |delta, hunk, diff_line| {
+            match hunk {
+                None => {/* Skip this delta if it does not belong to a hunk (i.e., the header line of the diff)*/}
+                Some(h) => {
+                    let hunk_head = String::from_utf8_lossy(h.header()).into_owned();
+
+                    // retrieve the hunk from the map, or create it in the map if it does not exist yet
+                    let hunk = hunk_map.entry(hunk_head).or_insert(Hunk {
+                        old_file: delta.old_file().path().map(|f| f.to_path_buf()),
+                        new_file: delta.new_file().path().map(|f| f.to_path_buf()),
+                        lines: vec![],
+                    });
+
+                    // add the line to the hunk
+                    hunk.lines.push(format!(
+                        "{} {}",
+                        diff_line.origin(),
+                        String::from_utf8(Vec::from(diff_line.content()))
+                            .expect("was not able to parse diff line")
+                    ));
+                }
+            }
             true
         })
         .unwrap();
-        Self { lines }
+        Self {
+            hunks: hunk_map.into_values().collect(),
+        }
     }
 }
 

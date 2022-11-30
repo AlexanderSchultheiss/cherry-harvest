@@ -15,11 +15,7 @@ impl SearchMethod for ExactDiffMatch {
             .iter()
             .map(|c| (&c.diff, &c.id))
             .for_each(|(diff, id)| {
-                // remove the first line as it only contains metadata
-                // TODO: What about multiple hunks?
-                let mut diff = diff.clone();
-                diff.lines.remove(0);
-                commit_map.entry(diff).or_default().push(id);
+                commit_map.entry(diff.clone()).or_default().push(id);
             });
 
         // then, return results for all entries with more than one commit mapped to them
