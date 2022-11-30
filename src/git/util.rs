@@ -167,14 +167,17 @@ mod tests {
     fn diff_commit() {
         init();
 
-        let expected: Vec<&str> = vec!["F diff --git a/src/git/util.rs b/src/git/util.rs\nindex bbdccd5..3af944b 100644\n--- a/src/git/util.rs\n+++ b/src/git/util.rs\n",
-                                       "H @@ -64,7 +64,7 @@ pub fn commit_diff<'a, 'b>(\n", "  ) -> Result<Diff<'a>, git2::Error> {\n", 
-                                       "      repository.diff_tree_to_tree(\n", 
-                                       "          // Retrieve the parent commit and map it to an Option variant\n", 
-                                       "-         commit.parent(0).map(|c| c.tree())?.ok().as_ref(),\n",
-                                       "+         commit.parent(0).map(|c| c.tree().unwrap()).ok().as_ref(),\n",
-                                       "          Some(&commit.tree().unwrap()),\n",
-                                       "          None,\n", "      )\n"];
+        let expected: Vec<&str> = vec![
+            "H @@ -64,7 +64,7 @@ pub fn commit_diff<'a, 'b>(\n",
+            "  ) -> Result<Diff<'a>, git2::Error> {\n",
+            "      repository.diff_tree_to_tree(\n",
+            "          // Retrieve the parent commit and map it to an Option variant\n",
+            "-         commit.parent(0).map(|c| c.tree())?.ok().as_ref(),\n",
+            "+         commit.parent(0).map(|c| c.tree().unwrap()).ok().as_ref(),\n",
+            "          Some(&commit.tree().unwrap()),\n",
+            "          None,\n",
+            "      )\n",
+        ];
 
         use std::env;
         // We try to open this project's repository
@@ -185,7 +188,8 @@ mod tests {
         if let LocalRepo { repository, .. } = loaded_repo {
             let commit = repository.find_commit(oid).unwrap();
             let diff = commit_diff(&repository, &commit).unwrap();
-            assert_eq!(expected, diff.lines)
+            assert_eq!(diff.hunks.len(), 1);
+            assert_eq!(expected, diff.hunks[0].lines)
         }
     }
 

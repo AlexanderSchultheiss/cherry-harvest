@@ -9,7 +9,7 @@
   method: !IDEGit
     message_flagged: false
     conflicted: true
-  changed: false
+  changed: true
 - source: 90b2af5113b7ddeac2af110da9aa0e5c1219c1a8
   target: e38c22f86397636cbf0b5f58edf521d4935de3dd
   method: !IDEGit

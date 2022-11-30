@@ -23,16 +23,16 @@ fn message_only() {
     ground_truth.retain_message_scan();
 
     let method = MessageScan::default();
-    let groups = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
-    assert_eq!(groups.len(), ground_truth.entries().len());
+    let results = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
+    assert_eq!(results.len(), ground_truth.entries().len());
     let expected_commits = ground_truth
         .entries()
         .iter()
         .map(|entry| vec![&entry.source.0, &entry.target.0])
         .collect::<Vec<Vec<&String>>>();
-    for group in groups {
-        assert_eq!(group.search_method, "MessageScan");
-        let result = group.commit_pair.as_vec();
+    for result in results {
+        assert_eq!(result.search_method, "MessageScan");
+        let result = result.commit_pair.as_vec();
         assert!(expected_commits.contains(&result));
     }
 }
@@ -46,18 +46,23 @@ fn diff_exact() {
     ground_truth.retain_exact_diff();
 
     let method = ExactDiffMatch::default();
-    let groups = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
-    // assert_eq!(groups.len(), ground_truth.entries().len());
+    let results = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
+    // assert_eq!(results.len(), ground_truth.entries().len());
     let expected_commits = ground_truth
         .entries()
         .iter()
         .map(|entry| vec![&entry.source.0, &entry.target.0])
         .collect::<Vec<Vec<&String>>>();
-    for group in groups {
-        assert_eq!(group.search_method, "ExactDiffMatch");
-        let result = group.commit_pair.as_vec();
-        info!("checking {:#?}", result);
-        assert!(expected_commits.contains(&result));
+    let result_ids = results
+        .iter()
+        .map(|r| {
+            assert_eq!(r.search_method, "ExactDiffMatch");
+            r.commit_pair.as_vec()
+        })
+        .collect::<Vec<Vec<&String>>>();
+    for expected in expected_commits {
+        info!("checking {:#?}", expected);
+        assert!(result_ids.contains(&expected));
     }
 }
 

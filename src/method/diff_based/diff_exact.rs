@@ -18,6 +18,7 @@ impl SearchMethod for ExactDiffMatch {
                 .push(commit);
         });
 
+        // TODO: What is an exact match? For example, location should not match exactly?
         // then, return results for all entries with more than one commit mapped to them
         commit_map
             .iter()
