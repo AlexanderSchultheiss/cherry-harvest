@@ -17,6 +17,10 @@ impl CommitPair {
     pub fn as_vec(&self) -> Vec<&String> {
         vec![&self.0, &self.1]
     }
+
+    pub fn into_vec(self) -> Vec<String> {
+        vec![self.0, self.1]
+    }
 }
 
 pub struct SearchResult {
@@ -43,8 +47,8 @@ impl SearchResult {
 /// let method = MessageScan::default();
 /// // link to a test repository
 /// let server = "https://github.com/AlexanderSchultheiss/cherries-one";
-/// let groups = cherry_harvest::search_with(&RepoLocation::Server(server), method);
-/// assert_eq!(groups.len(), 2);
+/// let results = cherry_harvest::search_with(&RepoLocation::Server(server), method);
+/// assert_eq!(results.len(), 2);
 /// let expected_commits = vec![
 ///     "b7d2e4b330165ae92e4442fb8ccfa067acd62d44",
 ///     "018a1bde4fb5e987157a6e8f07a7d378d5f19484",
@@ -52,9 +56,9 @@ impl SearchResult {
 ///     "dd594eff3dcb36e5f4bbe47176b94f6011993c71",
 /// ];
 ///
-/// for group in groups {
-/// assert_eq!(group.search_method, "MessageScan");
-///     group
+/// for result in results {
+/// assert_eq!(result.search_method, "MessageScan");
+///     result
 ///         .commit_pair
 ///         .as_vec()
 ///         .iter()
@@ -106,10 +110,10 @@ pub fn search_with_multiple(
 /// // link to a test repository
 /// let server = "https://github.com/AlexanderSchultheiss/cherries-one";
 /// // execute the search for cherry picks
-/// let groups = cherry_harvest::search_with(&RepoLocation::Server(server), method);
+/// let results = cherry_harvest::search_with(&RepoLocation::Server(server), method);
 ///
 /// // we expect two cherry picks
-/// assert_eq!(groups.len(), 2);
+/// assert_eq!(results.len(), 2);
 /// // in which a total of four commits are involved
 /// let expected_commits = vec![
 ///     "b7d2e4b330165ae92e4442fb8ccfa067acd62d44",
@@ -117,9 +121,9 @@ pub fn search_with_multiple(
 ///     "4e39e242712568e6f9f5b6ff113839603b722683",
 ///     "dd594eff3dcb36e5f4bbe47176b94f6011993c71",
 /// ];
-/// for group in groups {
-///     assert_eq!(group.search_method, "MessageScan");
-///     group
+/// for result in results {
+///     assert_eq!(result.search_method, "MessageScan");
+///     result
 ///         .commit_pair
 ///         .as_vec()
 ///         .iter()
