@@ -1,6 +1,6 @@
 use crate::error::{Error, ErrorKind};
 use crate::git::LoadedRepository::{LocalRepo, RemoteRepo};
-use crate::git::{CommitData, DiffData, LoadedRepository, RepoLocation};
+use crate::git::{CommitData, CommitDiff, LoadedRepository, RepoLocation};
 use git2::{BranchType, Commit, Oid, Repository};
 use log::{debug, error};
 use temp_dir::TempDir;
@@ -62,7 +62,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
 /// # Errors
 /// Returns a GitDiff error, if git2 returns an error during diffing.
 ///
-pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<DiffData, Error> {
+pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<CommitDiff, Error> {
     repository
         .diff_tree_to_tree(
             // Retrieve the parent commit and map it to an Option variant.
@@ -71,7 +71,7 @@ pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<DiffData,
             Some(&commit.tree().unwrap()),
             None,
         )
-        .map(DiffData::from)
+        .map(CommitDiff::from)
         .map_err(|e| {
             error!("Was not able to retrieve diff for {}: {}", commit.id(), e);
             Error::new(ErrorKind::GitDiff(e))

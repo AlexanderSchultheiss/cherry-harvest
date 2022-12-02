@@ -14,17 +14,40 @@ pub use util::clone_or_load;
 pub use util::commit_diff;
 pub use util::history_for_commit;
 
+/// The location of a git repository. A repository can either be located locally in the file system or
+/// online on a server.
+///
+/// A repository in the file system is located via the path to its root directory.
+///
+/// A repository on a server is located via the *https* clone link.
+///
+/// # Examples
+/// ## Specifying a remote repository
+/// ```
+/// use cherry_harvest::RepoLocation;
+/// let location = RepoLocation::Server("https://github.com/rust-lang/git2-rs.git");
+/// ```
+///
+/// ## Specifying a local repository
+/// ```
+/// use std::env;
+/// use cherry_harvest::RepoLocation;
+/// let path_buf = env::current_dir().unwrap();
+/// let location = RepoLocation::Filesystem(path_buf.as_path());
+/// ```
 pub enum RepoLocation<'a> {
     Filesystem(&'a Path),
     Server(&'a str),
 }
 
 impl<'a> RepoLocation<'a> {
-    pub fn to_str(&self) -> &str {
+    /// Creates a string slice of either the path or the url to the repository, depending on the
+    /// RepoLocation variant.
+    fn to_str(&self) -> &str {
         match self {
-            RepoLocation::Filesystem(path) => path
-                .to_str()
-                .expect("was not able to convert path to string"),
+            RepoLocation::Filesystem(path) => {
+                path.to_str().expect("was not able to convert path to str")
+            }
             RepoLocation::Server(url) => url,
         }
     }
@@ -43,6 +66,7 @@ impl<'a> Display for RepoLocation<'a> {
     }
 }
 
+/// Wrapper for a repository loaded with git2.
 pub enum LoadedRepository {
     LocalRepo {
         path: String,
@@ -55,12 +79,17 @@ pub enum LoadedRepository {
     },
 }
 
+/// A CommitDiff holds all hunks with the changes that happened in a commit.
 #[derive(Debug, Clone, Derivative, Eq)]
 #[derivative(PartialEq, Hash)]
-pub struct DiffData {
+pub struct CommitDiff {
     pub hunks: Vec<Hunk>,
 }
 
+/// A Hunk groups changes to a file that happened in a single commit.
+///
+/// Changes are grouped by location and a single hunk contains all change and context lines that are
+/// directly adjacent to each other in a file.
 #[derive(Debug, Clone, Derivative)]
 #[derivative(Hash)]
 pub struct Hunk {
@@ -115,8 +144,9 @@ impl Ord for Hunk {
     }
 }
 
-impl<'repo> From<Diff<'repo>> for DiffData {
+impl<'repo> From<Diff<'repo>> for CommitDiff {
     fn from(diff: Diff) -> Self {
+        // Converts a git2::Diff to a CommitDiff by reading and converting all information relevant to us.
         let mut hunk_map = HashMap::<String, Hunk>::new();
         diff.print(DiffFormat::Patch, |delta, hunk, diff_line| {
             match hunk {
@@ -153,21 +183,23 @@ impl<'repo> From<Diff<'repo>> for DiffData {
     }
 }
 
+/// All relevant data for a commit.
 #[derive(Debug, Clone)]
 pub struct CommitData {
-    pub id: String,
-    pub message: String,
-    pub diff: DiffData,
-    pub author: String,
-    pub committer: String,
-    pub time: Time,
+    id: String,
+    message: String,
+    diff: CommitDiff,
+    author: String,
+    committer: String,
+    time: Time,
 }
 
 impl CommitData {
+    /// Initializes a CommitData instance with the given values
     pub fn new(
         id: String,
         message: String,
-        diff: DiffData,
+        diff: CommitDiff,
         author: String,
         committer: String,
         time: Time,
@@ -180,5 +212,35 @@ impl CommitData {
             committer,
             time,
         }
+    }
+
+    /// The commit hash, aka. revision number
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// The commit message
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// The diff of the commit to its first parent
+    pub fn diff(&self) -> &CommitDiff {
+        &self.diff
+    }
+
+    /// The author of the commit
+    pub fn author(&self) -> &str {
+        &self.author
+    }
+
+    /// The committer of the commit
+    pub fn committer(&self) -> &str {
+        &self.committer
+    }
+
+    /// The timestamp of the commit
+    pub fn time(&self) -> Time {
+        self.time
     }
 }
