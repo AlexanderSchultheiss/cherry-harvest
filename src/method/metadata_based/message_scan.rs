@@ -4,6 +4,7 @@ use crate::{CommitPair, SearchResult};
 use std::collections::HashSet;
 
 #[derive(Default)]
+// TODO: documentation
 pub struct MessageScan();
 
 const NAME: &str = "MessageScan";

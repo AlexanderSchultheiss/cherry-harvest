@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 const NAME: &str = "ExactDiffMatch";
 
 #[derive(Default)]
+// TODO: documentation
 pub struct ExactDiffMatch();
 
 impl SearchMethod for ExactDiffMatch {
