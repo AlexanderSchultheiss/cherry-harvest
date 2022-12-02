@@ -25,7 +25,10 @@ impl GroundTruth {
 
     /// Retains only the ground truth entries that are valid for the ExactDiffMatch method
     pub fn retain_exact_diff(&mut self) {
-        self.0.retain(|entry| !entry.changed);
+        self.0.retain(|entry| {
+            entry.change_sets_match == SetMatch::Fully
+                && entry.context_sets_match == SetMatch::Fully
+        });
     }
 
     pub fn entries(&self) -> &Vec<GroundTruthEntry> {
@@ -38,7 +41,8 @@ pub struct GroundTruthEntry {
     pub source: CommitId,
     pub target: CommitId,
     pub method: CherryPickMethod,
-    pub changed: bool,
+    pub change_sets_match: SetMatch,
+    pub context_sets_match: SetMatch,
 }
 
 #[derive(Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
@@ -55,4 +59,18 @@ pub enum CherryPickMethod {
         message_flagged: bool,
         conflicted: bool,
     },
+}
+
+#[derive(Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
+pub enum SetMatch {
+    // the sets of both commits match exactly
+    Fully,
+    // the sets of both commits match partially (i.e., both have unique changes or context lines)
+    Partially,
+    // the set of the target commit is a superset of the set of the source commit
+    Superset,
+    // the set of the target commit is a subset of the set of the source commit
+    Subset,
+    // The are no commonalities
+    Disjunction,
 }

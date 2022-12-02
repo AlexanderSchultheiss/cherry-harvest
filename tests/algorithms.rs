@@ -47,7 +47,7 @@ fn diff_exact() {
 
     let method = ExactDiffMatch::default();
     let results = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
-    // assert_eq!(results.len(), ground_truth.entries().len());
+    assert_eq!(results.len(), ground_truth.entries().len());
     let expected_commits = ground_truth
         .entries()
         .iter()

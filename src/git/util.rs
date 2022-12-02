@@ -168,7 +168,6 @@ mod tests {
         init();
 
         let expected: Vec<&str> = vec![
-            "H @@ -64,7 +64,7 @@ pub fn commit_diff<'a, 'b>(\n",
             "  ) -> Result<Diff<'a>, git2::Error> {\n",
             "      repository.diff_tree_to_tree(\n",
             "          // Retrieve the parent commit and map it to an Option variant\n",
