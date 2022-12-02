@@ -12,7 +12,7 @@ pub use method::ExactDiffMatch;
 pub use method::MessageScan;
 pub use method::SearchMethod;
 
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct CommitPair(String, String);
 
 // TODO: A commit can only be the target for a cherry-pick once? Or should the library return all possible source-target pairs?
@@ -27,6 +27,7 @@ impl CommitPair {
     }
 }
 
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct SearchResult {
     pub search_method: String,
     pub commit_pair: CommitPair,

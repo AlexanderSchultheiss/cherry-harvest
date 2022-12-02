@@ -1,6 +1,7 @@
 use crate::git::CommitData;
 use crate::method::SearchMethod;
 use crate::{CommitPair, SearchResult};
+use std::collections::HashSet;
 
 #[derive(Default)]
 pub struct MessageScan();
@@ -8,8 +9,7 @@ pub struct MessageScan();
 const NAME: &str = "MessageScan";
 
 impl SearchMethod for MessageScan {
-    fn search(&self, commits: &[CommitData]) -> Vec<SearchResult> {
-        // TODO: Filter multiple finds
+    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
         let search_str = "(cherry picked from commit ";
         commits
             .iter()
@@ -29,6 +29,6 @@ impl SearchMethod for MessageScan {
                 }
                 None
             })
-            .collect::<Vec<SearchResult>>()
+            .collect()
     }
 }

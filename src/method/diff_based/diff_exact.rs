@@ -1,7 +1,7 @@
 use crate::git::{CommitData, DiffData};
 use crate::{CommitPair, SearchMethod, SearchResult};
 use log::debug;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 const NAME: &str = "ExactDiffMatch";
 
@@ -9,7 +9,7 @@ const NAME: &str = "ExactDiffMatch";
 pub struct ExactDiffMatch();
 
 impl SearchMethod for ExactDiffMatch {
-    fn search(&self, commits: &[CommitData]) -> Vec<SearchResult> {
+    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
         // map all commits to a hash of their diff
         let mut commit_map: HashMap<DiffData, Vec<&CommitData>> = HashMap::new();
         commits.iter().for_each(|commit| {
@@ -19,7 +19,6 @@ impl SearchMethod for ExactDiffMatch {
                 .push(commit);
         });
 
-        // TODO: What is an exact match? For example, location should not match exactly?
         // then, return results for all entries with more than one commit mapped to them
         commit_map
             .iter()
