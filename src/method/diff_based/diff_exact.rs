@@ -1,5 +1,6 @@
 use crate::git::{CommitData, DiffData};
 use crate::{CommitPair, SearchMethod, SearchResult};
+use log::debug;
 use std::collections::HashMap;
 
 const NAME: &str = "ExactDiffMatch";
@@ -40,6 +41,8 @@ impl SearchMethod for ExactDiffMatch {
                             } else {
                                 CommitPair(other_commit.id.clone(), commit.id.clone())
                             };
+                            debug!("{:#?}", commit_pair);
+                            debug!("{:#?} - {:#?}", commit.diff, other_commit.diff);
                             results.push(SearchResult::new(NAME.to_string(), commit_pair));
                         }
                     }
