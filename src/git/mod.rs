@@ -94,12 +94,41 @@ pub struct CommitDiff {
 #[derivative(Hash)]
 pub struct Hunk {
     #[derivative(Hash = "ignore")]
-    pub header: String,
-    pub old_file: Option<PathBuf>,
-    pub new_file: Option<PathBuf>,
-    pub lines: Vec<String>,
-    pub old_start: u32,
-    pub new_start: u32,
+    header: String,
+    old_file: Option<PathBuf>,
+    new_file: Option<PathBuf>,
+    lines: Vec<String>,
+    old_start: u32,
+    new_start: u32,
+}
+
+impl Hunk {
+    /// The header line of a hunk. This line contains information about the hunk's location and size
+    pub fn header(&self) -> &str {
+        &self.header
+    }
+    /// The old file to which diff was applied (i.e., the previous version of the file).
+    /// None if the file did not exist yet.
+    pub fn old_file(&self) -> &Option<PathBuf> {
+        &self.old_file
+    }
+    /// The new file to which diff was applied (i.e., the current version of the file (current with respect to diffed commit)).
+    /// None if the file does not exist anymore.
+    pub fn new_file(&self) -> &Option<PathBuf> {
+        &self.new_file
+    }
+    /// The lines of this hunk including context lines and changed lines
+    pub fn lines(&self) -> &Vec<String> {
+        &self.lines
+    }
+    /// The start line in the previous version
+    pub fn old_start(&self) -> u32 {
+        self.old_start
+    }
+    /// The start line in the current version
+    pub fn new_start(&self) -> u32 {
+        self.new_start
+    }
 }
 
 impl PartialEq<Self> for Hunk {
