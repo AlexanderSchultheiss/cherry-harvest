@@ -1,4 +1,4 @@
-use crate::git::{CommitData, LoadedRepository};
+use crate::git::LoadedRepository;
 use git2::{BranchType, Repository};
 use log::info;
 use std::collections::HashMap;
@@ -7,13 +7,15 @@ mod error;
 mod git;
 mod method;
 
+pub use git::CommitData;
+pub use git::CommitDiff;
 pub use git::RepoLocation;
 pub use method::ExactDiffMatch;
 pub use method::MessageScan;
 pub use method::SearchMethod;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-pub struct CommitPair(String, String);
+pub struct CommitPair(pub String, pub String);
 
 // TODO: A commit can only be the target for a cherry-pick once? Or should the library return all possible source-target pairs?
 
@@ -29,16 +31,27 @@ impl CommitPair {
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct SearchResult {
-    pub search_method: String,
-    pub commit_pair: CommitPair,
+    search_method: String,
+    commit_pair: CommitPair,
 }
 
 impl SearchResult {
-    fn new(search_method: String, cherry_ids: CommitPair) -> Self {
+    pub fn new(search_method: String, cherry_ids: CommitPair) -> Self {
         Self {
             search_method,
             commit_pair: cherry_ids,
         }
+    }
+
+    /// The SearchMethod type that was used to find this result
+    pub fn search_method(&self) -> &str {
+        &self.search_method
+    }
+    
+    // TODO: Have references to not break connection?
+    /// The commit pair of this cherry pick. Commits are identified by their id. 
+    pub fn commit_pair(&self) -> &CommitPair {
+        &self.commit_pair
     }
 }
 

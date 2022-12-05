@@ -86,6 +86,12 @@ pub struct CommitDiff {
     pub hunks: Vec<Hunk>,
 }
 
+impl CommitDiff {
+    pub fn empty() -> Self {
+        CommitDiff { hunks: vec![] }
+    }
+}
+
 /// A Hunk groups changes to a file that happened in a single commit.
 ///
 /// Changes are grouped by location and a single hunk contains all change and context lines that are
