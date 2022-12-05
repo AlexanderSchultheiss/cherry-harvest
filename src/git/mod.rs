@@ -93,12 +93,17 @@ pub struct CommitDiff {
 #[derive(Debug, Clone, Derivative)]
 #[derivative(Hash)]
 pub struct Hunk {
+    /// The hash of a diff is only identified by its body
+    body: Vec<String>,
     #[derivative(Hash = "ignore")]
     header: String,
+    #[derivative(Hash = "ignore")]
     old_file: Option<PathBuf>,
+    #[derivative(Hash = "ignore")]
     new_file: Option<PathBuf>,
-    lines: Vec<String>,
+    #[derivative(Hash = "ignore")]
     old_start: u32,
+    #[derivative(Hash = "ignore")]
     new_start: u32,
 }
 
@@ -117,9 +122,9 @@ impl Hunk {
     pub fn new_file(&self) -> &Option<PathBuf> {
         &self.new_file
     }
-    /// The lines of this hunk including context lines and changed lines
-    pub fn lines(&self) -> &Vec<String> {
-        &self.lines
+    /// The lines belonging to the body of this hunk including context lines and changed lines
+    pub fn body(&self) -> &Vec<String> {
+        &self.body
     }
     /// The start line in the previous version
     pub fn old_start(&self) -> u32 {
@@ -135,7 +140,7 @@ impl PartialEq<Self> for Hunk {
     fn eq(&self, other: &Self) -> bool {
         self.old_file == other.old_file
             && self.new_file == other.new_file
-            && self.lines == other.lines
+            && self.body == other.body
     }
 }
 
@@ -187,14 +192,14 @@ impl<'repo> From<Diff<'repo>> for CommitDiff {
                         header: hunk_head,
                         old_file: delta.old_file().path().map(|f| f.to_path_buf()),
                         new_file: delta.new_file().path().map(|f| f.to_path_buf()),
-                        lines: vec![],
+                        body: vec![],
                         old_start: h.old_start(),
                         new_start: h.new_start(),
                     });
 
                     // add the line to the hunk, if it is not the hunk header
                     if diff_line.origin() != 'H' {
-                        hunk.lines.push(format!(
+                        hunk.body.push(format!(
                             "{} {}",
                             diff_line.origin(),
                             String::from_utf8(Vec::from(diff_line.content()))
