@@ -47,9 +47,9 @@ impl SearchResult {
     pub fn search_method(&self) -> &str {
         &self.search_method
     }
-    
+
     // TODO: Have references to not break connection?
-    /// The commit pair of this cherry pick. Commits are identified by their id. 
+    /// The commit pair of this cherry pick. Commits are identified by their id.
     pub fn commit_pair(&self) -> &CommitPair {
         &self.commit_pair
     }
@@ -75,9 +75,9 @@ impl SearchResult {
 /// ];
 ///
 /// for result in results {
-/// assert_eq!(result.search_method, "MessageScan");
+/// assert_eq!(result.search_method(), "MessageScan");
 ///     result
-///         .commit_pair
+///         .commit_pair()
 ///         .as_vec()
 ///         .iter()
 ///         .for_each(|c| assert!(expected_commits.contains(&c.as_str())))
@@ -140,9 +140,9 @@ pub fn search_with_multiple(
 ///     "dd594eff3dcb36e5f4bbe47176b94f6011993c71",
 /// ];
 /// for result in results {
-///     assert_eq!(result.search_method, "MessageScan");
+///     assert_eq!(result.search_method(), "MessageScan");
 ///     result
-///         .commit_pair
+///         .commit_pair()
 ///         .as_vec()
 ///         .iter()
 ///         .for_each(|c| assert!(expected_commits.contains(&c.as_str())))

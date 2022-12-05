@@ -31,8 +31,8 @@ fn message_only() {
         .map(|entry| vec![&entry.source.0, &entry.target.0])
         .collect::<Vec<Vec<&String>>>();
     for result in results {
-        assert_eq!(result.search_method, "MessageScan");
-        let result = result.commit_pair.as_vec();
+        assert_eq!(result.search_method(), "MessageScan");
+        let result = result.commit_pair().as_vec();
         assert!(expected_commits.contains(&result));
     }
 }
@@ -56,8 +56,8 @@ fn diff_exact() {
     let result_ids = results
         .iter()
         .map(|r| {
-            assert_eq!(r.search_method, "ExactDiffMatch");
-            r.commit_pair.as_vec()
+            assert_eq!(r.search_method(), "ExactDiffMatch");
+            r.commit_pair().as_vec()
         })
         .collect::<Vec<Vec<&String>>>();
     for expected in expected_commits {
