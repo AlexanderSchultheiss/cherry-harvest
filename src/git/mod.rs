@@ -92,6 +92,27 @@ impl CommitDiff {
     }
 }
 
+// TODO: cache textual representation
+impl Display for CommitDiff {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for hunk in &self.hunks {
+            write!(
+                f,
+                "--- {}\n+++ {}\n{}\n{}\n",
+                hunk.old_file
+                    .as_ref()
+                    .map_or("None", |pb| pb.to_str().unwrap_or("None")),
+                hunk.new_file
+                    .as_ref()
+                    .map_or("None", |pb| pb.to_str().unwrap_or("None")),
+                hunk.header,
+                hunk.body.join("\n")
+            )?;
+        }
+        Ok(())
+    }
+}
+
 /// A Hunk groups changes to a file that happened in a single commit.
 ///
 /// Changes are grouped by location and a single hunk contains all change and context lines that are

@@ -13,6 +13,7 @@ pub use git::RepoLocation;
 pub use method::ExactDiffMatch;
 pub use method::MessageScan;
 pub use method::SearchMethod;
+pub use method::SimilarityDiffMatch;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct CommitPair(pub String, pub String);

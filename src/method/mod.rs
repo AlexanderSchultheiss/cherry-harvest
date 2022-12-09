@@ -81,4 +81,5 @@ pub trait SearchMethod {
 }
 
 pub use diff_based::diff_exact::ExactDiffMatch;
+pub use diff_based::diff_similarity::SimilarityDiffMatch;
 pub use metadata_based::message_scan::MessageScan;

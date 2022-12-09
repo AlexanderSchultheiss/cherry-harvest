@@ -1,7 +1,7 @@
 mod ground_truth;
 
 use crate::ground_truth::GroundTruth;
-use cherry_harvest::{ExactDiffMatch, MessageScan, RepoLocation};
+use cherry_harvest::{ExactDiffMatch, MessageScan, RepoLocation, SimilarityDiffMatch};
 use log::{info, LevelFilter};
 
 const CHERRIES_ONE: &str = "https://github.com/AlexanderSchultheiss/cherries-one";
@@ -67,4 +67,26 @@ fn diff_exact() {
 }
 
 #[test]
-fn diff_similarity() {}
+fn diff_similarity() {
+    let ground_truth = init();
+
+    let method = SimilarityDiffMatch::default();
+    let results = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
+    assert_eq!(results.len(), ground_truth.entries().len());
+    let expected_commits = ground_truth
+        .entries()
+        .iter()
+        .map(|entry| vec![&entry.source.0, &entry.target.0])
+        .collect::<Vec<Vec<&String>>>();
+    let result_ids = results
+        .iter()
+        .map(|r| {
+            assert_eq!(r.search_method(), "SimilarityDiffMatch");
+            r.commit_pair().as_vec()
+        })
+        .collect::<Vec<Vec<&String>>>();
+    for expected in expected_commits {
+        info!("checking {:#?}", expected);
+        assert!(result_ids.contains(&expected));
+    }
+}
