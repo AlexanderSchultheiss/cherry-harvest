@@ -75,3 +75,47 @@
 * diff2listOfCommits
     * diff mehrfach
     * id eindeutig
+
+    
+# ChatGPT Proposal
+To implement locality sensitive hashing (LSH) for text documents in Rust, you would first need to choose a similarity measure to use for comparing the documents. Some common similarity measures for text documents include the Jaccard similarity, which measures the overlap between the sets of words in the documents, and the cosine similarity, which measures the angle between the word vectors representing the documents.
+
+Once you have chosen a similarity measure, you can implement LSH by following these steps:
+
+    Preprocess the text documents to generate a set of words for each document. This can involve tokenizing the documents, removing stop words, stemming the words, and so on.
+
+    Generate a hash function for each of the words in the vocabulary. This can involve choosing a random vector for each word, and then using the dot product between the vector and the word vector of each document as the hash value.
+
+    For each document, compute the hash values for all the words in the document, and then combine the hash values using a suitable aggregation function, such as the min-hash or the SimHash.
+
+    Use the combined hash value as the key for the document, and store the document in a hash table using the key as the index.
+
+    To find the nearest neighbors of a query document, compute the hash value for the query document using the same steps as above, and then look up the hash table using the query's hash value as the key. This will return a list of documents that have similar hash values, which are likely to be similar to the query document.
+
+You can use the Rust standard library to implement many of the steps above, such as the hash table and the hash functions. You may also want to use a Rust library for natural language processing, such as rust-nlp or rust-text-similarity, to help with the preprocessing and word vector generation steps.
+
+# What is a good approach to preparing text for LSH?
+
+There are several steps that are typically involved in preparing text for locality sensitive hashing (LSH). These steps can help to improve the performance of the LSH algorithm and the quality of the results it produces. Some of the most important steps are:
+
+    Tokenization: This involves breaking the text into individual tokens, such as words, phrases, or symbols. This is typically done using a tokenizer, which is a specialized piece of software that can identify the tokens in the text and split the text into these tokens.
+
+    Stop word removal: This involves removing common words from the text, such as "the", "and", and "but", which do not contribute much to the meaning of the text. These words are often called stop words, and they can be filtered out using a list of stop words.
+
+    Stemming: This involves reducing words to their base form, or stem, in order to group together different inflections of the same word. For example, the stem of "running", "ran", and "run" would be "run". This can be done using a stemmer, which is a piece of software that can identify the stem of a word.
+
+    Vectorization: This involves representing the text as a vector of numbers, where each dimension of the vector corresponds to a word in the vocabulary. The value of each dimension is determined by the frequency of the corresponding word in the text. This can be done using a vectorizer, which is a piece of software that can convert text into a numerical representation.
+
+    Normalization: This involves scaling the values in the vector so that they have a consistent range and distribution. This can help to improve the performance of the LSH algorithm, as it can make the vectors more similar to each other and reduce the effect of outliers. This can be done using a normalizer, which is a piece of software that can apply a normalization function to the vector.
+
+Overall, preparing text for LSH involves a number of different steps, which can help to improve the performance and accuracy of the LSH algorithm. These steps can be implemented using a combination of specialized software and custom code, depending on the specific requirements of the task at hand.
+
+# What can I do if the syntax and grammar of the language at hand are unknown?
+
+If the syntax and grammar of the language at hand are unknown, it can be difficult to analyze the text and extract useful information from it. In such cases, it may be necessary to use more general-purpose techniques that are not dependent on the specific syntax and grammar of the language.
+
+One approach that can be taken is to use statistical methods that do not rely on the underlying structure of the language. For example, you could use term frequency-inverse document frequency (TF-IDF) to identify the most important words in the text, based on their frequency and rarity in the corpus. You could also use clustering algorithms, such as k-means or hierarchical clustering, to group the documents into clusters based on their similarity. These techniques can help to identify patterns and trends in the text, even if the syntax and grammar of the language are unknown.
+
+Another approach is to use machine learning algorithms, such as deep learning models, which can learn to represent the text in a way that captures its meaning, even if the syntax and grammar are unknown. For example, you could use a recurrent neural network (RNN) or a convolutional neural network (CNN) to learn a vector representation of the text, where each dimension of the vector corresponds to a latent concept or feature of the text. This learned representation can then be used to measure the similarity between the texts, or to classify them into different categories, based on their content.
+
+Overall, there are several approaches that can be taken if the syntax and grammar of the language at hand are unknown. These approaches can help to extract useful information from the text, even if the specific structure of the language is not known.
