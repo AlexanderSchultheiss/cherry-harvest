@@ -245,13 +245,15 @@ impl<'repo> From<Diff<'repo>> for CommitDiff {
 }
 
 /// All relevant data for a commit.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Derivative)]
+#[derivative(PartialEq, Eq, Hash)]
 pub struct CommitData {
     id: String,
     message: String,
     diff: CommitDiff,
     author: String,
     committer: String,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     time: Time,
 }
 
