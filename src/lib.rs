@@ -1,6 +1,6 @@
 use crate::git::LoadedRepository;
 use git2::{BranchType, Repository};
-use log::info;
+use log::{debug, info};
 use std::collections::HashMap;
 
 mod error;
@@ -159,6 +159,7 @@ pub fn search_with<T: SearchMethod + 'static>(
 /// Collect the commits of all local or all remote branches depending on the given BranchType
 fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<CommitData> {
     let branch_heads = git::branch_heads(repository, branch_type);
+    debug!("found {} heads of {:?} branches in repository.", branch_heads.len(), branch_type);
 
     let commits: Vec<CommitData> = branch_heads
         .iter()

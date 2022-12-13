@@ -114,6 +114,7 @@ pub fn branch_heads(repository: &Repository, branch_type: BranchType) -> Vec<Com
 /// If the repo has the commit history A->B->C->D, where A is the oldest commit,
 /// calling *history_for_commit(repo, C)* will return *vec![C, B, A]*.
 pub fn history_for_commit(repository: &Repository, commit_id: Oid) -> Vec<CommitData> {
+    // TODO: Collecting the commits requires a lot of time. There has to be a faster way
     debug!("started collecting the history of {}", commit_id);
     let mut rev_walk = repository.revwalk().unwrap();
     rev_walk.push(commit_id).unwrap();

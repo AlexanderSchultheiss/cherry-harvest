@@ -229,8 +229,9 @@ impl<'repo> From<Diff<'repo>> for CommitDiff {
                         hunk.body.push(format!(
                             "{} {}",
                             diff_line.origin(),
-                            String::from_utf8(Vec::from(diff_line.content()))
-                                .expect("was not able to parse diff line")
+                            // TODO: Is there a better way to parse lines?
+                            String::from_utf8_lossy(&Vec::from(diff_line.content()))
+                               // .expect("was not able to parse diff line")
                         ));
                     }
                 }
