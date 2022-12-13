@@ -21,7 +21,9 @@ impl SearchMethod for SimilarityDiffMatch {
         let commits: Vec<String> = commits.iter().map(|c| c.diff().to_string()).collect();
         debug!("converted all commits to strings");
         let start = Instant::now();
-        commits.iter().for_each(|c| corpus.add_text(c));
+        for c in &commits {
+            corpus.add_text(c);
+        }
         debug!("added all commits to the corpus in {:?} ", start.elapsed());
 
         let start = Instant::now();
