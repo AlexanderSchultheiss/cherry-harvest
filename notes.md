@@ -136,3 +136,8 @@ As an example, consider a recommendation system for a streaming music service. I
 > So if the similarity should focus on the content rather than metadata, I should apply LSH?
 
 Yes, that's correct. LSH is a good choice when the similarity between items is determined by their content, rather than by metadata such as labels or tags. This is because LSH is based on the idea of creating hash functions that preserve the similarity between items, and this works well when the similarity is determined by the content of the items.
+
+
+# Which ANN indexing to choose?
+![ann-choice.png](img%2Fann-choice.png)
+(taken from [this website](https://towardsdatascience.com/comprehensive-guide-to-approximate-nearest-neighbors-algorithms-8b94f057d6b6))
