@@ -3,8 +3,9 @@ mod ground_truth;
 use crate::ground_truth::GroundTruth;
 use cherry_harvest::{ExactDiffMatch, MessageScan, RepoLocation, SimilarityDiffMatch};
 use log::{info, LevelFilter};
+use std::path::Path;
 
-const CHERRIES_ONE: &str = "https://github.com/AlexanderSchultheiss/cherries-one";
+const CHERRIES_ONE: &str = "/home/alex/data/cherries-one";
 
 /// Initializes the logger and load the ground truth.
 fn init() -> GroundTruth {
@@ -71,7 +72,8 @@ fn diff_similarity() {
     let ground_truth = init();
 
     let method = SimilarityDiffMatch::default();
-    let results = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
+    let results =
+        cherry_harvest::search_with(&RepoLocation::Filesystem(Path::new(CHERRIES_ONE)), method);
     assert_eq!(results.len(), ground_truth.entries().len());
     let expected_commits = ground_truth
         .entries()
