@@ -147,3 +147,8 @@ Yes, that's correct. LSH is a good choice when the similarity between items is d
 I updated ngrammatic's implementation to remove a lot of the redundancy in instance management. 
 The approach now scales in terms of memory consumption, but is still quite slow in terms of runtime.
 ngrammatic's internal search heuristic is actually slower than brute force, because the search heuristic yields all elements (i.e., brute force) in the end
+
+
+- split diffs into tokens (aka. alphanumeric words, can we split by !alphanumeric?)
+- create a vocabulary of these tokens?
+- use it for ANN?
