@@ -15,7 +15,7 @@ pub struct SimilarityDiffMatch();
 impl SearchMethod for SimilarityDiffMatch {
     fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
         debug!("retrieved a total of {} commits", commits.len());
-        let mut corpus = CorpusBuilder::new().arity(2).pad_full(Pad::Auto).finish();
+        let mut corpus = CorpusBuilder::new().arity(5).pad_full(Pad::Auto).finish();
 
         // Build up the list of known words
         let commits: Vec<String> = commits.iter().map(|c| c.diff().to_string()).collect();

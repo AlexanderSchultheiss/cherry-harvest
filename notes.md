@@ -140,4 +140,10 @@ Yes, that's correct. LSH is a good choice when the similarity between items is d
 
 # Which ANN indexing to choose?
 ![ann-choice.png](img%2Fann-choice.png)
-(taken from [this website](https://towardsdatascience.com/comprehensive-guide-to-approximate-nearest-neighbors-algorithms-8b94f057d6b6))
+(taken from [this website](https://towardsdatascience.com/comprehensive-guide-to-approximate-nearest-neighbors-algorith´ms-8b94f057d6b6))
+
+
+# Notes on improvements - also regarding ngrammatic
+I updated ngrammatic's implementation to remove a lot of the redundancy in instance management. 
+The approach now scales in terms of memory consumption, but is still quite slow in terms of runtime.
+ngrammatic's internal search heuristic is actually slower than brute force, because the search heuristic yields all elements (i.e., brute force) in the end
