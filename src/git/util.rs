@@ -3,6 +3,7 @@ use crate::git::LoadedRepository::{LocalRepo, RemoteRepo};
 use crate::git::{CommitData, CommitDiff, LoadedRepository, RepoLocation};
 use git2::{BranchType, Commit, Oid, Repository};
 use log::{debug, error};
+use std::collections::HashSet;
 use temp_dir::TempDir;
 
 /// Clones a repository into a temporary directory, or load an existing repository from the filesystem.
@@ -114,32 +115,49 @@ pub fn branch_heads(repository: &Repository, branch_type: BranchType) -> Vec<Com
 /// If the repo has the commit history A->B->C->D, where A is the oldest commit,
 /// calling *history_for_commit(repo, C)* will return *vec![C, B, A]*.
 pub fn history_for_commit(repository: &Repository, commit_id: Oid) -> Vec<CommitData> {
-    // TODO: Collecting the commits requires a lot of time. There has to be a faster way
+    let mut processed_ids = HashSet::new();
     debug!("started collecting the history of {}", commit_id);
-    let mut rev_walk = repository.revwalk().unwrap();
-    rev_walk.push(commit_id).unwrap();
-
     let mut commits = vec![];
-    for id in rev_walk.map(|c| c.unwrap()) {
-        if let Ok(c) = repository.find_commit(id) {
-            let c = CommitData {
-                id: c.id().to_string(),
-                message: {
-                    match c.message() {
-                        None => "",
-                        Some(v) => v,
-                    }
+    let start_commit = repository.find_commit(commit_id).unwrap();
+    processed_ids.insert(start_commit.id());
+
+    let mut parents = start_commit.parents().collect::<Vec<Commit>>();
+    commits.push(convert_commit(repository, start_commit));
+
+    while !parents.is_empty() {
+        let mut grandparents = vec![];
+        // for each parent, add it to the vector of collected commits and collect all grandparents
+        for parent in parents {
+            if !processed_ids.contains(&parent.id()) {
+                grandparents.extend(parent.parents());
+                processed_ids.insert(parent.id());
+                // we only consider non-merge commits
+                if parent.parent_count() < 2 {
+                    commits.push(convert_commit(repository, parent));
                 }
-                .to_string(),
-                diff: commit_diff(repository, &c).unwrap(),
-                author: c.author().to_string(),
-                committer: c.committer().to_string(),
-                time: c.time(),
-            };
-            commits.push(c);
+            }
         }
+        // in the next iteration, we consider all collected grandparents
+        parents = grandparents;
     }
     commits
+}
+
+fn convert_commit(repository: &Repository, commit: Commit) -> CommitData {
+    CommitData {
+        id: commit.id().to_string(),
+        message: {
+            match commit.message() {
+                None => "",
+                Some(v) => v,
+            }
+        }
+        .to_string(),
+        diff: commit_diff(repository, &commit).unwrap(),
+        author: commit.author().to_string(),
+        committer: commit.committer().to_string(),
+        time: commit.time(),
+    }
 }
 
 #[cfg(test)]
