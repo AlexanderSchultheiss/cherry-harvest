@@ -29,7 +29,11 @@ impl SearchMethod for SimilarityDiffMatch {
         let start = Instant::now();
         let results = commits
             .iter()
-            .flat_map(|c| corpus.search(c, 0.7))
+            .enumerate()
+            .flat_map(|(i, c)| {
+                debug!("processing commit {}", i);
+                corpus.search(c, 0.7)
+            })
             .collect::<Vec<ngrammatic::SearchResult>>();
         debug!("found {} results in {:?} ", results.len(), start.elapsed());
 
