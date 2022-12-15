@@ -152,3 +152,6 @@ ngrammatic's internal search heuristic is actually slower than brute force, beca
 - split diffs into tokens (aka. alphanumeric words, can we split by !alphanumeric?)
 - create a vocabulary of these tokens?
 - use it for ANN?
+- The lower the n in the n-gram approach, the faster the comparison
+  - n=1 -> similarity based on frequency of certain characters
+- Overall, a token-based approach should be faster

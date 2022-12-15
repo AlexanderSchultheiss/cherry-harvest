@@ -19,7 +19,7 @@ impl SearchMethod for SimilarityDiffMatch {
         let mut ngram_map = HashMap::<&CommitData, Ngram>::new();
         for commit in commits {
             let ngram = NgramBuilder::new(&commit.diff().to_string())
-                .arity(3)
+                .arity(1)
                 .pad_left(Pad::Auto)
                 .pad_right(Pad::Auto)
                 .finish();
