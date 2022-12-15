@@ -1,8 +1,7 @@
 use crate::git::CommitData;
 use crate::{CommitPair, SearchMethod, SearchResult};
 use log::debug;
-use ngrammatic::{CorpusBuilder, Pad};
-use std::cmp::max;
+use ngrammatic::{Ngram, NgramBuilder, Pad};
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
@@ -15,29 +14,47 @@ pub struct SimilarityDiffMatch();
 impl SearchMethod for SimilarityDiffMatch {
     fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
         debug!("retrieved a total of {} commits", commits.len());
-        let mut corpus = CorpusBuilder::new().arity(5).pad_full(Pad::Auto).finish();
-
-        // Build up the list of known words
-        let commits: Vec<String> = commits.iter().map(|c| c.diff().to_string()).collect();
-        debug!("converted all commits to strings");
         let start = Instant::now();
-        for c in &commits {
-            corpus.add_text(c);
+
+        let mut ngram_map = HashMap::<&CommitData, Ngram>::new();
+        for commit in commits {
+            let ngram = NgramBuilder::new(&commit.diff().to_string())
+                .arity(3)
+                .pad_left(Pad::Auto)
+                .pad_right(Pad::Auto)
+                .finish();
+            ngram_map.insert(commit, ngram);
         }
-        debug!("added all commits to the corpus in {:?} ", start.elapsed());
+        debug!("converted all commits to ngrams in {:?}", start.elapsed());
 
         let start = Instant::now();
-        let results = commits
-            .iter()
-            .enumerate()
-            .flat_map(|(i, c)| {
-                debug!("processing commit {}", i);
-                corpus.search(c, 0.7)
-            })
-            .collect::<Vec<ngrammatic::SearchResult>>();
+        let mut results = HashSet::new();
+        for (i, commit) in commits.iter().enumerate() {
+            let ngram = ngram_map.get(commit).unwrap();
+            for other in commits {
+                if commit == other {
+                    continue;
+                }
+                let other_ngram = ngram_map.get(other).unwrap();
+
+                // Compare both
+                if ngram.matches_with_warp(other_ngram, 1.0, 0.675).is_some() {
+                    results.insert(SearchResult::new(
+                        NAME.to_string(),
+                        // create a commit pair whose order depends on the commit time of both commits
+                        if commit.time() < other.time() {
+                            // commit is older than other_commit
+                            CommitPair(String::from(commit.id()), String::from(other.id()))
+                        } else {
+                            CommitPair(String::from(other.id()), String::from(commit.id()))
+                        },
+                    ));
+                }
+            }
+            debug!("finished comparison for {}. commit", i);
+        }
         debug!("found {} results in {:?} ", results.len(), start.elapsed());
 
-        let mut results = HashSet::new();
         results
     }
 }
