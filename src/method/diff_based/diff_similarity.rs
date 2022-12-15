@@ -38,7 +38,7 @@ impl SearchMethod for SimilarityDiffMatch {
                 let other_ngram = ngram_map.get(other).unwrap();
 
                 // Compare both
-                if ngram.matches_with_warp(other_ngram, 1.0, 0.675).is_some() {
+                if ngram.matches_with_warp(other_ngram, 1.0, 0.79).is_some() {
                     results.insert(SearchResult::new(
                         NAME.to_string(),
                         // create a commit pair whose order depends on the commit time of both commits

@@ -155,3 +155,6 @@ ngrammatic's internal search heuristic is actually slower than brute force, beca
 - The lower the n in the n-gram approach, the faster the comparison
   - n=1 -> similarity based on frequency of certain characters
 - Overall, a token-based approach should be faster
+- Perhaps we should explicitly look for reverted commits?
+  - our similarity approach would find reverted commits and classify them as cherry-pick, that is not what we intend
+  - It could also be interesting to see, how often a commit was reverted, and then repeated again

@@ -10,12 +10,25 @@ fn init() {
 }
 
 #[test]
-fn ngrammatic_scalability() {
+fn similarity_diff_scalability() {
     init();
-    debug!("log test!");
-    use ngrammatic::{CorpusBuilder, Pad};
-
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::SimilarityDiffMatch::default();
-    let results = cherry_harvest::search_with(&repo, search_method);
+    let _ = cherry_harvest::search_with(&repo, search_method);
+}
+
+#[test]
+fn message_based_scalability() {
+    init();
+    let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
+    let search_method = cherry_harvest::MessageScan::default();
+    let _ = cherry_harvest::search_with(&repo, search_method);
+}
+
+#[test]
+fn exact_diff_scalability() {
+    init();
+    let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
+    let search_method = cherry_harvest::ExactDiffMatch::default();
+    let _ = cherry_harvest::search_with(&repo, search_method);
 }
