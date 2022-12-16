@@ -49,6 +49,10 @@ pub mod metadata_based;
 ///         }   
 ///         results
 ///     }
+///
+///     fn name(&self) -> &'static str {
+///         "NAIVE_SEARCH"
+///     }
 /// }
 ///
 /// fn main() {
@@ -78,6 +82,10 @@ pub mod metadata_based;
 pub trait SearchMethod {
     /// Searches for all cherry picks in the given slice of commits.
     fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult>;
+
+    /// The method's name that is to be stored with each SearchResult
+    /// TODO: Find a better approach to handling the association of results and search methods
+    fn name(&self) -> &'static str;
 }
 
 pub use diff_based::diff_exact::ExactDiffMatch;

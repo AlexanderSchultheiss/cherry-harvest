@@ -3,7 +3,7 @@ use crate::{CommitPair, SearchMethod, SearchResult};
 use log::debug;
 use std::collections::{HashMap, HashSet};
 
-const NAME: &str = "ExactDiffMatch";
+pub const NAME: &str = "ExactDiffMatch";
 
 /// ExactDiffMatch identifies cherry picks by comparing the diffs of commits.
 ///
@@ -72,5 +72,9 @@ impl SearchMethod for ExactDiffMatch {
                 results
             })
             .collect()
+    }
+
+    fn name(&self) -> &'static str {
+        NAME
     }
 }

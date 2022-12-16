@@ -86,7 +86,7 @@ impl SearchResult {
 /// ```
 pub fn search_with_multiple(
     repo_location: &RepoLocation,
-    methods: Vec<Box<dyn SearchMethod>>,
+    methods: &Vec<Box<dyn SearchMethod>>,
 ) -> Vec<SearchResult> {
     info!(
         "started searching for cherry-picks in {} with {} method(s)",
@@ -153,13 +153,17 @@ pub fn search_with<T: SearchMethod + 'static>(
     repo_location: &RepoLocation,
     method: T,
 ) -> Vec<SearchResult> {
-    search_with_multiple(repo_location, vec![Box::new(method)])
+    search_with_multiple(repo_location, &vec![Box::new(method)])
 }
 
 /// Collect the commits of all local or all remote branches depending on the given BranchType
 fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<CommitData> {
     let branch_heads = git::branch_heads(repository, branch_type);
-    debug!("found {} heads of {:?} branches in repository.", branch_heads.len(), branch_type);
+    debug!(
+        "found {} heads of {:?} branches in repository.",
+        branch_heads.len(),
+        branch_type
+    );
 
     let commits: Vec<CommitData> = branch_heads
         .iter()

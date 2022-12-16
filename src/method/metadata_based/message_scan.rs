@@ -48,4 +48,8 @@ impl SearchMethod for MessageScan {
             })
             .collect()
     }
+
+    fn name(&self) -> &'static str {
+        &NAME
+    }
 }

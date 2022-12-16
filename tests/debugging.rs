@@ -1,4 +1,8 @@
-use log::{debug, LevelFilter};
+extern crate core;
+
+use cherry_harvest::SearchMethod;
+use log::LevelFilter;
+use std::collections::HashSet;
 use std::path::Path;
 
 /// Initializes the logger and load the ground truth.
@@ -31,4 +35,35 @@ fn exact_diff_scalability() {
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::ExactDiffMatch::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
+}
+
+#[test]
+fn similarity_finds_exact() {
+    init();
+    let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
+    let exact_diff = Box::new(cherry_harvest::ExactDiffMatch::default()) as Box<dyn SearchMethod>;
+    let similarity_diff =
+        Box::new(cherry_harvest::SimilarityDiffMatch::default()) as Box<dyn SearchMethod>;
+    let methods = vec![exact_diff, similarity_diff];
+    let results = cherry_harvest::search_with_multiple(&repo, &methods);
+
+    let mut exact_results = HashSet::new();
+    let mut sim_results = HashSet::new();
+    results.into_iter().for_each(|r| match r.search_method() {
+        "ExactDiffMatch" => {
+            exact_results.insert(r);
+        }
+        "SimilarityDiffMatch" => {
+            sim_results.insert(r);
+        }
+        _ => panic!("unexpected search method among results."),
+    });
+
+    for exact_res in &exact_results {
+        assert!(
+            sim_results.contains(exact_res),
+            "results of similarity search do not contain pair {:?}",
+            exact_res.commit_pair()
+        );
+    }
 }
