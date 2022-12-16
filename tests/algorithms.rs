@@ -3,7 +3,6 @@ mod ground_truth;
 use crate::ground_truth::GroundTruth;
 use cherry_harvest::{ExactDiffMatch, MessageScan, RepoLocation, SimilarityDiffMatch};
 use log::{info, LevelFilter};
-use std::path::Path;
 
 const CHERRIES_ONE: &str = "https://github.com/AlexanderSchultheiss/cherries-one.git";
 

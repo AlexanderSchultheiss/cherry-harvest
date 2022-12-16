@@ -21,7 +21,7 @@ impl SearchMethod for SimilarityDiffMatch {
         let mut ngram_map = HashMap::<&CommitData, Ngram>::new();
         for commit in commits {
             // TODO: implement own but similar approach to improve clarity
-            let ngram = NgramBuilder::new(&commit.diff().to_string())
+            let ngram = NgramBuilder::new(commit.diff().diff_text())
                 .arity(3)
                 .pad_left(Pad::Auto)
                 .pad_right(Pad::Auto)
@@ -41,7 +41,7 @@ impl SearchMethod for SimilarityDiffMatch {
             .map(|c| {
                 let vec = c
                     .diff()
-                    .to_string()
+                    .diff_text()
                     .as_bytes()
                     .iter()
                     .map(|b| *b as f32)
@@ -83,7 +83,7 @@ impl SearchMethod for SimilarityDiffMatch {
                 let other_ngram = ngram_map.get(other).unwrap();
 
                 // Compare both
-                if ngram.matches_with_warp(other_ngram, 1.0, 0.79).is_some() {
+                if ngram.matches_with_warp(other_ngram, 1.0, 0.8).is_some() {
                     results.insert(SearchResult::new(
                         NAME.to_string(),
                         // create a commit pair whose order depends on the commit time of both commits
@@ -96,7 +96,9 @@ impl SearchMethod for SimilarityDiffMatch {
                     ));
                 }
             }
-            debug!("finished comparison for {}. commit", i);
+            if i % 1000 == 0 {
+                debug!("finished comparison for {} commits", i);
+            }
         }
         debug!("found {} results in {:?} ", results.len(), start.elapsed());
         results

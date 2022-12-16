@@ -83,21 +83,27 @@ pub enum LoadedRepository {
 #[derive(Debug, Clone, Derivative, Eq)]
 #[derivative(PartialEq, Hash)]
 pub struct CommitDiff {
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    diff_text: String,
     pub hunks: Vec<Hunk>,
 }
 
 impl CommitDiff {
     pub fn empty() -> Self {
-        CommitDiff { hunks: vec![] }
+        CommitDiff {
+            diff_text: String::new(),
+            hunks: vec![],
+        }
     }
-}
 
-// TODO: cache textual representation
-impl Display for CommitDiff {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for hunk in &self.hunks {
-            write!(
-                f,
+    pub fn diff_text(&self) -> &str {
+        &self.diff_text
+    }
+
+    fn build_diff_text(hunks: &Vec<Hunk>) -> String {
+        let mut diff_text = String::new();
+        for hunk in hunks {
+            diff_text += &format!(
                 "--- {}\n+++ {}\n{}\n{}\n",
                 hunk.old_file
                     .as_ref()
@@ -107,11 +113,18 @@ impl Display for CommitDiff {
                     .map_or("None", |pb| pb.to_str().unwrap_or("None")),
                 hunk.header,
                 hunk.body.join("\n")
-            )?;
+            );
         }
-        Ok(())
+        diff_text
     }
 }
+
+// TODO: cache textual representation
+// impl Display for CommitDiff {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{}", self.diff_text)
+//     }
+// }
 
 /// A Hunk groups changes to a file that happened in a single commit.
 ///
@@ -241,7 +254,10 @@ impl<'repo> From<Diff<'repo>> for CommitDiff {
         .unwrap();
         let mut hunks: Vec<Hunk> = hunk_map.into_values().collect();
         hunks.sort();
-        Self { hunks }
+        Self {
+            diff_text: CommitDiff::build_diff_text(&hunks),
+            hunks,
+        }
     }
 }
 
