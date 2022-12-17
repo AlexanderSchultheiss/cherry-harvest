@@ -1,7 +1,7 @@
 extern crate core;
 
 use cherry_harvest::SearchMethod;
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -49,21 +49,24 @@ fn similarity_finds_exact() {
 
     let mut exact_results = HashSet::new();
     let mut sim_results = HashSet::new();
-    results.into_iter().for_each(|r| match r.search_method() {
+    results.iter().for_each(|r| match r.search_method() {
         "ExactDiffMatch" => {
-            exact_results.insert(r);
+            exact_results.insert(r.commit_pair());
         }
         "SimilarityDiffMatch" => {
-            sim_results.insert(r);
+            sim_results.insert(r.commit_pair());
         }
         _ => panic!("unexpected search method among results."),
     });
 
-    for exact_res in &exact_results {
+    sim_results.retain(|e| exact_results.contains(e));
+    debug!("retained {} results", sim_results.len());
+
+    for exact_res in exact_results {
         assert!(
             sim_results.contains(exact_res),
             "results of similarity search do not contain pair {:?}",
-            exact_res.commit_pair()
+            exact_res
         );
     }
 }
