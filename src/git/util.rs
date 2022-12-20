@@ -207,7 +207,14 @@ mod tests {
             let commit = repository.find_commit(oid).unwrap();
             let diff = commit_diff(&repository, &commit).unwrap();
             assert_eq!(diff.hunks.len(), 1);
-            assert_eq!(expected, diff.hunks[0].body)
+            assert_eq!(
+                expected,
+                diff.hunks[0]
+                    .body
+                    .iter()
+                    .map(|l| l.to_string())
+                    .collect::<Vec<String>>()
+            )
         }
     }
 

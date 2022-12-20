@@ -79,6 +79,93 @@ pub enum LoadedRepository {
     },
 }
 
+/// Represents a single line in a Diff
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub struct DiffLine {
+    content: String,
+    line_type: LineType,
+}
+
+impl Display for DiffLine {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.line_type.char(), self.content)
+    }
+}
+
+impl DiffLine {
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+    pub fn line_type(&self) -> LineType {
+        self.line_type
+    }
+}
+
+/// Type of line in a diff.
+/// ```text
+/// ' '  Line context
+/// '+'  Line addition
+/// '-'  Line deletion
+/// '='  Context (End of file)
+/// '>'  Add (End of file)
+/// '<'  Remove (End of file)
+/// 'F'  File header
+/// 'H'  Hunk header
+/// 'B'  Line binary
+/// ```
+#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
+pub enum LineType {
+    Context,
+    Addition,
+    Deletion,
+    ContextEofnl,
+    AddEofnl,
+    DelEofnl,
+    FileHdr,
+    HunkHdr,
+    Binary,
+}
+
+impl LineType {
+    pub fn char(&self) -> char {
+        match self {
+            LineType::Context => ' ',
+            LineType::Addition => '+',
+            LineType::Deletion => '-',
+            LineType::ContextEofnl => '=',
+            LineType::AddEofnl => '>',
+            LineType::DelEofnl => '<',
+            LineType::FileHdr => 'F',
+            LineType::HunkHdr => 'H',
+            LineType::Binary => 'B',
+        }
+    }
+}
+
+impl TryFrom<char> for LineType {
+    type Error = crate::error::Error;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            ' ' => Ok(Self::Context),
+            '+' => Ok(Self::Addition),
+            '-' => Ok(Self::Deletion),
+            '=' => Ok(Self::ContextEofnl),
+            '>' => Ok(Self::AddEofnl),
+            '<' => Ok(Self::DelEofnl),
+            'F' => Ok(Self::FileHdr),
+            'H' => Ok(Self::HunkHdr),
+            'B' => Ok(Self::Binary),
+            _ => Err(crate::error::Error::new(
+                crate::error::ErrorKind::DiffParse(format!(
+                    "unable to parse char '{}' to LineType",
+                    value
+                )),
+            )),
+        }
+    }
+}
+
 /// A CommitDiff holds all hunks with the changes that happened in a commit.
 #[derive(Debug, Clone, Derivative, Eq)]
 #[derivative(PartialEq, Hash)]
@@ -112,19 +199,22 @@ impl CommitDiff {
                     .as_ref()
                     .map_or("None", |pb| pb.to_str().unwrap_or("None")),
                 hunk.header,
-                hunk.body.join("\n")
+                hunk.body
+                    .iter()
+                    .map(|l| l.to_string())
+                    .collect::<Vec<String>>()
+                    .join("\n")
             );
         }
         diff_text
     }
 }
 
-// TODO: cache textual representation
-// impl Display for CommitDiff {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{}", self.diff_text)
-//     }
-// }
+impl Display for CommitDiff {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.diff_text)
+    }
+}
 
 /// A Hunk groups changes to a file that happened in a single commit.
 ///
@@ -133,8 +223,8 @@ impl CommitDiff {
 #[derive(Debug, Clone, Derivative)]
 #[derivative(Hash)]
 pub struct Hunk {
-    /// The hash of a diff is only identified by its body
-    body: Vec<String>,
+    // The hash of a diff is only identified by its body
+    body: Vec<DiffLine>,
     #[derivative(Hash = "ignore")]
     header: String,
     #[derivative(Hash = "ignore")]
@@ -163,7 +253,7 @@ impl Hunk {
         &self.new_file
     }
     /// The lines belonging to the body of this hunk including context lines and changed lines
-    pub fn body(&self) -> &Vec<String> {
+    pub fn body(&self) -> &Vec<DiffLine> {
         &self.body
     }
     /// The start line in the previous version
@@ -236,16 +326,10 @@ impl<'repo> From<Diff<'repo>> for CommitDiff {
                         old_start: h.old_start(),
                         new_start: h.new_start(),
                     });
-
                     // add the line to the hunk, if it is not the hunk header
                     if diff_line.origin() != 'H' {
-                        hunk.body.push(format!(
-                            "{} {}",
-                            diff_line.origin(),
-                            // TODO: Is there a better way to parse lines?
-                            String::from_utf8_lossy(&Vec::from(diff_line.content()))
-                            // .expect("was not able to parse diff line")
-                        ));
+                        hunk.body.push(DiffLine { content: String::from_utf8_lossy(&Vec::from(diff_line.content())).to_string(), line_type: LineType::try_from(diff_line.origin()).unwrap() }
+                        );
                     }
                 }
             }
