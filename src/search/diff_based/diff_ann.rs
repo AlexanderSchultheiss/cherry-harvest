@@ -16,8 +16,11 @@ impl SearchMethod for ANNMatch {
 
         debug!("starting indexing of {} commits", commits.len());
         let start = Instant::now();
-        for commit in commits {
+        for (i, commit) in commits.iter().enumerate() {
             index.insert(commit);
+            if i % 1000 == 0 {
+                debug!("finished indexing for {} commits", i);
+            }
         }
         debug!("finished indexing in {:?}.", start.elapsed());
 
@@ -26,7 +29,11 @@ impl SearchMethod for ANNMatch {
         for (i, commit) in commits.iter().enumerate() {
             index.neighbors(commit);
             if i % 1000 == 0 {
-                debug!("finished search for {} commits", i);
+                debug!("finished search for {} commits", i + 1);
+                unsafe {
+                    debug!("number of processed changes: {}", crate::search::ann::COUNT);
+                    debug!("average: {}", crate::search::ann::COUNT / (i + 1));
+                }
             }
         }
         debug!("finished search in {:?}.", start.elapsed());

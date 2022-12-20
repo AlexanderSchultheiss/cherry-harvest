@@ -70,35 +70,38 @@ impl SearchMethod for SimilarityDiffMatch {
 
         // search for the nearest neighbors of each commit
         let mut results = HashSet::new();
+        let mut count = 0;
         for (i, (commit, f32_vec)) in commit_f32_map.iter().enumerate() {
             let neighbors = index.search(f32_vec, 100);
-            let neighbors = neighbors
-                .into_iter()
-                .map(|i| commits.get(i).unwrap())
-                .collect::<Vec<&CommitData>>();
-            let ngram = ngram_map.get(commit).unwrap();
-            for other in neighbors {
-                if *commit == other {
-                    continue;
-                }
-                let other_ngram = ngram_map.get(other).unwrap();
-
-                // Compare both
-                if ngram.matches_with_warp(other_ngram, 1.0, 0.95).is_some() {
-                    results.insert(SearchResult::new(
-                        NAME.to_string(),
-                        // create a commit pair whose order depends on the commit time of both commits
-                        if commit.time() < other.time() {
-                            // commit is older than other_commit
-                            CommitPair(String::from(commit.id()), String::from(other.id()))
-                        } else {
-                            CommitPair(String::from(other.id()), String::from(commit.id()))
-                        },
-                    ));
-                }
-            }
+            count += neighbors.len();
+            // let neighbors = neighbors
+            //     .into_iter()
+            //     .map(|i| commits.get(i).unwrap())
+            //     .collect::<Vec<&CommitData>>();
+            // let ngram = ngram_map.get(commit).unwrap();
+            // for other in neighbors {
+            //     if *commit == other {
+            //         continue;
+            //     }
+            //     let other_ngram = ngram_map.get(other).unwrap();
+            //
+            //     // Compare both
+            //     if ngram.matches_with_warp(other_ngram, 1.0, 0.95).is_some() {
+            //         results.insert(SearchResult::new(
+            //             NAME.to_string(),
+            //             // create a commit pair whose order depends on the commit time of both commits
+            //             if commit.time() < other.time() {
+            //                 // commit is older than other_commit
+            //                 CommitPair(String::from(commit.id()), String::from(other.id()))
+            //             } else {
+            //                 CommitPair(String::from(other.id()), String::from(commit.id()))
+            //             },
+            //         ));
+            //     }
+            // }
             if i % 1000 == 0 {
                 debug!("finished comparison for {} commits", i);
+                debug!("average neighbors {}", count / (i + 1));
             }
         }
         debug!("found {} results in {:?} ", results.len(), start.elapsed());

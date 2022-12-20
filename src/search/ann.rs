@@ -1,12 +1,17 @@
 use crate::git::LineType;
 use crate::CommitData;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+type Id<'a> = &'a str;
+type Change = String;
 
 #[derive(Default)]
 pub struct Index<'a> {
-    commit_index: HashMap<String, Vec<&'a CommitData>>,
-    change_index: HashMap<&'a CommitData, Vec<String>>,
+    commit_index: HashMap<Change, HashSet<Id<'a>>>,
+    change_index: HashMap<Id<'a>, HashSet<Change>>,
 }
+
+pub static mut COUNT: usize = 0;
 
 impl<'a> Index<'a> {
     pub fn new() -> Self {
@@ -23,34 +28,35 @@ impl<'a> Index<'a> {
                     LineType::Addition
                     | LineType::Deletion
                     | LineType::AddEofnl
-                    | LineType::DelEofnl => Some(l.to_string()),
+                    | LineType::DelEofnl => Some(l.content().trim().to_string()),
                     _ => None,
                 })
             })
             .for_each(|c| {
                 // update the change_index
-                let entry = self.change_index.entry(commit).or_default();
-                entry.push(c.clone());
+                let entry = self.change_index.entry(commit.id()).or_default();
+                entry.insert(c.clone());
 
                 // update the commit_index
                 let entry = self.commit_index.entry(c).or_default();
-                entry.push(commit)
+                entry.insert(commit.id());
             });
     }
 
-    pub fn neighbors(&mut self, commit: &CommitData) -> Vec<&'a CommitData> {
-        let changes = self.change_index.get(commit).unwrap();
-        changes
-            .iter()
-            .flat_map(|c| self.commit_index.get(c).unwrap())
-            .filter_map(|c| {
-                if c.id() != commit.id() {
-                    Some(*c)
-                } else {
-                    None
+    pub fn neighbors(&mut self, commit: &CommitData) -> HashSet<&'a str> {
+        match self.change_index.get(commit.id()) {
+            None => HashSet::new(),
+            Some(changes) => {
+                unsafe {
+                    COUNT += changes.len();
                 }
-            })
-            .collect()
+                changes
+                    .iter()
+                    .flat_map(|c| self.commit_index.get(c).unwrap())
+                    .filter_map(|c| if *c != commit.id() { Some(*c) } else { None })
+                    .collect()
+            }
+        }
     }
 }
 
