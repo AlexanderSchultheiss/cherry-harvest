@@ -6,17 +6,17 @@ pub mod diff_based;
 pub mod metadata_based;
 
 /// Trait for implementing new search methods. This trait is meant to annotate the capabilities of
-/// a type to function as a search method, on the one hand, and to offer a common interface for
+/// a type to function as a search search, on the one hand, and to offer a common interface for
 /// search methods on the other hand.
 ///
 /// A SearchMethod is supposed to search and find all existing cherry picks in a given slice of
-/// commits. How a cherry pick is identified is left to the search method.
-/// On this note, the results returned by a search method must not objectively be correct.
+/// commits. How a cherry pick is identified is left to the search search.
+/// On this note, the results returned by a search search must not objectively be correct.
 /// The returned set of SearchResult instances should instead be seen as possible cherry picks that
 /// can be used and validated by the caller.
 ///
 /// # Examples
-/// Example of a naive search method that finds cherry picks only based on the equality of
+/// Example of a naive search search that finds cherry picks only based on the equality of
 /// commit messages.
 /// ```
 /// use std::collections::HashSet;
@@ -83,7 +83,7 @@ pub trait SearchMethod {
     /// Searches for all cherry picks in the given slice of commits.
     fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult>;
 
-    /// The method's name that is to be stored with each SearchResult
+    /// The search's name that is to be stored with each SearchResult
     /// TODO: Find a better approach to handling the association of results and search methods
     fn name(&self) -> &'static str;
 }

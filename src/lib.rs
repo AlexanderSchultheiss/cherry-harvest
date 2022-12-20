@@ -5,15 +5,15 @@ use std::collections::HashMap;
 
 mod error;
 mod git;
-mod method;
+mod search;
 
 pub use git::CommitData;
 pub use git::CommitDiff;
 pub use git::RepoLocation;
-pub use method::ExactDiffMatch;
-pub use method::MessageScan;
-pub use method::SearchMethod;
-pub use method::SimilarityDiffMatch;
+pub use search::ExactDiffMatch;
+pub use search::MessageScan;
+pub use search::SearchMethod;
+pub use search::SimilarityDiffMatch;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct CommitPair(pub String, pub String);
@@ -89,7 +89,7 @@ pub fn search_with_multiple(
     methods: &Vec<Box<dyn SearchMethod>>,
 ) -> Vec<SearchResult> {
     info!(
-        "started searching for cherry-picks in {} with {} method(s)",
+        "started searching for cherry-picks in {} with {} search(s)",
         repo_location,
         methods.len()
     );
@@ -106,7 +106,7 @@ pub fn search_with_multiple(
         .flat_map(|m| m.search(&commits))
         .collect::<Vec<SearchResult>>();
 
-    info!("number of cherry-picks found by method:\n{:#?}", {
+    info!("number of cherry-picks found by search:\n{:#?}", {
         let mut result_map = HashMap::with_capacity(methods.len());
         results
             .iter()
@@ -118,18 +118,18 @@ pub fn search_with_multiple(
     results
 }
 
-/// Searches for cherry picks with the given search method.
+/// Searches for cherry picks with the given search search.
 ///
 /// # Examples
 /// ```
 /// use cherry_harvest::{MessageScan, RepoLocation};
 ///
-/// // initialize the search method
-/// let method = MessageScan::default();
+/// // initialize the search search
+/// let search = MessageScan::default();
 /// // link to a test repository
 /// let server = "https://github.com/AlexanderSchultheiss/cherries-one";
 /// // execute the search for cherry picks
-/// let results = cherry_harvest::search_with(&RepoLocation::Server(server), method);
+/// let results = cherry_harvest::search_with(&RepoLocation::Server(server), search);
 ///
 /// // we expect two cherry picks
 /// assert_eq!(results.len(), 2);

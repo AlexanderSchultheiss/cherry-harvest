@@ -56,7 +56,7 @@ fn similarity_finds_exact() {
         "SimilarityDiffMatch" => {
             sim_results.insert(r.commit_pair());
         }
-        _ => panic!("unexpected search method among results."),
+        _ => panic!("unexpected search search among results."),
     });
 
     sim_results.retain(|e| exact_results.contains(e));

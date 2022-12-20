@@ -10,7 +10,7 @@ impl GroundTruth {
         serde_yaml::from_reader(File::open(path).unwrap()).unwrap()
     }
 
-    /// Retains only the ground truth entries that are valid for the MessageScan method
+    /// Retains only the ground truth entries that are valid for the MessageScan search
     pub fn retain_message_scan(&mut self) {
         self.0.retain(|entry| match entry.method {
             CherryPickMethod::CLIGit {
@@ -23,7 +23,7 @@ impl GroundTruth {
         });
     }
 
-    /// Retains only the ground truth entries that are valid for the ExactDiffMatch method
+    /// Retains only the ground truth entries that are valid for the ExactDiffMatch search
     pub fn retain_exact_diff(&mut self) {
         self.0.retain(|entry| {
             entry.change_sets_match == SetMatch::Fully

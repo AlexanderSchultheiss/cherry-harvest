@@ -13,7 +13,7 @@ pub const NAME: &str = "SimilarityDiffMatch";
 #[derive(Default)]
 pub struct SimilarityDiffMatch();
 
-// TODO: This method must find at least the same cherry-picks as the exact search, otherwise it is missing cherry-picks
+// TODO: This search must find at least the same cherry-picks as the exact search, otherwise it is missing cherry-picks
 impl SearchMethod for SimilarityDiffMatch {
     fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
         debug!("retrieved a total of {} commits", commits.len());
