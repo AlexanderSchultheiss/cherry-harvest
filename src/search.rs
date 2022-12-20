@@ -3,10 +3,12 @@ use crate::SearchResult;
 use std::collections::HashSet;
 
 pub mod ann;
+pub mod brute_force;
 pub mod diff_based;
 pub mod metadata_based;
 
 pub use diff_based::diff_ann::ANNMatch;
+pub use diff_based::diff_brute_force::BruteForceMatch;
 pub use diff_based::diff_exact::ExactDiffMatch;
 pub use diff_based::diff_similarity::SimilarityDiffMatch;
 pub use metadata_based::message_scan::MessageScan;

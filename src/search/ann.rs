@@ -98,15 +98,16 @@ impl<'a> Index<'a> {
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
-pub struct CandidatePair<'a>(&'a str, &'a str);
+pub struct CandidatePair<'a>(pub &'a str, pub &'a str);
 
 impl<'a> CandidatePair<'a> {
-    fn new(c1: &'a str, c2: &'a str) -> Self {
-        if c1 <= c2 {
-            CandidatePair(c1, c2)
-        } else {
-            CandidatePair(c2, c1)
-        }
+    pub fn new(c1: &'a str, c2: &'a str) -> Self {
+        // TODO: uncomment
+        // if c1 <= c2 {
+        CandidatePair(c1, c2)
+        // } else {
+        //     CandidatePair(c2, c1)
+        // }
     }
 }
 
