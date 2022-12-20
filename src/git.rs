@@ -244,14 +244,14 @@ impl<'repo> From<Diff<'repo>> for CommitDiff {
                             diff_line.origin(),
                             // TODO: Is there a better way to parse lines?
                             String::from_utf8_lossy(&Vec::from(diff_line.content()))
-                               // .expect("was not able to parse diff line")
+                            // .expect("was not able to parse diff line")
                         ));
                     }
                 }
             }
             true
         })
-        .unwrap();
+            .unwrap();
         let mut hunks: Vec<Hunk> = hunk_map.into_values().collect();
         hunks.sort();
         Self {
