@@ -1,6 +1,8 @@
 use crate::git::LineType;
 use crate::CommitData;
+use log::debug;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 
 type Id<'a> = &'a str;
 type Change = String;
@@ -28,7 +30,9 @@ impl<'a> Index<'a> {
                     LineType::Addition
                     | LineType::Deletion
                     | LineType::AddEofnl
-                    | LineType::DelEofnl => Some(l.content().trim().to_string()),
+                    | LineType::DelEofnl => {
+                        Some(format!("{} {}", l.line_type().char(), l.content().trim()))
+                    }
                     _ => None,
                 })
             })
@@ -56,6 +60,52 @@ impl<'a> Index<'a> {
                     .filter_map(|c| if *c != commit.id() { Some(*c) } else { None })
                     .collect()
             }
+        }
+    }
+
+    pub fn candidates(&self) -> HashSet<CandidatePair<'a>> {
+        debug!(
+            "finding candidates among {} entries",
+            self.commit_index.len()
+        );
+        let mut candidates = HashSet::new();
+        for (i, neighbors) in self.commit_index.values().enumerate() {
+            for n1 in neighbors {
+                for n2 in neighbors {
+                    if n1 != n2 {
+                        candidates.insert(CandidatePair::new(n1, n2));
+                    }
+                }
+            }
+            if i % 1000 == 0 {
+                debug!(
+                    "finished search for {}/{} entries",
+                    i,
+                    self.commit_index.len()
+                );
+            }
+        }
+        debug!(
+            "found {} candidate pairs among {} possible combinations",
+            candidates.len(),
+            self.change_index.len() * self.change_index.len()
+        );
+        let percentage =
+            100.0 * (1.0 - (candidates.len() as f64 / self.change_index.len().pow(2) as f64));
+        debug!("reduced search by {}%", percentage);
+        candidates
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Debug)]
+pub struct CandidatePair<'a>(&'a str, &'a str);
+
+impl<'a> CandidatePair<'a> {
+    fn new(c1: &'a str, c2: &'a str) -> Self {
+        if c1 <= c2 {
+            CandidatePair(c1, c2)
+        } else {
+            CandidatePair(c2, c1)
         }
     }
 }

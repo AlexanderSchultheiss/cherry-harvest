@@ -26,16 +26,7 @@ impl SearchMethod for ANNMatch {
 
         debug!("starting neighbor search for all commits");
         let start = Instant::now();
-        for (i, commit) in commits.iter().enumerate() {
-            index.neighbors(commit);
-            if i % 1000 == 0 {
-                debug!("finished search for {} commits", i + 1);
-                unsafe {
-                    debug!("number of processed changes: {}", crate::search::ann::COUNT);
-                    debug!("average: {}", crate::search::ann::COUNT / (i + 1));
-                }
-            }
-        }
+        let candidates = index.candidates();
         debug!("finished search in {:?}.", start.elapsed());
         HashSet::new()
     }
