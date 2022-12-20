@@ -38,6 +38,14 @@ fn exact_diff_scalability() {
 }
 
 #[test]
+fn ann_scalability() {
+    init();
+    let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
+    let search_method = cherry_harvest::ANNMatch::default();
+    let _ = cherry_harvest::search_with(&repo, search_method);
+}
+
+#[test]
 fn similarity_finds_exact() {
     init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));

@@ -10,6 +10,7 @@ mod search;
 pub use git::CommitData;
 pub use git::CommitDiff;
 pub use git::RepoLocation;
+pub use search::ANNMatch;
 pub use search::ExactDiffMatch;
 pub use search::MessageScan;
 pub use search::SearchMethod;
