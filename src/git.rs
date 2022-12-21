@@ -88,7 +88,7 @@ pub struct DiffLine {
 
 impl Display for DiffLine {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.line_type.char(), self.content)
+        write!(f, "{} {}", self.line_type.char(), self.content)
     }
 }
 
