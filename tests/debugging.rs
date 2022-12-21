@@ -1,61 +1,68 @@
 extern crate core;
 
 use cherry_harvest::SearchMethod;
-use log::{debug, LevelFilter};
+use log::{debug, info, LevelFilter};
 use std::collections::HashSet;
 use std::path::Path;
+use std::time::Instant;
 
 /// Initializes the logger and load the ground truth.
-fn init() {
+fn init() -> Instant {
     let _ = env_logger::builder()
         .is_test(true)
         .filter_level(LevelFilter::Debug)
         .try_init();
+    Instant::now()
 }
 
 #[test]
 fn similarity_diff_scalability() {
-    init();
+    let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::SimilarityDiffMatch::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
+    info!("test finished in {:?}", start.elapsed())
 }
 
 #[test]
 fn message_based_scalability() {
-    init();
+    let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::MessageScan::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
+    info!("test finished in {:?}", start.elapsed())
 }
 
 #[test]
 fn exact_diff_scalability() {
-    init();
+    let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::ExactDiffMatch::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
+    info!("test finished in {:?}", start.elapsed())
 }
 
 #[test]
 fn ann_scalability() {
-    init();
+    let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::ANNMatch::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
+    info!("test finished in {:?}", start.elapsed())
 }
 
 #[test]
 fn brute_force_scalability() {
-    init();
+    let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::BruteForceMatch::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
+    info!("test finished in {:?}", start.elapsed())
 }
 
 #[test]
 fn similarity_finds_exact() {
-    init();
+    let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let exact_diff = Box::new(cherry_harvest::ExactDiffMatch::default()) as Box<dyn SearchMethod>;
     let similarity_diff =
@@ -85,11 +92,12 @@ fn similarity_finds_exact() {
             exact_res
         );
     }
+    info!("test finished in {:?}", start.elapsed())
 }
 
 #[test]
 fn brute_force_finds_exact() {
-    init();
+    let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let exact_diff = Box::new(cherry_harvest::ExactDiffMatch::default()) as Box<dyn SearchMethod>;
     let similarity_diff =
@@ -119,4 +127,5 @@ fn brute_force_finds_exact() {
             exact_res
         );
     }
+    info!("test finished in {:?}", start.elapsed())
 }
