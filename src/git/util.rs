@@ -2,7 +2,7 @@ use crate::error::{Error, ErrorKind};
 use crate::git::LoadedRepository::{LocalRepo, RemoteRepo};
 use crate::git::{CommitData, CommitDiff, LoadedRepository, RepoLocation};
 use git2::{BranchType, Commit, Oid, Repository};
-use log::{debug, error};
+use log::{debug, error, info};
 use std::collections::HashSet;
 use temp_dir::TempDir;
 
@@ -63,6 +63,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
 /// # Errors
 /// Returns a GitDiff error, if git2 returns an error during diffing.
 ///
+/// // TODO: This requires way too much time! Bottleneck
 pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<CommitDiff, Error> {
     repository
         .diff_tree_to_tree(
@@ -124,10 +125,19 @@ pub fn history_for_commit(repository: &Repository, commit_id: Oid) -> Vec<Commit
     let mut parents = start_commit.parents().collect::<Vec<Commit>>();
     commits.push(convert_commit(repository, start_commit));
 
+    let mut count: u64 = 0;
     while !parents.is_empty() {
         let mut grandparents = vec![];
         // for each parent, add it to the vector of collected commits and collect all grandparents
         for parent in parents {
+            count += 1;
+            if count % 10_000 == 0 {
+                info!(
+                    "processed {} unique commits for head {}",
+                    processed_ids.len(),
+                    commit_id
+                );
+            }
             if !processed_ids.contains(&parent.id()) {
                 grandparents.extend(parent.parents());
                 processed_ids.insert(parent.id());
