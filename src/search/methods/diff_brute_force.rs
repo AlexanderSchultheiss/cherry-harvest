@@ -1,8 +1,6 @@
-use crate::search::brute_force::brute_force_search;
+use crate::search::util::brute_force::brute_force_search;
 use crate::{CommitData, CommitPair, SearchMethod, SearchResult};
-use log::debug;
 use std::collections::HashSet;
-use std::time::Instant;
 
 pub const NAME: &str = "BruteForce";
 

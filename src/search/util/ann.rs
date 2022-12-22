@@ -2,7 +2,7 @@ use crate::git::LineType;
 use crate::CommitData;
 use log::debug;
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 type Id<'a> = &'a str;
 type Change = String;
@@ -13,7 +13,7 @@ pub struct Index<'a> {
     change_index: HashMap<Id<'a>, HashSet<Change>>,
 }
 
-pub static mut COUNT: usize = 0;
+// pub static mut COUNT: usize = 0;
 
 impl<'a> Index<'a> {
     pub fn new() -> Self {
@@ -47,27 +47,24 @@ impl<'a> Index<'a> {
             });
     }
 
-    pub fn neighbors(&mut self, commit: &CommitData) -> HashSet<&'a str> {
-        match self.change_index.get(commit.id()) {
-            None => HashSet::new(),
-            Some(changes) => {
-                unsafe {
-                    COUNT += changes.len();
-                }
-                changes
-                    .iter()
-                    .flat_map(|c| self.commit_index.get(c).unwrap())
-                    .filter_map(|c| if *c != commit.id() { Some(*c) } else { None })
-                    .collect()
-            }
-        }
-    }
+    // pub fn neighbors(&mut self, commit: &CommitData) -> HashSet<&'a str> {
+    //     match self.change_index.get(commit.id()) {
+    //         None => HashSet::new(),
+    //         Some(changes) => {
+    //             unsafe {
+    //                 COUNT += changes.len();
+    //             }
+    //             changes
+    //                 .iter()
+    //                 .flat_map(|c| self.commit_index.get(c).unwrap())
+    //                 .filter_map(|c| if *c != commit.id() { Some(*c) } else { None })
+    //                 .collect()
+    //         }
+    //     }
+    // }
 
     pub fn candidates(&self) -> HashSet<CandidatePair<'a>> {
-        debug!(
-            "finding candidates among {} entries",
-            self.commit_index.len()
-        );
+        debug!("finding util among {} entries", self.commit_index.len());
         let mut candidates = HashSet::new();
         for (i, neighbors) in self.commit_index.values().enumerate() {
             for n1 in neighbors {
@@ -113,8 +110,6 @@ impl<'a> CandidatePair<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
     }

@@ -1,8 +1,8 @@
-mod ground_truth;
+mod util;
 
-use crate::ground_truth::GroundTruth;
 use cherry_harvest::{ANNMatch, ExactDiffMatch, MessageScan, RepoLocation, SimilarityDiffMatch};
 use log::{info, LevelFilter};
+use util::ground_truth::GroundTruth;
 
 const CHERRIES_ONE: &str = "https://github.com/AlexanderSchultheiss/cherries-one.git";
 

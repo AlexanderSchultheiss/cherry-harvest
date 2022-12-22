@@ -1,4 +1,4 @@
-use crate::search::ann::Index;
+use crate::search::util::ann::Index;
 use crate::{CommitData, SearchMethod, SearchResult};
 use log::debug;
 use std::collections::HashSet;
@@ -26,7 +26,7 @@ impl SearchMethod for ANNMatch {
 
         debug!("starting neighbor search for all commits");
         let start = Instant::now();
-        let candidates = index.candidates();
+        let _ = index.candidates();
         debug!("finished search in {:?}.", start.elapsed());
         HashSet::new()
     }

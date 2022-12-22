@@ -2,16 +2,14 @@ use crate::git::CommitData;
 use crate::SearchResult;
 use std::collections::HashSet;
 
-pub mod ann;
-pub mod brute_force;
-pub mod diff_based;
-pub mod metadata_based;
+mod methods;
+mod util;
 
-pub use diff_based::diff_ann::ANNMatch;
-pub use diff_based::diff_brute_force::BruteForceMatch;
-pub use diff_based::diff_exact::ExactDiffMatch;
-pub use diff_based::diff_similarity::SimilarityDiffMatch;
-pub use metadata_based::message_scan::MessageScan;
+pub use methods::diff_ann::ANNMatch;
+pub use methods::diff_brute_force::BruteForceMatch;
+pub use methods::diff_exact::ExactDiffMatch;
+pub use methods::diff_similarity::SimilarityDiffMatch;
+pub use methods::message_scan::MessageScan;
 
 /// Trait for implementing new search methods. This trait is meant to annotate the capabilities of
 /// a type to function as a search search, on the one hand, and to offer a common interface for

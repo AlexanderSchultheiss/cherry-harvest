@@ -1,4 +1,4 @@
-use crate::search::ann::CandidatePair;
+use crate::search::util::ann::CandidatePair;
 use crate::CommitData;
 use log::debug;
 use std::collections::HashSet;

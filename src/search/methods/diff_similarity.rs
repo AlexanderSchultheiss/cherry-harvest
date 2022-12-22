@@ -1,5 +1,5 @@
 use crate::git::CommitData;
-use crate::{CommitPair, SearchMethod, SearchResult};
+use crate::{SearchMethod, SearchResult};
 use hora::core::ann_index::ANNIndex;
 use log::debug;
 use ngrammatic::{Ngram, NgramBuilder, Pad};
