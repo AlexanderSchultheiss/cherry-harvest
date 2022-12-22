@@ -197,14 +197,14 @@ mod tests {
         init();
 
         let expected: Vec<&str> = vec![
-            "  ) -> Result<Diff<'a>, git2::Error> {\n",
-            "      repository.diff_tree_to_tree(\n",
-            "          // Retrieve the parent commit and map it to an Option variant\n",
-            "-         commit.parent(0).map(|c| c.tree())?.ok().as_ref(),\n",
-            "+         commit.parent(0).map(|c| c.tree().unwrap()).ok().as_ref(),\n",
-            "          Some(&commit.tree().unwrap()),\n",
-            "          None,\n",
-            "      )\n",
+            " ) -> Result<Diff<'a>, git2::Error> {\n",
+            "     repository.diff_tree_to_tree(\n",
+            "         // Retrieve the parent commit and map it to an Option variant\n",
+            "-        commit.parent(0).map(|c| c.tree())?.ok().as_ref(),\n",
+            "+        commit.parent(0).map(|c| c.tree().unwrap()).ok().as_ref(),\n",
+            "         Some(&commit.tree().unwrap()),\n",
+            "         None,\n",
+            "     )\n",
         ];
 
         use std::env;

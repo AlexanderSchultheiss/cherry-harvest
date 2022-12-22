@@ -1,15 +1,25 @@
 #[cfg(test)]
 mod tests {
-
-
+    use crate::git::IdeaPatch;
+    use crate::Diff;
+    use log::{debug, LevelFilter};
 
     fn init() {
-        let _ = env_logger::builder().is_test(true).try_init();
+        let _ = env_logger::builder()
+            .is_test(true)
+            .filter_level(LevelFilter::Debug)
+            .try_init();
     }
 
     #[test]
-    fn index_search() {
+    fn debug_diff_parsing() {
         init();
+        debug!("{}", Diff::from(IdeaPatch(CHERRY_A.to_string())));
+        debug!("{}", Diff::from(IdeaPatch(PICK_A.to_string())));
+        debug!("{}", Diff::from(IdeaPatch(CHERRY_B.to_string())));
+        debug!("{}", Diff::from(IdeaPatch(PICK_B.to_string())));
+        debug!("{}", Diff::from(IdeaPatch(ISOLATED_COMMIT_A.to_string())));
+        debug!("{}", Diff::from(IdeaPatch(ISOLATED_COMMIT_B.to_string())));
     }
 
     const CHERRY_A: &str = r#"Subject: [PATCH] feat: added logging
@@ -209,7 +219,6 @@ diff --git a/src/main.rs b/src/main.rs
  }
 "#;
 
-
     const PICK_A: &str = r#"
 Subject: [PATCH] feat: added logging
 ---
@@ -245,7 +254,7 @@ diff --git a/src/main.rs b/src/main.rs
  }
  
 "#;
-    
+
     const CHERRY_B: &str = r#"
 Subject: [PATCH] feat: removed functions
 ---
@@ -330,7 +339,7 @@ diff --git a/src/main.rs b/src/main.rs
 +    println!("faz");
 +}
 "#;
-    
+
     const ISOLATED_COMMIT_B: &str = r#"
 Subject: [PATCH] feat: added counting
 ---
@@ -362,5 +371,3 @@ diff --git a/src/main.rs b/src/main.rs
 
     // end of module
 }
-
-

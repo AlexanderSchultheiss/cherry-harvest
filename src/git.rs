@@ -88,11 +88,15 @@ pub struct DiffLine {
 
 impl Display for DiffLine {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.line_type.char(), self.content)
+        write!(f, "{}{}", self.line_type.char(), self.content)
     }
 }
 
 impl DiffLine {
+    pub fn new(content: String, line_type: LineType) -> Self {
+        DiffLine { content, line_type }
+    }
+
     pub fn content(&self) -> &str {
         &self.content
     }
@@ -339,6 +343,107 @@ impl<'repo> From<G2Diff<'repo>> for Diff {
         let mut hunks: Vec<Hunk> = hunk_map.into_values().collect();
         hunks.sort();
         Self {
+            diff_text: Diff::build_diff_text(&hunks),
+            hunks,
+        }
+    }
+}
+
+/// String wrapper for representing patches extracted with IDEA IDEs
+pub struct IdeaPatch(pub String);
+
+impl From<IdeaPatch> for Diff {
+    fn from(patch: IdeaPatch) -> Self {
+        // separator used in patches
+        const SEPARATOR: &str =
+            r#"==================================================================="#;
+        // number of metadata lines at the start of each file diff
+        const NUM_METADATA_LINES: usize = 4;
+
+        // first, extract and trim the content
+        let patch = patch.0.trim().to_string();
+
+        // then, split the patch into its components
+        let parts = patch
+            .split(SEPARATOR)
+            .map(|p| p.trim())
+            .filter(|p| /*file diffs start with `diff`*/ p.starts_with("diff"))
+            .collect::<Vec<&str>>();
+
+        // remove metadata lines
+        let mut file_diffs = vec![];
+        for (i, file_diff) in parts.iter().enumerate() {
+            let mut lines = file_diff
+                .lines()
+                .map(|l| l.to_string())
+                .collect::<Vec<String>>();
+            // if there there is another file diff, we have to remove metadata lines at the end of
+            // the current file_diff, because they appear before the separator
+            if (i + 1) < parts.len() {
+                lines.truncate(lines.len() - NUM_METADATA_LINES);
+            }
+            file_diffs.push(lines);
+        }
+
+        // parse the textual file diffs to an instance of Diff
+        let mut hunks = vec![];
+        let mut hunk_headers: Vec<String> = vec![];
+        let mut hunk_bodies: Vec<Vec<DiffLine>> = vec![];
+        for file_diff in file_diffs {
+            // split the file diff into header and hunks
+            let (header, body) = file_diff.split_at(3);
+            // parse the header
+            let file_old = header
+                .get(1)
+                .unwrap()
+                .split_whitespace()
+                .find(|s| s.starts_with("a/"))
+                .unwrap();
+            let file_new = header
+                .get(2)
+                .unwrap()
+                .split_whitespace()
+                .find(|s| s.starts_with("b/"))
+                .unwrap();
+
+            // parse the hunks
+            let mut body_lines = vec![];
+            for line in body {
+                if line.starts_with("@@ ") && line.ends_with(" @@") {
+                    hunk_headers.push(line.clone());
+                    if !body_lines.is_empty() {
+                        hunk_bodies.push(body_lines);
+                        body_lines = vec![];
+                    }
+                } else {
+                    let line_type = LineType::try_from(line.chars().take(1).last().unwrap())
+                        .unwrap_or(LineType::Context);
+                    body_lines.push(DiffLine::new(line.chars().skip(1).collect(), line_type))
+                }
+            }
+            // push the last hunk
+            hunk_bodies.push(body_lines);
+
+            // convert all hunks
+            hunks.extend(
+                hunk_headers
+                    .into_iter()
+                    .zip(hunk_bodies.into_iter())
+                    .map(|(header, body)| Hunk {
+                        body,
+                        header,
+                        old_file: Some(PathBuf::from(file_old)),
+                        new_file: Some(PathBuf::from(file_new)),
+                        // TODO: parse as well
+                        old_start: 0,
+                        new_start: 0,
+                    })
+                    .collect::<Vec<Hunk>>(),
+            );
+            hunk_headers = vec![];
+            hunk_bodies = vec![];
+        }
+        Diff {
             diff_text: Diff::build_diff_text(&hunks),
             hunks,
         }
