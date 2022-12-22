@@ -7,7 +7,7 @@ use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
-pub const NAME: &str = "SimilarityDiffMatch";
+pub const NAME_SIMILARITY_DIFF_MATCH: &str = "SimilarityDiffMatch";
 
 /// SimilarityDiffMatch
 #[derive(Default)]
@@ -109,7 +109,7 @@ impl SearchMethod for SimilarityDiffMatch {
     }
 
     fn name(&self) -> &'static str {
-        NAME
+        NAME_SIMILARITY_DIFF_MATCH
     }
 }
 
@@ -170,3 +170,65 @@ impl SearchMethod for SimilarityDiffMatch {
         results
     }
 */
+
+use crate::search::util::brute_force::brute_force_search;
+use crate::CommitPair;
+
+pub const NAME_BRUTE_FORCE: &str = "BruteForce";
+
+/// SimilarityDiffMatch
+#[derive(Default)]
+pub struct BruteForceMatch();
+
+impl SearchMethod for BruteForceMatch {
+    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
+        let candidates = brute_force_search(commits);
+        candidates
+            .into_iter()
+            .map(|c| {
+                SearchResult::new(
+                    NAME_BRUTE_FORCE.to_string(),
+                    CommitPair(c.0.to_string(), c.1.to_string()),
+                )
+            })
+            .collect()
+    }
+
+    fn name(&self) -> &'static str {
+        NAME_BRUTE_FORCE
+    }
+}
+
+use crate::search::util::ann::Index;
+
+pub const NAME_ANN: &str = "ANN";
+
+/// SimilarityDiffMatch
+#[derive(Default)]
+pub struct ANNMatch();
+
+impl SearchMethod for ANNMatch {
+    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
+        let mut index = Index::new();
+
+        debug!("starting indexing of {} commits", commits.len());
+        let start = Instant::now();
+        for (i, commit) in commits.iter().enumerate() {
+            index.insert(commit);
+            if i % 1000 == 0 {
+                debug!("finished indexing for {} commits", i);
+            }
+        }
+        debug!("finished indexing in {:?}.", start.elapsed());
+
+        debug!("starting neighbor search for all commits");
+        let start = Instant::now();
+        let _ = index.candidates();
+        debug!("finished search in {:?}.", start.elapsed());
+        HashSet::new()
+    }
+
+    fn name(&self) -> &'static str {
+        NAME_ANN
+    }
+}

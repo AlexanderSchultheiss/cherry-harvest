@@ -5,11 +5,11 @@ use std::collections::HashSet;
 mod methods;
 mod util;
 
-pub use methods::diff_ann::ANNMatch;
-pub use methods::diff_brute_force::BruteForceMatch;
-pub use methods::diff_exact::ExactDiffMatch;
-pub use methods::diff_similarity::SimilarityDiffMatch;
+pub use methods::exact_diff::ExactDiffMatch;
 pub use methods::message_scan::MessageScan;
+pub use methods::similar_diff::ANNMatch;
+pub use methods::similar_diff::BruteForceMatch;
+pub use methods::similar_diff::SimilarityDiffMatch;
 
 /// Trait for implementing new search methods. This trait is meant to annotate the capabilities of
 /// a type to function as a search search, on the one hand, and to offer a common interface for
