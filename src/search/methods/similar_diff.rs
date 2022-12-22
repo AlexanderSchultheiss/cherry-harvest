@@ -1,4 +1,6 @@
-use crate::git::CommitData;
+mod compare;
+
+use crate::git::Commit;
 use crate::{SearchMethod, SearchResult};
 use hora::core::ann_index::ANNIndex;
 use log::debug;
@@ -15,11 +17,11 @@ pub struct SimilarityDiffMatch();
 
 // TODO: This search must find at least the same cherry-picks as the exact search, otherwise it is missing cherry-picks
 impl SearchMethod for SimilarityDiffMatch {
-    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
+    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
         debug!("retrieved a total of {} commits", commits.len());
         let start = Instant::now();
 
-        let mut ngram_map = HashMap::<&CommitData, Ngram>::new();
+        let mut ngram_map = HashMap::<&Commit, Ngram>::new();
         for commit in commits {
             // TODO: implement own but similar approach to improve clarity
             let ngram = NgramBuilder::new(commit.diff().diff_text())
@@ -37,7 +39,7 @@ impl SearchMethod for SimilarityDiffMatch {
         // the f32 vectors are required for the ANN search
         let mut max_length = 0;
         // TODO: is there a better way to convert text to float vectors?
-        let mut commit_f32_map: HashMap<&CommitData, Vec<f32>> = commits
+        let mut commit_f32_map: HashMap<&Commit, Vec<f32>> = commits
             .iter()
             .map(|c| {
                 let vec = c
@@ -181,7 +183,7 @@ pub const NAME_BRUTE_FORCE: &str = "BruteForce";
 pub struct BruteForceMatch();
 
 impl SearchMethod for BruteForceMatch {
-    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
+    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
         let candidates = brute_force_search(commits);
         candidates
             .into_iter()
@@ -208,7 +210,7 @@ pub const NAME_ANN: &str = "ANN";
 pub struct ANNMatch();
 
 impl SearchMethod for ANNMatch {
-    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
+    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
         let mut index = Index::new();
 
         debug!("starting indexing of {} commits", commits.len());

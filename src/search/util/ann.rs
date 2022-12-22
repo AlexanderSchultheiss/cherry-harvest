@@ -1,5 +1,5 @@
 use crate::git::LineType;
-use crate::CommitData;
+use crate::Commit;
 use log::debug;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
@@ -20,7 +20,7 @@ impl<'a> Index<'a> {
         Self::default()
     }
 
-    pub fn insert(&mut self, commit: &'a CommitData) {
+    pub fn insert(&mut self, commit: &'a Commit) {
         commit
             .diff()
             .hunks

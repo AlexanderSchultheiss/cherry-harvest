@@ -1,4 +1,4 @@
-use crate::git::{CommitData, CommitDiff};
+use crate::git::{Commit, Diff};
 use crate::{CommitPair, SearchMethod, SearchResult};
 use log::debug;
 use std::collections::{HashMap, HashSet};
@@ -26,9 +26,9 @@ pub const NAME: &str = "ExactDiffMatch";
 pub struct ExactDiffMatch();
 
 impl SearchMethod for ExactDiffMatch {
-    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult> {
+    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
         // map all commits to a hash of their diff
-        let mut commit_map: HashMap<CommitDiff, Vec<&CommitData>> = HashMap::new();
+        let mut commit_map: HashMap<Diff, Vec<&Commit>> = HashMap::new();
         commits.iter().for_each(|commit| {
             commit_map
                 .entry(commit.diff().clone())

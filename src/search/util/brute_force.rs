@@ -1,10 +1,10 @@
 use crate::search::util::ann::CandidatePair;
-use crate::CommitData;
+use crate::Commit;
 use log::debug;
 use std::collections::HashSet;
 use std::time::Instant;
 
-pub fn brute_force_search(commits: &[CommitData]) -> HashSet<CandidatePair> {
+pub fn brute_force_search(commits: &[Commit]) -> HashSet<CandidatePair> {
     let mut processed_ids = HashSet::with_capacity(commits.len());
     let mut candidates = HashSet::new();
 

@@ -1,7 +1,7 @@
 use crate::error::{Error, ErrorKind};
 use crate::git::LoadedRepository::{LocalRepo, RemoteRepo};
-use crate::git::{CommitData, CommitDiff, LoadedRepository, RepoLocation};
-use git2::{BranchType, Commit, Oid, Repository};
+use crate::git::{Commit, Diff, LoadedRepository, RepoLocation};
+use git2::{BranchType, Commit as G2Commit, Oid, Repository as G2Repository};
 use log::{debug, error, info};
 use std::collections::HashSet;
 use temp_dir::TempDir;
@@ -17,7 +17,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
     match repo_location {
         RepoLocation::Filesystem(path) => {
             debug!("loading repo from {}", repo_location);
-            match Repository::open(path) {
+            match G2Repository::open(path) {
                 Ok(repo) => {
                     debug!("loaded {} successfully", repo_location);
                     Ok(LocalRepo {
@@ -38,7 +38,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
             let temp_dir = TempDir::new().unwrap();
 
             // Clone the repository
-            let repo = match Repository::clone(url, temp_dir.path()) {
+            let repo = match G2Repository::clone(url, temp_dir.path()) {
                 Ok(repo) => {
                     debug!("cloned {} successfully", repo_location);
                     repo
@@ -64,7 +64,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
 /// Returns a GitDiff error, if git2 returns an error during diffing.
 ///
 /// // TODO: This requires way too much time! Bottleneck
-pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<CommitDiff, Error> {
+pub fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff, Error> {
     repository
         .diff_tree_to_tree(
             // Retrieve the parent commit and map it to an Option variant.
@@ -73,7 +73,7 @@ pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<CommitDif
             Some(&commit.tree().unwrap()),
             None,
         )
-        .map(CommitDiff::from)
+        .map(Diff::from)
         .map_err(|e| {
             error!("Was not able to retrieve diff for {}: {}", commit.id(), e);
             Error::new(ErrorKind::GitDiff(e))
@@ -83,7 +83,7 @@ pub fn commit_diff(repository: &Repository, commit: &Commit) -> Result<CommitDif
 /// Collects the branch heads (i.e., most recent commits) of all local or remote branches.
 ///
 /// This functions explicitly filters the HEAD, in order to not consider the current HEAD branch twice.
-pub fn branch_heads(repository: &Repository, branch_type: BranchType) -> Vec<Commit> {
+pub fn branch_heads(repository: &G2Repository, branch_type: BranchType) -> Vec<G2Commit> {
     repository
         .branches(Some(branch_type))
         .unwrap()
@@ -108,21 +108,21 @@ pub fn branch_heads(repository: &Repository, branch_type: BranchType) -> Vec<Com
                 }
             }
         })
-        .collect::<Vec<Commit>>()
+        .collect::<Vec<G2Commit>>()
 }
 
 /// Collects all commits in the history of the given commit, including the commit itself.
 ///
 /// If the repo has the commit history A->B->C->D, where A is the oldest commit,
 /// calling *history_for_commit(repo, C)* will return *vec![C, B, A]*.
-pub fn history_for_commit(repository: &Repository, commit_id: Oid) -> Vec<CommitData> {
+pub fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> Vec<Commit> {
     let mut processed_ids = HashSet::new();
     debug!("started collecting the history of {}", commit_id);
     let mut commits = vec![];
     let start_commit = repository.find_commit(commit_id).unwrap();
     processed_ids.insert(start_commit.id());
 
-    let mut parents = start_commit.parents().collect::<Vec<Commit>>();
+    let mut parents = start_commit.parents().collect::<Vec<G2Commit>>();
     commits.push(convert_commit(repository, start_commit));
 
     let mut count: u64 = 0;
@@ -153,8 +153,8 @@ pub fn history_for_commit(repository: &Repository, commit_id: Oid) -> Vec<Commit
     commits
 }
 
-fn convert_commit(repository: &Repository, commit: Commit) -> CommitData {
-    CommitData {
+fn convert_commit(repository: &G2Repository, commit: G2Commit) -> Commit {
+    Commit {
         id: commit.id().to_string(),
         message: {
             match commit.message() {

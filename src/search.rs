@@ -1,4 +1,4 @@
-use crate::git::CommitData;
+use crate::git::Commit;
 use crate::SearchResult;
 use std::collections::HashSet;
 
@@ -33,7 +33,7 @@ pub use methods::similar_diff::SimilarityDiffMatch;
 /// const NAME: &str = "NaiveSearch";
 ///
 /// impl SearchMethod for NaiveSearch {
-///     fn search(&self, commits: &[cherry_harvest::CommitData]) -> HashSet<SearchResult> {
+///     fn search(&self, commits: &[cherry_harvest::Commit]) -> HashSet<SearchResult> {
 ///         let mut results: HashSet<SearchResult> = HashSet::new();
 ///         for commit_a in commits {
 ///             for commit_b in commits {
@@ -63,16 +63,16 @@ pub use methods::similar_diff::SimilarityDiffMatch;
 ///
 /// fn main() {
 ///     use git2::Time;
-///     use cherry_harvest::{CommitData, CommitDiff};
-///     let commit_a = CommitData::new("012ABC324".to_string(),
+///     use cherry_harvest::{Commit, Diff};
+///     let commit_a = Commit::new("012ABC324".to_string(),
 ///                                     "Hello World!".to_string(),
-///                                     CommitDiff::empty(),
+///                                     Diff::empty(),
 ///                                     "Alice".to_string(),
 ///                                     "Alice".to_string(),
 ///                                     Time::new(0, 0));
-///     let commit_b = CommitData::new("883242A".to_string(),
+///     let commit_b = Commit::new("883242A".to_string(),
 ///                                     "Hello World!".to_string(),
-///                                     CommitDiff::empty(),
+///                                     Diff::empty(),
 ///                                     "Alice".to_string(),
 ///                                     "Bob".to_string(),
 ///                                     Time::new(1, 0));
@@ -87,7 +87,7 @@ pub use methods::similar_diff::SimilarityDiffMatch;
 /// ```
 pub trait SearchMethod {
     /// Searches for all cherry picks in the given slice of commits.
-    fn search(&self, commits: &[CommitData]) -> HashSet<SearchResult>;
+    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult>;
 
     /// The search's name that is to be stored with each SearchResult
     /// TODO: Find a better approach to handling the association of results and search methods

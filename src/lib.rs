@@ -7,8 +7,8 @@ mod error;
 mod git;
 mod search;
 
-pub use git::CommitData;
-pub use git::CommitDiff;
+pub use git::Commit;
+pub use git::Diff;
 pub use git::RepoLocation;
 pub use search::ANNMatch;
 pub use search::BruteForceMatch;
@@ -159,7 +159,7 @@ pub fn search_with<T: SearchMethod + 'static>(
 }
 
 /// Collect the commits of all local or all remote branches depending on the given BranchType
-fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<CommitData> {
+fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<Commit> {
     let branch_heads = git::branch_heads(repository, branch_type);
     debug!(
         "found {} heads of {:?} branches in repository.",
@@ -167,7 +167,7 @@ fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<Comm
         branch_type
     );
 
-    let commits: Vec<CommitData> = branch_heads
+    let commits: Vec<Commit> = branch_heads
         .iter()
         .flat_map(|h| git::history_for_commit(repository, h.id()))
         .collect();

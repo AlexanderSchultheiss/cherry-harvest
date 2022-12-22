@@ -1,7 +1,7 @@
 mod util;
 
 use derivative::Derivative;
-use git2::{Diff, DiffFormat, Repository, Time};
+use git2::{Diff as G2Diff, DiffFormat, Repository, Time};
 use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
 use std::collections::HashMap;
@@ -169,15 +169,15 @@ impl TryFrom<char> for LineType {
 /// A CommitDiff holds all hunks with the changes that happened in a commit.
 #[derive(Debug, Clone, Derivative, Eq)]
 #[derivative(PartialEq, Hash)]
-pub struct CommitDiff {
+pub struct Diff {
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
     diff_text: String,
     pub hunks: Vec<Hunk>,
 }
 
-impl CommitDiff {
+impl Diff {
     pub fn empty() -> Self {
-        CommitDiff {
+        Diff {
             diff_text: String::new(),
             hunks: vec![],
         }
@@ -210,7 +210,7 @@ impl CommitDiff {
     }
 }
 
-impl Display for CommitDiff {
+impl Display for Diff {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.diff_text)
     }
@@ -308,8 +308,8 @@ impl Ord for Hunk {
     }
 }
 
-impl<'repo> From<Diff<'repo>> for CommitDiff {
-    fn from(diff: Diff) -> Self {
+impl<'repo> From<G2Diff<'repo>> for Diff {
+    fn from(diff: G2Diff) -> Self {
         // Converts a git2::Diff to a CommitDiff by reading and converting all information relevant to us.
         let mut hunk_map = HashMap::<String, Hunk>::new();
         diff.print(DiffFormat::Patch, |delta, hunk, diff_line| {
@@ -339,7 +339,7 @@ impl<'repo> From<Diff<'repo>> for CommitDiff {
         let mut hunks: Vec<Hunk> = hunk_map.into_values().collect();
         hunks.sort();
         Self {
-            diff_text: CommitDiff::build_diff_text(&hunks),
+            diff_text: Diff::build_diff_text(&hunks),
             hunks,
         }
     }
@@ -348,27 +348,27 @@ impl<'repo> From<Diff<'repo>> for CommitDiff {
 /// All relevant data for a commit.
 #[derive(Debug, Clone, Derivative)]
 #[derivative(PartialEq, Eq, Hash)]
-pub struct CommitData {
+pub struct Commit {
     id: String,
     message: String,
-    diff: CommitDiff,
+    diff: Diff,
     author: String,
     committer: String,
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
     time: Time,
 }
 
-impl CommitData {
+impl Commit {
     /// Initializes a CommitData instance with the given values
     pub fn new(
         id: String,
         message: String,
-        diff: CommitDiff,
+        diff: Diff,
         author: String,
         committer: String,
         time: Time,
     ) -> Self {
-        CommitData {
+        Commit {
             id,
             message,
             diff,
@@ -389,7 +389,7 @@ impl CommitData {
     }
 
     /// The diff of the commit to its first parent
-    pub fn diff(&self) -> &CommitDiff {
+    pub fn diff(&self) -> &Diff {
         &self.diff
     }
 
