@@ -1,6 +1,15 @@
+use crate::Diff;
+
+pub type Similarity = f64;
+
+pub fn change_similarity(diff_a: &Diff, diff_b: &Diff) -> Similarity {
+    todo!()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::git::IdeaPatch;
+    use crate::search::methods::similar_diff::compare::change_similarity;
     use crate::Diff;
     use log::{debug, LevelFilter};
 
@@ -11,15 +20,86 @@ mod tests {
             .try_init();
     }
 
+    fn cherry_a() -> Diff {
+        Diff::from(IdeaPatch(CHERRY_A.to_string()))
+    }
+
+    fn cherry_b() -> Diff {
+        Diff::from(IdeaPatch(CHERRY_B.to_string()))
+    }
+
+    fn pick_a() -> Diff {
+        Diff::from(IdeaPatch(PICK_A.to_string()))
+    }
+
+    fn pick_b() -> Diff {
+        Diff::from(IdeaPatch(PICK_B.to_string()))
+    }
+
+    fn isolated_a() -> Diff {
+        Diff::from(IdeaPatch(ISOLATED_COMMIT_A.to_string()))
+    }
+
+    fn isolated_b() -> Diff {
+        Diff::from(IdeaPatch(ISOLATED_COMMIT_B.to_string()))
+    }
+
     #[test]
     fn debug_diff_parsing() {
         init();
-        debug!("{}", Diff::from(IdeaPatch(CHERRY_A.to_string())));
-        debug!("{}", Diff::from(IdeaPatch(PICK_A.to_string())));
-        debug!("{}", Diff::from(IdeaPatch(CHERRY_B.to_string())));
-        debug!("{}", Diff::from(IdeaPatch(PICK_B.to_string())));
-        debug!("{}", Diff::from(IdeaPatch(ISOLATED_COMMIT_A.to_string())));
-        debug!("{}", Diff::from(IdeaPatch(ISOLATED_COMMIT_B.to_string())));
+        debug!("{}", cherry_a());
+        debug!("{}", cherry_b());
+        debug!("{}", pick_a());
+        debug!("{}", pick_b());
+        debug!("{}", isolated_a());
+        debug!("{}", isolated_b());
+    }
+
+    #[test]
+    fn exact_diff_max_similar() {
+        const TARGET_SIMILARITY: f64 = 0.99999;
+        assert!(change_similarity(&cherry_a(), &cherry_a()) > TARGET_SIMILARITY);
+        assert!(change_similarity(&cherry_b(), &cherry_b()) > TARGET_SIMILARITY);
+        assert!(change_similarity(&pick_a(), &pick_a()) > TARGET_SIMILARITY);
+        assert!(change_similarity(&pick_b(), &pick_b()) > TARGET_SIMILARITY);
+        assert!(change_similarity(&isolated_a(), &isolated_a()) > TARGET_SIMILARITY);
+        assert!(change_similarity(&isolated_b(), &isolated_b()) > TARGET_SIMILARITY);
+    }
+
+    #[test]
+    fn cherry_and_pick_similar() {
+        const TARGET_SIMILARITY: f64 = 0.5;
+        let cherry_a = cherry_a();
+        let pick_a = pick_a();
+        let cherry_b = cherry_b();
+        let pick_b = pick_b();
+
+        // assert high similarity
+        assert!(change_similarity(&cherry_a, &pick_a) > TARGET_SIMILARITY);
+        assert!(change_similarity(&cherry_b, &pick_b) > TARGET_SIMILARITY);
+
+        // assert order invariance
+        assert_eq!(
+            change_similarity(&cherry_a, &pick_a),
+            change_similarity(&pick_a, &cherry_a)
+        );
+        assert_eq!(
+            change_similarity(&cherry_b, &pick_b),
+            change_similarity(&pick_b, &cherry_b)
+        );
+    }
+
+    #[test]
+    fn non_cherries_not_similar() {
+        const TARGET_SIMILARITY: f64 = 0.5;
+
+        let diffs = vec![cherry_a(), pick_b(), isolated_a(), isolated_b()];
+
+        for first in &diffs {
+            for second in &diffs {
+                assert!(change_similarity(first, second) < TARGET_SIMILARITY);
+            }
+        }
     }
 
     const CHERRY_A: &str = r#"Subject: [PATCH] feat: added logging
