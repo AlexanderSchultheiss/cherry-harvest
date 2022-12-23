@@ -1,9 +1,38 @@
+use crate::git::LineType;
 use crate::Diff;
+use log::debug;
+use std::collections::HashSet;
 
 pub type Similarity = f64;
 
-pub fn change_similarity(diff_a: &Diff, diff_b: &Diff) -> Similarity {
-    todo!()
+pub fn change_similarity<'a>(diff_a: &'a Diff, diff_b: &'a Diff) -> Similarity {
+    let change_extractor = |diff: &'a Diff| -> HashSet<&'a str> {
+        diff.hunks
+            .iter()
+            .flat_map(|h| h.body())
+            .filter(|l| {
+                matches!(
+                    l.line_type(),
+                    LineType::Addition
+                        | LineType::Deletion
+                        | LineType::AddEofnl
+                        | LineType::DelEofnl
+                )
+            })
+            .map(|l| l.content().trim())
+            .collect::<HashSet<&str>>()
+    };
+    // todo: account for multiple occurrences of the same DiffLine
+    let changes_a = change_extractor(diff_a);
+    let changes_b = change_extractor(diff_b);
+
+    let intersection_size = changes_a.intersection(&changes_b).count() as f64;
+
+    let changes_a_ratio = intersection_size / changes_a.len() as f64;
+    let changes_b_ratio = intersection_size / changes_b.len() as f64;
+    let similarity = f64::max(changes_a_ratio, changes_b_ratio);
+    debug!("Similarity: {}", similarity);
+    similarity
 }
 
 #[cfg(test)]
@@ -57,6 +86,7 @@ mod tests {
 
     #[test]
     fn exact_diff_max_similar() {
+        init();
         const TARGET_SIMILARITY: f64 = 0.99999;
         assert!(change_similarity(&cherry_a(), &cherry_a()) > TARGET_SIMILARITY);
         assert!(change_similarity(&cherry_b(), &cherry_b()) > TARGET_SIMILARITY);
@@ -68,6 +98,7 @@ mod tests {
 
     #[test]
     fn cherry_and_pick_similar() {
+        init();
         const TARGET_SIMILARITY: f64 = 0.5;
         let cherry_a = cherry_a();
         let pick_a = pick_a();
@@ -91,12 +122,13 @@ mod tests {
 
     #[test]
     fn non_cherries_not_similar() {
+        init();
         const TARGET_SIMILARITY: f64 = 0.5;
 
         let diffs = vec![cherry_a(), pick_b(), isolated_a(), isolated_b()];
 
-        for first in &diffs {
-            for second in &diffs {
+        for (id, first) in diffs.iter().enumerate() {
+            for second in &diffs[(id + 1)..] {
                 assert!(change_similarity(first, second) < TARGET_SIMILARITY);
             }
         }
