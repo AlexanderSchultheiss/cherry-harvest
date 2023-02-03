@@ -60,14 +60,14 @@ impl CherryAndTarget {
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct SearchResult {
     search_method: String,
-    commit_pair: CherryAndTarget,
+    cherry_and_target: CherryAndTarget,
 }
 
 impl SearchResult {
     pub fn new(search_method: String, cherry_ids: CherryAndTarget) -> Self {
         Self {
             search_method,
-            commit_pair: cherry_ids,
+            cherry_and_target: cherry_ids,
         }
     }
 
@@ -79,7 +79,7 @@ impl SearchResult {
     // TODO: Have references to not break connection?
     /// The commit pair of this cherry pick. Commits are identified by their id.
     pub fn commit_pair(&self) -> &CherryAndTarget {
-        &self.commit_pair
+        &self.cherry_and_target
     }
 }
 

@@ -1,8 +1,8 @@
 use crate::git::LineType;
-use crate::Commit;
+use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
+use crate::{CherryAndTarget, Commit};
 use log::debug;
 use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
 
 type Id<'a> = &'a str;
 type Change = String;
@@ -11,13 +11,18 @@ type Change = String;
 pub struct Index<'a> {
     commit_index: HashMap<Change, HashSet<Id<'a>>>,
     change_index: HashMap<Id<'a>, HashSet<Change>>,
+    commit_storage: HashMap<Id<'a>, &'a Commit>,
+    threshold: f64,
 }
 
 // pub static mut COUNT: usize = 0;
 
 impl<'a> Index<'a> {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(threshold: f64) -> Self {
+        Self {
+            threshold,
+            ..Self::default()
+        }
     }
 
     pub fn insert(&mut self, commit: &'a Commit) {
@@ -45,6 +50,7 @@ impl<'a> Index<'a> {
                 let entry = self.commit_index.entry(c).or_default();
                 entry.insert(commit.id());
             });
+        self.commit_storage.insert(commit.id(), commit);
     }
 
     // pub fn neighbors(&mut self, commit: &CommitData) -> HashSet<&'a str> {
@@ -63,22 +69,39 @@ impl<'a> Index<'a> {
     //     }
     // }
 
-    pub fn candidates(&self) -> HashSet<CandidatePair<'a>> {
+    pub fn candidates(&self) -> HashSet<CherryAndTarget> {
         debug!("finding util among {} entries", self.commit_index.len());
         let mut candidates = HashSet::new();
-        for (i, neighbors) in self.commit_index.values().enumerate() {
+        let mut comparator = ChangeSimilarityComparator::new();
+
+        let mut pairs_to_check: HashSet<CandidatePair> = HashSet::new();
+        self.commit_index.values().for_each(|neighbors| {
             for n1 in neighbors {
                 for n2 in neighbors {
-                    if n1 != n2 {
-                        candidates.insert(CandidatePair::new(n1, n2));
-                    }
+                    pairs_to_check.insert(CandidatePair::new(n1, n2));
+                }
+            }
+        });
+        debug!("found {} unique pairs to compare", pairs_to_check.len());
+
+        for (i, pair) in pairs_to_check.iter().enumerate() {
+            let id_a = pair.0;
+            let id_b = pair.1;
+            if id_a != id_b {
+                let commit_a = self.commit_storage.get(id_a).unwrap();
+                let commit_b = self.commit_storage.get(id_b).unwrap();
+
+                if comparator.change_similarity(commit_a.diff(), commit_b.diff()) > self.threshold {
+                    // create a commit pair whose order depends on the commit time of both commits
+                    let cherry_and_target = CherryAndTarget::construct(commit_a, commit_b);
+                    candidates.insert(cherry_and_target);
                 }
             }
             if i % 1000 == 0 {
                 debug!(
-                    "finished search for {}/{} entries",
+                    "finished comparison for {}/{} pairs",
                     i,
-                    self.commit_index.len()
+                    pairs_to_check.len()
                 );
             }
         }
@@ -99,12 +122,11 @@ pub struct CandidatePair<'a>(pub &'a str, pub &'a str);
 
 impl<'a> CandidatePair<'a> {
     pub fn new(c1: &'a str, c2: &'a str) -> Self {
-        // TODO: uncomment
-        // if c1 <= c2 {
-        CandidatePair(c1, c2)
-        // } else {
-        //     CandidatePair(c2, c1)
-        // }
+        if c1 <= c2 {
+            CandidatePair(c1, c2)
+        } else {
+            CandidatePair(c2, c1)
+        }
     }
 }
 

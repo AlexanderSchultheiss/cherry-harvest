@@ -179,6 +179,7 @@ pub struct BruteForceMatch();
 
 impl SearchMethod for BruteForceMatch {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        // TODO: threshold as parameter
         let candidates = brute_force_search(commits, 0.5);
         candidates
             .into_iter()
@@ -203,7 +204,8 @@ pub struct ANNMatch();
 
 impl SearchMethod for ANNMatch {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
-        let mut index = Index::new();
+        // TODO: threshold as parameter
+        let mut index = Index::new(0.5);
 
         debug!("starting indexing of {} commits", commits.len());
         let start = Instant::now();
@@ -217,9 +219,15 @@ impl SearchMethod for ANNMatch {
 
         debug!("starting neighbor search for all commits");
         let start = Instant::now();
-        let _ = index.candidates();
+        let candidates = index.candidates();
         debug!("finished search in {:?}.", start.elapsed());
-        HashSet::new()
+        candidates
+            .into_iter()
+            .map(|cherry_and_target| SearchResult {
+                search_method: NAME_ANN.to_string(),
+                cherry_and_target,
+            })
+            .collect()
     }
 
     fn name(&self) -> &'static str {

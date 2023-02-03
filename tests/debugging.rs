@@ -57,9 +57,9 @@ fn ann_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::ANNMatch::default();
-    // Last search runtime was 42.8s
+    // Last search runtime ... never finished ... took too long
     let _ = cherry_harvest::search_with(&repo, search_method);
-    // Last total runtime was 71.9s
+    // Last total runtime ... never finished ... took too long
     info!("test finished in {:?}", start.elapsed())
 }
 
@@ -69,9 +69,9 @@ fn brute_force_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = BruteForceMatch::default();
-    // Last search runtime was 3.8s
+    // Last search runtime was ... never finished ... took too long
     let _ = cherry_harvest::search_with(&repo, search_method);
-    // Last total runtime was 31.6s
+    // Last total runtime was ... never finished ... took too long
     info!("test finished in {:?}", start.elapsed())
 }
 
