@@ -1,7 +1,9 @@
 use crate::git::Commit;
 use crate::search::SearchMethod;
 use crate::{CommitPair, SearchResult};
+use log::debug;
 use std::collections::HashSet;
+use std::time::Instant;
 
 /// MessageScan identifies cherry picks based on the automatically created text in a commit message.
 ///
@@ -27,8 +29,9 @@ const NAME: &str = "MessageScan";
 
 impl SearchMethod for MessageScan {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        let start = Instant::now();
         let search_str = "(cherry picked from commit ";
-        commits
+        let results: HashSet<SearchResult> = commits
             .iter()
             .filter_map(|c| {
                 if let Some(index) = c.message().find(search_str) {
@@ -46,10 +49,12 @@ impl SearchMethod for MessageScan {
                 }
                 None
             })
-            .collect()
+            .collect();
+        debug!("found {} results in {:?}", results.len(), start.elapsed());
+        results
     }
 
     fn name(&self) -> &'static str {
-        &NAME
+        NAME
     }
 }
