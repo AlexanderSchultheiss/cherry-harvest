@@ -21,7 +21,9 @@ fn similarity_diff_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = SimilarityDiffMatch::default();
+    // Last search runtime was 116.9s
     let _ = cherry_harvest::search_with(&repo, search_method);
+    // Last total runtime was 151.2s
     info!("test finished in {:?}", start.elapsed())
 }
 
@@ -31,7 +33,9 @@ fn message_based_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::MessageScan::default();
+    // Last search runtime was 0.0s
     let _ = cherry_harvest::search_with(&repo, search_method);
+    // Last total runtime was 27.3s
     info!("test finished in {:?}", start.elapsed())
 }
 
@@ -41,7 +45,9 @@ fn exact_diff_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = ExactDiffMatch::default();
+    // Last search runtime was 0.7s
     let _ = cherry_harvest::search_with(&repo, search_method);
+    // Last total runtime was 29s
     info!("test finished in {:?}", start.elapsed())
 }
 
@@ -51,7 +57,9 @@ fn ann_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = cherry_harvest::ANNMatch::default();
+    // Last search runtime was 42.8s
     let _ = cherry_harvest::search_with(&repo, search_method);
+    // Last total runtime was 71.9s
     info!("test finished in {:?}", start.elapsed())
 }
 
@@ -61,7 +69,9 @@ fn brute_force_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = BruteForceMatch::default();
+    // Last search runtime was 3.8s
     let _ = cherry_harvest::search_with(&repo, search_method);
+    // Last total runtime was 31.6s
     info!("test finished in {:?}", start.elapsed())
 }
 

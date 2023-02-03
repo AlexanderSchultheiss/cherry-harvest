@@ -136,7 +136,7 @@ pub fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> Vec<Comm
             count += 1;
             if count % 10_000 == 0 {
                 info!(
-                    "processed {} unique commits for head {}",
+                    "processed {} unique commits for head {}...[still running]",
                     processed_ids.len(),
                     commit_id
                 );
