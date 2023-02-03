@@ -1,9 +1,10 @@
 use crate::error::{Error, ErrorKind};
 use crate::git::LoadedRepository::{LocalRepo, RemoteRepo};
 use crate::git::{Commit, Diff, LoadedRepository, RepoLocation};
-use git2::{BranchType, Commit as G2Commit, Oid, Repository as G2Repository};
+use git2::{Branch, BranchType, Commit as G2Commit, Oid, Repository as G2Repository};
 use log::{debug, error, info};
 use std::collections::HashSet;
+use std::path::Path;
 use temp_dir::TempDir;
 
 /// Clones a repository into a temporary directory, or load an existing repository from the filesystem.
@@ -15,47 +16,51 @@ use temp_dir::TempDir;
 /// Returns an ErrorKind::RepoLoadError, iff the given string literal was interpreted as path
 pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, Error> {
     match repo_location {
-        RepoLocation::Filesystem(path) => {
-            debug!("loading repo from {}", repo_location);
-            match G2Repository::open(path) {
-                Ok(repo) => {
-                    debug!("loaded {} successfully", repo_location);
-                    Ok(LocalRepo {
-                        path: String::from(repo_location.to_str()),
-                        repository: repo,
-                    })
-                }
-                Err(error) => {
-                    error!("was not able to load {}; reason: {}", repo_location, error);
-                    Err(Error::new(ErrorKind::RepoLoad(error)))
-                }
-            }
-        }
-        RepoLocation::Server(url) => {
-            debug!("started cloning of {}", repo_location);
-            // In case of repositories hosted online
-            // Create a new temporary directory into which the repo can be cloned
-            let temp_dir = TempDir::new().unwrap();
+        RepoLocation::Filesystem(path) => load_local_repo(path, repo_location.to_str()),
+        RepoLocation::Server(url) => clone_remote_repo(url),
+    }
+}
 
-            // Clone the repository
-            let repo = match G2Repository::clone(url, temp_dir.path()) {
-                Ok(repo) => {
-                    debug!("cloned {} successfully", repo_location);
-                    repo
-                }
-                Err(error) => {
-                    error!("was not able to clone {}; reason: {}", repo_location, error);
-                    return Err(Error::new(ErrorKind::RepoClone(error)));
-                }
-            };
-
-            Ok(RemoteRepo {
-                url: String::from(*url),
+fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Error> {
+    debug!("loading repo from {}", path_name);
+    match G2Repository::open(path) {
+        Ok(repo) => {
+            debug!("loaded {} successfully", path_name);
+            Ok(LocalRepo {
+                path: String::from(path_name),
                 repository: repo,
-                directory: temp_dir,
             })
         }
+        Err(error) => {
+            error!("was not able to load {}; reason: {}", path_name, error);
+            Err(Error::new(ErrorKind::RepoLoad(error)))
+        }
     }
+}
+
+fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
+    debug!("started cloning of {}", url);
+    // In case of repositories hosted online
+    // Create a new temporary directory into which the repo can be cloned
+    let temp_dir = TempDir::new().unwrap();
+
+    // Clone the repository
+    let repo = match G2Repository::clone(url, temp_dir.path()) {
+        Ok(repo) => {
+            debug!("cloned {} successfully", url);
+            repo
+        }
+        Err(error) => {
+            error!("was not able to clone {}; reason: {}", url, error);
+            return Err(Error::new(ErrorKind::RepoClone(error)));
+        }
+    };
+
+    Ok(RemoteRepo {
+        url: String::from(url),
+        repository: repo,
+        directory: temp_dir,
+    })
 }
 
 /// Determines the diff of the given commit (i.e., the changes that were applied by this commit.
@@ -88,27 +93,25 @@ pub fn branch_heads(repository: &G2Repository, branch_type: BranchType) -> Vec<G
         .branches(Some(branch_type))
         .unwrap()
         .map(|f| f.unwrap())
-        .filter_map(|s| {
-            match s.0.name() {
-                Ok(name) => {
-                    if name != Some("origin/HEAD") && name != Some("HEAD") {
-                        Some(
-                            s.0.get().peel_to_commit().expect(
-                                "Was not able to peel to commit while retrieving branches.",
-                            ),
-                        )
-                    } else {
-                        //
-                        None
-                    }
-                }
-                Err(err) => {
-                    error!("Error while retrieving branch heads: {}", err);
-                    None
-                }
-            }
-        })
+        .filter_map(|(branch, _)| retrieve_regular_branch_heads(branch))
         .collect::<Vec<G2Commit>>()
+}
+
+/// Retrieve the branch's head. Omit the branch with the name _HEAD_ as this would result in duplicates.
+fn retrieve_regular_branch_heads(branch: Branch) -> Option<G2Commit> {
+    match branch.name() {
+        Ok(Some(name)) if name != "origin/HEAD" && name != "HEAD" => Some(
+            branch
+                .get()
+                .peel_to_commit()
+                .expect("Was not able to peel to commit while retrieving branches."),
+        ),
+        Err(err) => {
+            error!("Error while retrieving branch heads: {}", err);
+            None
+        }
+        _ => None,
+    }
 }
 
 /// Collects all commits in the history of the given commit, including the commit itself.
