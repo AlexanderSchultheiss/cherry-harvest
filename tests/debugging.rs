@@ -21,7 +21,7 @@ fn similarity_diff_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let search_method = SimilarityDiffMatch::default();
-    // Last search runtime was 116.9s
+    // Last search runtime was 116.9s (but without the custom external crate improvements that I had tried locally once)
     let _ = cherry_harvest::search_with(&repo, search_method);
     // Last total runtime was 151.2s
     info!("test finished in {:?}", start.elapsed())

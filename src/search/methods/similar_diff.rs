@@ -1,4 +1,4 @@
-mod compare;
+pub mod compare;
 
 use crate::git::Commit;
 use crate::{SearchMethod, SearchResult};
@@ -179,18 +179,11 @@ pub struct BruteForceMatch();
 
 impl SearchMethod for BruteForceMatch {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
-        let candidates = brute_force_search(commits);
+        let candidates = brute_force_search(commits, 0.5);
         candidates
             .into_iter()
-            .map(|candidate_pair| {
-                SearchResult::new(
-                    NAME_BRUTE_FORCE.to_string(),
-                    // TODO: this is currently buggy, as we do not know which commit is the cherry and which the target
-                    CherryAndTarget::new(
-                        candidate_pair.0.to_string(),
-                        candidate_pair.1.to_string(),
-                    ),
-                )
+            .map(|cherry_and_target| {
+                SearchResult::new(NAME_BRUTE_FORCE.to_string(), cherry_and_target)
             })
             .collect()
     }

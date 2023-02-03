@@ -1,50 +1,71 @@
 use crate::git::LineType;
 use crate::Diff;
-use log::debug;
 use std::collections::{HashMap, HashSet};
 
 pub type Similarity = f64;
 
-pub fn change_similarity<'a>(diff_a: &'a Diff, diff_b: &'a Diff) -> Similarity {
-    let changes_a = extract_changes(diff_a);
-    let changes_b = extract_changes(diff_b);
-
-    let intersection_size = changes_a.intersection(&changes_b).count() as f64;
-
-    let changes_a_ratio = intersection_size / changes_a.len() as f64;
-    let changes_b_ratio = intersection_size / changes_b.len() as f64;
-    let similarity = f64::max(changes_a_ratio, changes_b_ratio);
-    debug!("Similarity: {}", similarity);
-    similarity
+pub struct ChangeSimilarityComparator<'a> {
+    change_map: HashMap<&'a Diff, HashSet<String>>,
 }
 
-fn extract_changes(diff: &Diff) -> HashSet<String> {
-    let mut change_count: HashMap<String, u32> = HashMap::new();
+impl<'a> ChangeSimilarityComparator<'a> {
+    pub fn new() -> Self {
+        Self {
+            change_map: HashMap::new(),
+        }
+    }
 
-    diff.hunks
-        .iter()
-        .flat_map(|h| h.body())
-        .filter(|l| {
-            matches!(
-                l.line_type(),
-                LineType::Addition | LineType::Deletion | LineType::AddEofnl | LineType::DelEofnl
-            )
-        })
-        // Append the line type prefix to the line
-        .map(|l| l.line_type().char().to_string() + l.content().trim())
-        .map(|change_line| {
-            // We add a count to each change to distinguish between multiple occurrences of the same change
-            let count = change_count.entry(change_line.clone()).or_insert(0);
-            *count += 1;
-            format!("{change_line}|>>{count}<<|")
-        })
-        .collect::<HashSet<String>>()
+    pub fn change_similarity(&mut self, diff_a: &'a Diff, diff_b: &'a Diff) -> Similarity {
+        if !self.change_map.contains_key(diff_a) {
+            self.change_map
+                .insert(diff_a, Self::extract_changes(diff_a));
+        }
+        if !self.change_map.contains_key(diff_b) {
+            self.change_map
+                .insert(diff_b, Self::extract_changes(diff_b));
+        }
+
+        let changes_a = self.change_map.get(diff_a).unwrap();
+        let changes_b = self.change_map.get(diff_b).unwrap();
+
+        let intersection_size = changes_a.intersection(changes_b).count() as f64;
+
+        let changes_a_ratio = intersection_size / changes_a.len() as f64;
+        let changes_b_ratio = intersection_size / changes_b.len() as f64;
+        f64::max(changes_a_ratio, changes_b_ratio)
+    }
+
+    fn extract_changes(diff: &Diff) -> HashSet<String> {
+        let mut change_count: HashMap<String, u32> = HashMap::new();
+
+        diff.hunks
+            .iter()
+            .flat_map(|h| h.body())
+            .filter(|l| {
+                matches!(
+                    l.line_type(),
+                    LineType::Addition
+                        | LineType::Deletion
+                        | LineType::AddEofnl
+                        | LineType::DelEofnl
+                )
+            })
+            // Append the line type prefix to the line
+            .map(|l| l.line_type().char().to_string() + l.content().trim())
+            .map(|change_line| {
+                // We add a count to each change to distinguish between multiple occurrences of the same change
+                let count = change_count.entry(change_line.clone()).or_insert(0);
+                *count += 1;
+                format!("{change_line}|>>{count}<<|")
+            })
+            .collect::<HashSet<String>>()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::git::IdeaPatch;
-    use crate::search::methods::similar_diff::compare::change_similarity;
+    use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
     use crate::Diff;
     use log::{debug, LevelFilter};
 
@@ -94,12 +115,19 @@ mod tests {
     fn exact_diff_max_similar() {
         init();
         const TARGET_SIMILARITY: f64 = 0.99999;
-        assert!(change_similarity(&cherry_a(), &cherry_a()) > TARGET_SIMILARITY);
-        assert!(change_similarity(&cherry_b(), &cherry_b()) > TARGET_SIMILARITY);
-        assert!(change_similarity(&pick_a(), &pick_a()) > TARGET_SIMILARITY);
-        assert!(change_similarity(&pick_b(), &pick_b()) > TARGET_SIMILARITY);
-        assert!(change_similarity(&isolated_a(), &isolated_a()) > TARGET_SIMILARITY);
-        assert!(change_similarity(&isolated_b(), &isolated_b()) > TARGET_SIMILARITY);
+        let mut comparator = ChangeSimilarityComparator::new();
+        let cherry_a = cherry_a();
+        let cherry_b = cherry_b();
+        let pick_a = pick_a();
+        let pick_b = pick_b();
+        let isolated_a = isolated_a();
+        let isolated_b = isolated_b();
+        assert!(comparator.change_similarity(&cherry_a, &cherry_a) > TARGET_SIMILARITY);
+        assert!(comparator.change_similarity(&cherry_b, &cherry_b) > TARGET_SIMILARITY);
+        assert!(comparator.change_similarity(&pick_a, &pick_a) > TARGET_SIMILARITY);
+        assert!(comparator.change_similarity(&pick_b, &pick_b) > TARGET_SIMILARITY);
+        assert!(comparator.change_similarity(&isolated_a, &isolated_a) > TARGET_SIMILARITY);
+        assert!(comparator.change_similarity(&isolated_b, &isolated_b) > TARGET_SIMILARITY);
     }
 
     #[test]
@@ -110,19 +138,20 @@ mod tests {
         let pick_a = pick_a();
         let cherry_b = cherry_b();
         let pick_b = pick_b();
+        let mut comparator = ChangeSimilarityComparator::new();
 
         // assert high similarity
-        assert!(change_similarity(&cherry_a, &pick_a) > TARGET_SIMILARITY);
-        assert!(change_similarity(&cherry_b, &pick_b) > TARGET_SIMILARITY);
+        assert!(comparator.change_similarity(&cherry_a, &pick_a) > TARGET_SIMILARITY);
+        assert!(comparator.change_similarity(&cherry_b, &pick_b) > TARGET_SIMILARITY);
 
         // assert order invariance
         assert_eq!(
-            change_similarity(&cherry_a, &pick_a),
-            change_similarity(&pick_a, &cherry_a)
+            comparator.change_similarity(&cherry_a, &pick_a),
+            comparator.change_similarity(&pick_a, &cherry_a)
         );
         assert_eq!(
-            change_similarity(&cherry_b, &pick_b),
-            change_similarity(&pick_b, &cherry_b)
+            comparator.change_similarity(&cherry_b, &pick_b),
+            comparator.change_similarity(&pick_b, &cherry_b)
         );
     }
 
@@ -130,12 +159,13 @@ mod tests {
     fn non_cherries_not_similar() {
         init();
         const TARGET_SIMILARITY: f64 = 0.5;
+        let mut comparator = ChangeSimilarityComparator::new();
 
         let diffs = vec![cherry_a(), pick_b(), isolated_a(), isolated_b()];
 
         for (id, first) in diffs.iter().enumerate() {
             for second in &diffs[(id + 1)..] {
-                assert!(change_similarity(first, second) < TARGET_SIMILARITY);
+                assert!(comparator.change_similarity(first, second) < TARGET_SIMILARITY);
             }
         }
     }
