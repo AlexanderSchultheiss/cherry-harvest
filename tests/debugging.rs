@@ -1,6 +1,6 @@
 extern crate core;
 
-use cherry_harvest::SearchMethod;
+use cherry_harvest::{ExactDiffMatch, SearchMethod, SimilarityDiffMatch};
 use log::{debug, info, LevelFilter};
 use std::collections::HashSet;
 use std::path::Path;
@@ -64,9 +64,8 @@ fn brute_force_scalability() {
 fn similarity_finds_exact() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
-    let exact_diff = Box::new(cherry_harvest::ExactDiffMatch::default()) as Box<dyn SearchMethod>;
-    let similarity_diff =
-        Box::new(cherry_harvest::SimilarityDiffMatch::default()) as Box<dyn SearchMethod>;
+    let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
+    let similarity_diff = Box::<SimilarityDiffMatch>::default() as Box<dyn SearchMethod>;
     let methods = vec![exact_diff, similarity_diff];
     let results = cherry_harvest::search_with_multiple(&repo, &methods);
 
