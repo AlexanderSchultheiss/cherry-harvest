@@ -16,6 +16,7 @@ fn init() -> Instant {
 }
 
 #[test]
+#[ignore]
 fn similarity_diff_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
@@ -25,6 +26,7 @@ fn similarity_diff_scalability() {
 }
 
 #[test]
+#[ignore]
 fn message_based_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
@@ -34,6 +36,7 @@ fn message_based_scalability() {
 }
 
 #[test]
+#[ignore]
 fn exact_diff_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
@@ -43,6 +46,7 @@ fn exact_diff_scalability() {
 }
 
 #[test]
+#[ignore]
 fn ann_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
@@ -52,6 +56,7 @@ fn ann_scalability() {
 }
 
 #[test]
+#[ignore]
 fn brute_force_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
@@ -61,6 +66,7 @@ fn brute_force_scalability() {
 }
 
 #[test]
+#[ignore]
 fn similarity_finds_exact() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
@@ -95,6 +101,7 @@ fn similarity_finds_exact() {
 }
 
 #[test]
+#[ignore]
 fn brute_force_finds_exact() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));

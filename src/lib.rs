@@ -12,51 +12,12 @@ pub use git::Diff;
 pub use git::RepoLocation;
 pub use search::ANNMatch;
 pub use search::BruteForceMatch;
+pub use search::CherryPick;
 pub use search::ExactDiffMatch;
 pub use search::MessageScan;
 pub use search::SearchMethod;
+pub use search::SearchResult;
 pub use search::SimilarityDiffMatch;
-
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub struct CommitPair(pub String, pub String);
-
-// TODO: A commit can only be the target for a cherry-pick once? Or should the library return all possible source-target pairs?
-
-impl CommitPair {
-    pub fn as_vec(&self) -> Vec<&String> {
-        vec![&self.0, &self.1]
-    }
-
-    pub fn into_vec(self) -> Vec<String> {
-        vec![self.0, self.1]
-    }
-}
-
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub struct SearchResult {
-    search_method: String,
-    commit_pair: CommitPair,
-}
-
-impl SearchResult {
-    pub fn new(search_method: String, cherry_ids: CommitPair) -> Self {
-        Self {
-            search_method,
-            commit_pair: cherry_ids,
-        }
-    }
-
-    /// The SearchMethod type that was used to find this result
-    pub fn search_method(&self) -> &str {
-        &self.search_method
-    }
-
-    // TODO: Have references to not break connection?
-    /// The commit pair of this cherry pick. Commits are identified by their id.
-    pub fn commit_pair(&self) -> &CommitPair {
-        &self.commit_pair
-    }
-}
 
 /// Searches for cherry picks with all given search methods.
 ///
@@ -112,7 +73,7 @@ pub fn search_with_multiple(
         let mut result_map = HashMap::with_capacity(methods.len());
         results
             .iter()
-            .map(|r| &r.search_method)
+            .map(|r| r.search_method())
             .for_each(|m| *result_map.entry(m).or_insert(0) += 1);
         result_map
     });

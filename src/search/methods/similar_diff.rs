@@ -174,7 +174,7 @@ impl SearchMethod for SimilarityDiffMatch {
 */
 
 use crate::search::util::brute_force::brute_force_search;
-use crate::CommitPair;
+use crate::CherryPick;
 
 pub const NAME_BRUTE_FORCE: &str = "BruteForce";
 
@@ -187,10 +187,11 @@ impl SearchMethod for BruteForceMatch {
         let candidates = brute_force_search(commits);
         candidates
             .into_iter()
-            .map(|c| {
+            .map(|candidate_pair| {
                 SearchResult::new(
                     NAME_BRUTE_FORCE.to_string(),
-                    CommitPair(c.0.to_string(), c.1.to_string()),
+                    // TODO: this is currently buggy, as we do not know which commit is the cherry and which the target
+                    CherryPick::new(candidate_pair.0.to_string(), candidate_pair.1.to_string()),
                 )
             })
             .collect()

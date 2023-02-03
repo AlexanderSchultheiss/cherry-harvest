@@ -1,15 +1,87 @@
 use crate::git::Commit;
-use crate::SearchResult;
 use std::collections::HashSet;
 
 mod methods;
 mod util;
 
+use crate::git;
 pub use methods::exact_diff::ExactDiffMatch;
 pub use methods::message_scan::MessageScan;
 pub use methods::similar_diff::ANNMatch;
 pub use methods::similar_diff::BruteForceMatch;
 pub use methods::similar_diff::SimilarityDiffMatch;
+
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub struct CherryPick {
+    cherry: String,
+    target: String,
+}
+
+// TODO: A commit can only be the target for a cherry-pick once? Or should the library return all possible source-target pairs?
+
+impl CherryPick {
+    /// Construct a new CherryPick for two commits. Cherry and target are determined based on the commit time
+    pub fn construct(commit_a: &Commit, commit_b: &Commit) -> Self {
+        if commit_a.time() < commit_b.time() {
+            // commit_a is older than commit_b
+            Self {
+                cherry: String::from(commit_a.id()),
+                target: String::from(commit_b.id()),
+            }
+        } else {
+            Self {
+                cherry: String::from(commit_b.id()),
+                target: String::from(commit_a.id()),
+            }
+        }
+    }
+
+    /// Create a new CherryPick with the ids of two commits for which the cherry and target relationship is known
+    pub fn new(cherry: String, target: String) -> Self {
+        Self { cherry, target }
+    }
+
+    pub fn as_vec(&self) -> Vec<&String> {
+        vec![&self.cherry, &self.target]
+    }
+
+    pub fn into_vec(self) -> Vec<String> {
+        vec![self.cherry, self.target]
+    }
+
+    pub fn cherry(&self) -> &str {
+        &self.cherry
+    }
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+}
+
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub struct SearchResult {
+    search_method: String,
+    commit_pair: CherryPick,
+}
+
+impl SearchResult {
+    pub fn new(search_method: String, cherry_ids: CherryPick) -> Self {
+        Self {
+            search_method,
+            commit_pair: cherry_ids,
+        }
+    }
+
+    /// The SearchMethod type that was used to find this result
+    pub fn search_method(&self) -> &str {
+        &self.search_method
+    }
+
+    // TODO: Have references to not break connection?
+    /// The commit pair of this cherry pick. Commits are identified by their id.
+    pub fn commit_pair(&self) -> &CherryPick {
+        &self.commit_pair
+    }
+}
 
 /// Trait for implementing new search methods. This trait is meant to annotate the capabilities of
 /// a type to function as a search search, on the one hand, and to offer a common interface for
@@ -26,7 +98,7 @@ pub use methods::similar_diff::SimilarityDiffMatch;
 /// commit messages.
 /// ```
 /// use std::collections::HashSet;
-/// use cherry_harvest::{CommitPair, SearchMethod, SearchResult};
+/// use cherry_harvest::{CherryPick, SearchMethod, SearchResult};
 ///
 /// struct NaiveSearch();
 ///
@@ -44,11 +116,7 @@ pub use methods::similar_diff::SimilarityDiffMatch;
 ///                 // Naively determine a cherry pick as two commits having the same commit message
 ///                 if commit_a.message() == commit_b.message() {
 ///                     // Determine the order of the commits by their timestamp
-///                     let cherry_pick = if commit_a.time() < commit_b.time() {
-///                         CommitPair(commit_a.id().to_string(), commit_b.id().to_string())
-///                     } else {
-///                         CommitPair(commit_b.id().to_string(), commit_a.id().to_string())
-///                     };
+///                     let cherry_pick = CherryPick::construct(commit_a, commit_b);
 ///                     results.insert(SearchResult::new(String::from(NAME), cherry_pick));
 ///                 }
 ///             }
@@ -80,8 +148,8 @@ pub use methods::similar_diff::SimilarityDiffMatch;
 ///     let results = NaiveSearch().search(&commits);
 ///     assert_eq!(results.len(), 1);
 ///     results.iter().map(|r| r.commit_pair()).for_each(|p| {
-///         assert_eq!(&p.0, commits[0].id());
-///         assert_eq!(&p.1, commits[1].id());
+///         assert_eq!(p.cherry(), commits[0].id());
+///         assert_eq!(p.target(), commits[1].id());
 ///     })
 /// }
 /// ```
