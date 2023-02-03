@@ -60,7 +60,7 @@ impl<'a> Display for RepoLocation<'a> {
                 write!(f, "\"{}\"", self.to_str())
             }
             RepoLocation::Server(url) => {
-                write!(f, "\"{}\"", url)
+                write!(f, "\"{url}\"")
             }
         }
     }
@@ -162,8 +162,7 @@ impl TryFrom<char> for LineType {
             'B' => Ok(Self::Binary),
             _ => Err(crate::error::Error::new(
                 crate::error::ErrorKind::DiffParse(format!(
-                    "unable to parse char '{}' to LineType",
-                    value
+                    "unable to parse char '{value}' to LineType"
                 )),
             )),
         }

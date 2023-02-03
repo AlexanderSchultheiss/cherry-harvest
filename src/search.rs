@@ -4,7 +4,6 @@ use std::collections::HashSet;
 mod methods;
 mod util;
 
-use crate::git;
 pub use methods::exact_diff::ExactDiffMatch;
 pub use methods::message_scan::MessageScan;
 pub use methods::similar_diff::ANNMatch;
@@ -12,14 +11,14 @@ pub use methods::similar_diff::BruteForceMatch;
 pub use methods::similar_diff::SimilarityDiffMatch;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-pub struct CherryPick {
+pub struct CherryAndTarget {
     cherry: String,
     target: String,
 }
 
 // TODO: A commit can only be the target for a cherry-pick once? Or should the library return all possible source-target pairs?
 
-impl CherryPick {
+impl CherryAndTarget {
     /// Construct a new CherryPick for two commits. Cherry and target are determined based on the commit time
     pub fn construct(commit_a: &Commit, commit_b: &Commit) -> Self {
         if commit_a.time() < commit_b.time() {
@@ -52,6 +51,7 @@ impl CherryPick {
     pub fn cherry(&self) -> &str {
         &self.cherry
     }
+
     pub fn target(&self) -> &str {
         &self.target
     }
@@ -60,11 +60,11 @@ impl CherryPick {
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct SearchResult {
     search_method: String,
-    commit_pair: CherryPick,
+    commit_pair: CherryAndTarget,
 }
 
 impl SearchResult {
-    pub fn new(search_method: String, cherry_ids: CherryPick) -> Self {
+    pub fn new(search_method: String, cherry_ids: CherryAndTarget) -> Self {
         Self {
             search_method,
             commit_pair: cherry_ids,
@@ -78,7 +78,7 @@ impl SearchResult {
 
     // TODO: Have references to not break connection?
     /// The commit pair of this cherry pick. Commits are identified by their id.
-    pub fn commit_pair(&self) -> &CherryPick {
+    pub fn commit_pair(&self) -> &CherryAndTarget {
         &self.commit_pair
     }
 }
@@ -98,7 +98,7 @@ impl SearchResult {
 /// commit messages.
 /// ```
 /// use std::collections::HashSet;
-/// use cherry_harvest::{CherryPick, SearchMethod, SearchResult};
+/// use cherry_harvest::{CherryAndTarget, SearchMethod, SearchResult};
 ///
 /// struct NaiveSearch();
 ///
@@ -116,7 +116,7 @@ impl SearchResult {
 ///                 // Naively determine a cherry pick as two commits having the same commit message
 ///                 if commit_a.message() == commit_b.message() {
 ///                     // Determine the order of the commits by their timestamp
-///                     let cherry_pick = CherryPick::construct(commit_a, commit_b);
+///                     let cherry_pick = CherryAndTarget::construct(commit_a, commit_b);
 ///                     results.insert(SearchResult::new(String::from(NAME), cherry_pick));
 ///                 }
 ///             }

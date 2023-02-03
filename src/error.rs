@@ -22,10 +22,10 @@ impl Display for ErrorKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::RepoLoad(error) | Self::RepoClone(error) | Self::GitDiff(error) => {
-                write!(f, "{}", error)
+                write!(f, "{error}")
             }
             Self::DiffParse(error) => {
-                write!(f, "{}", error)
+                write!(f, "{error}")
             }
         }
     }

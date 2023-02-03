@@ -1,6 +1,6 @@
 use crate::git::Commit;
 use crate::search::SearchMethod;
-use crate::{CherryPick, SearchResult};
+use crate::{CherryAndTarget, SearchResult};
 use log::debug;
 use std::collections::HashSet;
 use std::time::Instant;
@@ -43,7 +43,7 @@ impl SearchMethod for MessageScan {
                         return Some(SearchResult::new(
                             String::from(NAME),
                             // Pair of Source-Target
-                            CherryPick::new(cherry_id, String::from(c.id())),
+                            CherryAndTarget::new(cherry_id, String::from(c.id())),
                         ));
                     }
                 }

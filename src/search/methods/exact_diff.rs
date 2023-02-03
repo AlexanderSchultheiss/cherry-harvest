@@ -1,5 +1,5 @@
 use crate::git::{Commit, Diff};
-use crate::{CherryPick, SearchMethod, SearchResult};
+use crate::{CherryAndTarget, SearchMethod, SearchResult};
 use log::debug;
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
@@ -71,7 +71,7 @@ fn build_all_possible_result_pairs(commits: &Vec<&Commit>) -> Vec<SearchResult> 
             }
 
             // create a commit pair whose order depends on the commit time of both commits
-            let commit_pair = CherryPick::construct(commit, other_commit);
+            let commit_pair = CherryAndTarget::construct(commit, other_commit);
             // debug!("{:#?}", commit_pair);
             // debug!("{:#?} - {:#?}", commit.diff(), other_commit.diff());
             results.push(SearchResult::new(NAME.to_string(), commit_pair));

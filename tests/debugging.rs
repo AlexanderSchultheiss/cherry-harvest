@@ -1,6 +1,6 @@
 extern crate core;
 
-use cherry_harvest::{ExactDiffMatch, SearchMethod, SimilarityDiffMatch};
+use cherry_harvest::{BruteForceMatch, ExactDiffMatch, SearchMethod, SimilarityDiffMatch};
 use log::{debug, info, LevelFilter};
 use std::collections::HashSet;
 use std::path::Path;
@@ -20,7 +20,7 @@ fn init() -> Instant {
 fn similarity_diff_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
-    let search_method = cherry_harvest::SimilarityDiffMatch::default();
+    let search_method = SimilarityDiffMatch::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
     info!("test finished in {:?}", start.elapsed())
 }
@@ -40,7 +40,7 @@ fn message_based_scalability() {
 fn exact_diff_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
-    let search_method = cherry_harvest::ExactDiffMatch::default();
+    let search_method = ExactDiffMatch::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
     info!("test finished in {:?}", start.elapsed())
 }
@@ -60,7 +60,7 @@ fn ann_scalability() {
 fn brute_force_scalability() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
-    let search_method = cherry_harvest::BruteForceMatch::default();
+    let search_method = BruteForceMatch::default();
     let _ = cherry_harvest::search_with(&repo, search_method);
     info!("test finished in {:?}", start.elapsed())
 }
@@ -93,8 +93,7 @@ fn similarity_finds_exact() {
     for exact_res in exact_results {
         assert!(
             sim_results.contains(exact_res),
-            "results of similarity search do not contain pair {:?}",
-            exact_res
+            "results of similarity search do not contain pair {exact_res:?}"
         );
     }
     info!("test finished in {:?}", start.elapsed())
@@ -105,9 +104,8 @@ fn similarity_finds_exact() {
 fn brute_force_finds_exact() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
-    let exact_diff = Box::new(cherry_harvest::ExactDiffMatch::default()) as Box<dyn SearchMethod>;
-    let similarity_diff =
-        Box::new(cherry_harvest::BruteForceMatch::default()) as Box<dyn SearchMethod>;
+    let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
+    let similarity_diff = Box::<BruteForceMatch>::default() as Box<dyn SearchMethod>;
     let methods = vec![exact_diff, similarity_diff];
     let results = cherry_harvest::search_with_multiple(&repo, &methods);
 
@@ -129,8 +127,7 @@ fn brute_force_finds_exact() {
     for exact_res in exact_results {
         assert!(
             sim_results.contains(exact_res),
-            "results of similarity search do not contain pair {:?}",
-            exact_res
+            "results of similarity search do not contain pair {exact_res:?}"
         );
     }
     info!("test finished in {:?}", start.elapsed())
