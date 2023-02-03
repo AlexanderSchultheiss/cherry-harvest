@@ -2,6 +2,7 @@ use crate::git::{Commit, Diff};
 use crate::{CommitPair, SearchMethod, SearchResult};
 use log::debug;
 use std::collections::{HashMap, HashSet};
+use std::time::Instant;
 
 pub const NAME: &str = "ExactDiffMatch";
 
@@ -27,6 +28,7 @@ pub struct ExactDiffMatch();
 
 impl SearchMethod for ExactDiffMatch {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        let start = Instant::now();
         // map all commits to a hash of their diff
         let mut commit_map: HashMap<Diff, Vec<&Commit>> = HashMap::new();
         commits.iter().for_each(|commit| {
@@ -37,7 +39,7 @@ impl SearchMethod for ExactDiffMatch {
         });
 
         // then, return results for all entries with more than one commit mapped to them
-        commit_map
+        let results: HashSet<SearchResult> = commit_map
             .iter()
             .filter_map(|(_, commits)| {
                 if commits.len() > 1 {
@@ -46,35 +48,39 @@ impl SearchMethod for ExactDiffMatch {
                     None
                 }
             })
-            .flat_map(|commits| {
-                let mut results = vec![];
-                // consider all possible commit pairs in the vector of commits associated with the current diff
-                for (index, commit) in commits.iter().enumerate() {
-                    for other_commit in commits[index..].iter() {
-                        if commit.id() == other_commit.id() {
-                            // skip commits with the same id
-                            // its the same commit in different branches, but no cherry-pick)
-                            continue;
-                        }
-
-                        // create a commit pair whose order depends on the commit time of both commits
-                        let commit_pair = if commit.time() < other_commit.time() {
-                            // commit is older than other_commit
-                            CommitPair(String::from(commit.id()), String::from(other_commit.id()))
-                        } else {
-                            CommitPair(String::from(other_commit.id()), String::from(commit.id()))
-                        };
-                        debug!("{:#?}", commit_pair);
-                        debug!("{:#?} - {:#?}", commit.diff(), other_commit.diff());
-                        results.push(SearchResult::new(NAME.to_string(), commit_pair));
-                    }
-                }
-                results
-            })
-            .collect()
+            .flat_map(build_all_possible_result_pairs)
+            .collect();
+        debug!("found {} results in {:?}", results.len(), start.elapsed());
+        results
     }
 
     fn name(&self) -> &'static str {
         NAME
     }
+}
+
+fn build_all_possible_result_pairs(commits: &Vec<&Commit>) -> Vec<SearchResult> {
+    let mut results = vec![];
+    // consider all possible commit pairs in the vector of commits associated with the current diff
+    for (index, commit) in commits.iter().enumerate() {
+        for other_commit in commits[index..].iter() {
+            if commit.id() == other_commit.id() {
+                // skip commits with the same id
+                // its the same commit in different branches, but no cherry-pick)
+                continue;
+            }
+
+            // create a commit pair whose order depends on the commit time of both commits
+            let commit_pair = if commit.time() < other_commit.time() {
+                // commit is older than other_commit
+                CommitPair(String::from(commit.id()), String::from(other_commit.id()))
+            } else {
+                CommitPair(String::from(other_commit.id()), String::from(commit.id()))
+            };
+            // debug!("{:#?}", commit_pair);
+            // debug!("{:#?} - {:#?}", commit.diff(), other_commit.diff());
+            results.push(SearchResult::new(NAME.to_string(), commit_pair));
+        }
+    }
+    results
 }
