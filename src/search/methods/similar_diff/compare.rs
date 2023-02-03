@@ -1,30 +1,13 @@
 use crate::git::LineType;
 use crate::Diff;
 use log::debug;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub type Similarity = f64;
 
 pub fn change_similarity<'a>(diff_a: &'a Diff, diff_b: &'a Diff) -> Similarity {
-    let change_extractor = |diff: &'a Diff| -> HashSet<&'a str> {
-        diff.hunks
-            .iter()
-            .flat_map(|h| h.body())
-            .filter(|l| {
-                matches!(
-                    l.line_type(),
-                    LineType::Addition
-                        | LineType::Deletion
-                        | LineType::AddEofnl
-                        | LineType::DelEofnl
-                )
-            })
-            .map(|l| l.content().trim())
-            .collect::<HashSet<&str>>()
-    };
-    // todo: account for multiple occurrences of the same DiffLine
-    let changes_a = change_extractor(diff_a);
-    let changes_b = change_extractor(diff_b);
+    let changes_a = extract_changes(diff_a);
+    let changes_b = extract_changes(diff_b);
 
     let intersection_size = changes_a.intersection(&changes_b).count() as f64;
 
@@ -33,6 +16,29 @@ pub fn change_similarity<'a>(diff_a: &'a Diff, diff_b: &'a Diff) -> Similarity {
     let similarity = f64::max(changes_a_ratio, changes_b_ratio);
     debug!("Similarity: {}", similarity);
     similarity
+}
+
+fn extract_changes(diff: &Diff) -> HashSet<String> {
+    let mut change_count: HashMap<String, u32> = HashMap::new();
+
+    diff.hunks
+        .iter()
+        .flat_map(|h| h.body())
+        .filter(|l| {
+            matches!(
+                l.line_type(),
+                LineType::Addition | LineType::Deletion | LineType::AddEofnl | LineType::DelEofnl
+            )
+        })
+        // Append the line type prefix to the line
+        .map(|l| l.line_type().char().to_string() + l.content().trim())
+        .map(|change_line| {
+            // We add a count to each change to distinguish between multiple occurrences of the same change
+            let count = change_count.entry(change_line.clone()).or_insert(0);
+            *count += 1;
+            format!("{change_line}|>>{count}<<|")
+        })
+        .collect::<HashSet<String>>()
 }
 
 #[cfg(test)]
