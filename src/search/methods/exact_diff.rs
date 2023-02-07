@@ -1,5 +1,6 @@
 use crate::git::{Commit, Diff};
 use crate::{CherryAndTarget, SearchMethod, SearchResult};
+use firestorm::{profile_fn, profile_method};
 use log::debug;
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
@@ -28,6 +29,7 @@ pub struct ExactDiffMatch();
 
 impl SearchMethod for ExactDiffMatch {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        profile_method!(search);
         let start = Instant::now();
         // map all commits to a hash of their diff
         let mut commit_map: HashMap<Diff, Vec<&Commit>> = HashMap::new();
@@ -60,6 +62,7 @@ impl SearchMethod for ExactDiffMatch {
 }
 
 fn build_all_possible_result_pairs(commits: &Vec<&Commit>) -> Vec<SearchResult> {
+    profile_fn!(build_all_possible_result_pairs);
     let mut results = vec![];
     // consider all possible commit pairs in the vector of commits associated with the current diff
     for (index, commit) in commits.iter().enumerate() {

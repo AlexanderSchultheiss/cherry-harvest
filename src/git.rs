@@ -1,6 +1,7 @@
 mod util;
 
 use derivative::Derivative;
+use firestorm::{profile_fn, profile_method, profile_section};
 use git2::{Diff as G2Diff, DiffFormat, Repository, Time};
 use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
@@ -191,6 +192,7 @@ impl Diff {
     }
 
     fn build_diff_text(hunks: &Vec<Hunk>) -> String {
+        profile_fn!(build_diff_text);
         let mut diff_text = String::new();
         for hunk in hunks {
             diff_text += &format!(
@@ -287,6 +289,7 @@ impl Eq for Hunk {}
 
 impl Ord for Hunk {
     fn cmp(&self, other: &Self) -> Ordering {
+        profile_method!(cmp);
         // try to order hunks with precedence of old_file over new_file over start line
         let old_file_ordering = self.old_file.cmp(&other.old_file);
         let new_file_ordering = self.new_file.cmp(&other.new_file);
@@ -313,37 +316,47 @@ impl Ord for Hunk {
 
 impl<'repo> From<G2Diff<'repo>> for Diff {
     fn from(diff: G2Diff) -> Self {
+        profile_fn!(from_g2diff);
         // Converts a git2::Diff to a CommitDiff by reading and converting all information relevant to us.
         let mut hunk_map = HashMap::<String, Hunk>::new();
-        diff.print(DiffFormat::Patch, |delta, hunk, diff_line| {
-            match hunk {
-                None => {/* Skip this delta if it does not belong to a hunk (i.e., the header line of the diff)*/}
-                Some(h) => {
-                    let hunk_head = String::from_utf8_lossy(h.header()).into_owned();
-                    // retrieve the hunk from the map, or create it in the map if it does not exist yet
-                    let hunk = hunk_map.entry(hunk_head.clone()).or_insert(Hunk {
-                        header: hunk_head,
-                        old_file: delta.old_file().path().map(|f| f.to_path_buf()),
-                        new_file: delta.new_file().path().map(|f| f.to_path_buf()),
-                        body: vec![],
-                        old_start: h.old_start(),
-                        new_start: h.new_start(),
-                    });
-                    // add the line to the hunk, if it is not the hunk header
-                    if diff_line.origin() != 'H' {
-                        hunk.body.push(DiffLine { content: String::from_utf8_lossy(&Vec::from(diff_line.content())).to_string(), line_type: LineType::try_from(diff_line.origin()).unwrap() }
-                        );
+        {
+            profile_section!(diff_print);
+            diff.print(DiffFormat::Patch, |delta, hunk, diff_line| {
+                match hunk {
+                    None => { /* Skip this delta if it does not belong to a hunk (i.e., the header line of the diff)*/ }
+                    Some(h) => {
+                        let hunk_head = String::from_utf8_lossy(h.header()).into_owned();
+                        // retrieve the hunk from the map, or create it in the map if it does not exist yet
+                        let hunk = hunk_map.entry(hunk_head.clone()).or_insert(Hunk {
+                            header: hunk_head,
+                            old_file: delta.old_file().path().map(|f| f.to_path_buf()),
+                            new_file: delta.new_file().path().map(|f| f.to_path_buf()),
+                            body: vec![],
+                            old_start: h.old_start(),
+                            new_start: h.new_start(),
+                        });
+                        // add the line to the hunk, if it is not the hunk header
+                        if diff_line.origin() != 'H' {
+                            hunk.body.push(DiffLine { content: String::from_utf8_lossy(&Vec::from(diff_line.content())).to_string(), line_type: LineType::try_from(diff_line.origin()).unwrap() }
+                            );
+                        }
                     }
                 }
+                true
+            })
+                .unwrap();
+        }
+        {
+            profile_section!(collect_and_sort_hunks);
+            let mut hunks: Vec<Hunk> = hunk_map.into_values().collect();
+            {
+                profile_section!(sort_hunks);
+                hunks.sort();
             }
-            true
-        })
-            .unwrap();
-        let mut hunks: Vec<Hunk> = hunk_map.into_values().collect();
-        hunks.sort();
-        Self {
-            diff_text: Diff::build_diff_text(&hunks),
-            hunks,
+            Self {
+                diff_text: Diff::build_diff_text(&hunks),
+                hunks,
+            }
         }
     }
 }
@@ -353,6 +366,7 @@ pub struct IdeaPatch(pub String);
 
 impl From<IdeaPatch> for Diff {
     fn from(patch: IdeaPatch) -> Self {
+        profile_fn!(from);
         // separator used in patches
         const SEPARATOR: &str =
             r#"==================================================================="#;

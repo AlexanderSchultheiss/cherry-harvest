@@ -1,5 +1,6 @@
 use crate::git::LineType;
 use crate::Diff;
+use firestorm::{profile_fn, profile_method, profile_section};
 use std::collections::{HashMap, HashSet};
 
 pub type Similarity = f64;
@@ -16,26 +17,37 @@ impl<'a> ChangeSimilarityComparator<'a> {
     }
 
     pub fn change_similarity(&mut self, diff_a: &'a Diff, diff_b: &'a Diff) -> Similarity {
-        if !self.change_map.contains_key(diff_a) {
-            self.change_map
-                .insert(diff_a, Self::extract_changes(diff_a));
+        profile_method!(change_similarity);
+        {
+            profile_section!(check_and_insert);
+            if !self.change_map.contains_key(diff_a) {
+                self.change_map
+                    .insert(diff_a, Self::extract_changes(diff_a));
+            }
+            if !self.change_map.contains_key(diff_b) {
+                self.change_map
+                    .insert(diff_b, Self::extract_changes(diff_b));
+            }
         }
-        if !self.change_map.contains_key(diff_b) {
-            self.change_map
-                .insert(diff_b, Self::extract_changes(diff_b));
+
+        {
+            profile_section!(get_and_calculate);
+            let changes_a = self.change_map.get(diff_a).unwrap();
+            let changes_b = self.change_map.get(diff_b).unwrap();
+
+            {
+                profile_section!(intersection_and_similarity);
+                let intersection_size = changes_a.intersection(changes_b).count() as f64;
+                let changes_a_ratio = intersection_size / changes_a.len() as f64;
+                let changes_b_ratio = intersection_size / changes_b.len() as f64;
+
+                f64::max(changes_a_ratio, changes_b_ratio)
+            }
         }
-
-        let changes_a = self.change_map.get(diff_a).unwrap();
-        let changes_b = self.change_map.get(diff_b).unwrap();
-
-        let intersection_size = changes_a.intersection(changes_b).count() as f64;
-
-        let changes_a_ratio = intersection_size / changes_a.len() as f64;
-        let changes_b_ratio = intersection_size / changes_b.len() as f64;
-        f64::max(changes_a_ratio, changes_b_ratio)
     }
 
     fn extract_changes(diff: &Diff) -> HashSet<String> {
+        profile_fn!(extract_changes);
         let mut change_count: HashMap<String, u32> = HashMap::new();
 
         diff.hunks

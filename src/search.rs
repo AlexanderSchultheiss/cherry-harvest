@@ -1,5 +1,6 @@
 use crate::git::Commit;
 use std::collections::HashSet;
+use firestorm::profile_fn;
 
 mod methods;
 mod util;
@@ -21,6 +22,7 @@ pub struct CherryAndTarget {
 impl CherryAndTarget {
     /// Construct a new CherryPick for two commits. Cherry and target are determined based on the commit time
     pub fn construct(commit_a: &Commit, commit_b: &Commit) -> Self {
+        profile_fn!(construct);
         if commit_a.time() < commit_b.time() {
             // commit_a is older than commit_b
             Self {

@@ -54,6 +54,7 @@ pub fn search_with_multiple(
     repo_location: &RepoLocation,
     methods: &Vec<Box<dyn SearchMethod>>,
 ) -> Vec<SearchResult> {
+    profile_fn!(search_with_multiple);
     info!(
         "started searching for cherry-picks in {} with {} search(s)",
         repo_location,
@@ -67,21 +68,24 @@ pub fn search_with_multiple(
             collect_commits(&repository, BranchType::Remote)
         }
     };
-    let results = methods
-        .iter()
-        .flat_map(|m| m.search(&commits))
-        .collect::<Vec<SearchResult>>();
-
-    info!("number of cherry-picks found by search:\n{:#?}", {
-        let mut result_map = HashMap::with_capacity(methods.len());
-        results
+    {
+        profile_section!(map_results);
+        let results = methods
             .iter()
-            .map(|r| r.search_method())
-            .for_each(|m| *result_map.entry(m).or_insert(0) += 1);
-        result_map
-    });
+            .flat_map(|m| m.search(&commits))
+            .collect::<Vec<SearchResult>>();
 
-    results
+        info!("number of cherry-picks found by search:\n{:#?}", {
+            let mut result_map = HashMap::with_capacity(methods.len());
+            results
+                .iter()
+                .map(|r| r.search_method())
+                .for_each(|m| *result_map.entry(m).or_insert(0) += 1);
+            result_map
+        });
+
+        results
+    }
 }
 
 /// Searches for cherry picks with the given search search.
@@ -119,11 +123,13 @@ pub fn search_with<T: SearchMethod + 'static>(
     repo_location: &RepoLocation,
     method: T,
 ) -> Vec<SearchResult> {
+    profile_fn!(search_with);
     search_with_multiple(repo_location, &vec![Box::new(method)])
 }
 
 /// Collect the commits of all local or all remote branches depending on the given BranchType
 fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<Commit> {
+    profile_fn!(collect_commits);
     let branch_heads = git::branch_heads(repository, branch_type);
     debug!(
         "found {} heads of {:?} branches in repository.",

@@ -1,10 +1,12 @@
 use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
 use crate::{CherryAndTarget, Commit};
+use firestorm::profile_fn;
 use log::debug;
 use std::collections::HashSet;
 use std::time::Instant;
 
 pub fn brute_force_search(commits: &[Commit], threshold: f64) -> HashSet<CherryAndTarget> {
+    profile_fn!(brute_force_search);
     let mut processed_ids = HashSet::with_capacity(commits.len());
     let mut candidates = HashSet::new();
 

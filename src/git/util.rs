@@ -1,6 +1,7 @@
 use crate::error::{Error, ErrorKind};
 use crate::git::LoadedRepository::{LocalRepo, RemoteRepo};
 use crate::git::{Commit, Diff, LoadedRepository, RepoLocation};
+use firestorm::profile_fn;
 use git2::{Branch, BranchType, Commit as G2Commit, Oid, Repository as G2Repository};
 use log::{debug, error, info};
 use std::collections::HashSet;
@@ -15,6 +16,7 @@ use temp_dir::TempDir;
 ///
 /// Returns an ErrorKind::RepoLoadError, iff the given string literal was interpreted as path
 pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, Error> {
+    profile_fn!(clone_or_load);
     match repo_location {
         RepoLocation::Filesystem(path) => load_local_repo(path, repo_location.to_str()),
         RepoLocation::Server(url) => clone_remote_repo(url),
@@ -22,6 +24,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
 }
 
 fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Error> {
+    profile_fn!(load_local_repo);
     debug!("loading repo from {}", path_name);
     match G2Repository::open(path) {
         Ok(repo) => {
@@ -39,6 +42,7 @@ fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Err
 }
 
 fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
+    profile_fn!(clone_remote_repo);
     debug!("started cloning of {}", url);
     // In case of repositories hosted online
     // Create a new temporary directory into which the repo can be cloned
@@ -70,6 +74,7 @@ fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
 ///
 /// // TODO: This requires way too much time! Bottleneck
 pub fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff, Error> {
+    profile_fn!(commit_diff);
     repository
         .diff_tree_to_tree(
             // Retrieve the parent commit and map it to an Option variant.
@@ -89,6 +94,7 @@ pub fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff,
 ///
 /// This functions explicitly filters the HEAD, in order to not consider the current HEAD branch twice.
 pub fn branch_heads(repository: &G2Repository, branch_type: BranchType) -> Vec<G2Commit> {
+    profile_fn!(branch_heads);
     repository
         .branches(Some(branch_type))
         .unwrap()
@@ -99,6 +105,7 @@ pub fn branch_heads(repository: &G2Repository, branch_type: BranchType) -> Vec<G
 
 /// Retrieve the branch's head. Omit the branch with the name _HEAD_ as this would result in duplicates.
 fn retrieve_regular_branch_heads(branch: Branch) -> Option<G2Commit> {
+    profile_fn!(retrieve_regular_branch_heads);
     match branch.name() {
         Ok(Some(name)) if name != "origin/HEAD" && name != "HEAD" => Some(
             branch
@@ -119,6 +126,7 @@ fn retrieve_regular_branch_heads(branch: Branch) -> Option<G2Commit> {
 /// If the repo has the commit history A->B->C->D, where A is the oldest commit,
 /// calling *history_for_commit(repo, C)* will return *vec![C, B, A]*.
 pub fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> Vec<Commit> {
+    profile_fn!(history_for_commit);
     let mut processed_ids = HashSet::new();
     debug!("started collecting the history of {}", commit_id);
     let mut commits = vec![];
@@ -157,6 +165,7 @@ pub fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> Vec<Comm
 }
 
 fn convert_commit(repository: &G2Repository, commit: G2Commit) -> Commit {
+    profile_fn!(convert_commit);
     Commit {
         id: commit.id().to_string(),
         message: {

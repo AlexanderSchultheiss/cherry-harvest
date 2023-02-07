@@ -1,6 +1,7 @@
 use crate::git::Commit;
 use crate::search::SearchMethod;
 use crate::{CherryAndTarget, SearchResult};
+use firestorm::profile_method;
 use log::debug;
 use std::collections::HashSet;
 use std::time::Instant;
@@ -29,6 +30,7 @@ const NAME: &str = "MessageScan";
 
 impl SearchMethod for MessageScan {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        profile_method!(search);
         let start = Instant::now();
         let search_str = "(cherry picked from commit ";
         let results: HashSet<SearchResult> = commits

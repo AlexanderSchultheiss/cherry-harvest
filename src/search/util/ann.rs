@@ -1,6 +1,7 @@
 use crate::git::LineType;
 use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
 use crate::{CherryAndTarget, Commit};
+use firestorm::{profile_method, profile_section};
 use log::debug;
 use std::collections::{HashMap, HashSet};
 
@@ -26,6 +27,7 @@ impl<'a> Index<'a> {
     }
 
     pub fn insert(&mut self, commit: &'a Commit) {
+        profile_method!(insert);
         commit
             .diff()
             .hunks
@@ -70,12 +72,14 @@ impl<'a> Index<'a> {
     // }
 
     pub fn candidates(&self) -> HashSet<CherryAndTarget> {
+        profile_method!(candidates);
         debug!("finding util among {} entries", self.commit_index.len());
         let mut candidates = HashSet::new();
         let mut comparator = ChangeSimilarityComparator::new();
 
         let mut pairs_to_check: HashSet<CandidatePair> = HashSet::new();
         self.commit_index.values().for_each(|neighbors| {
+            profile_section!(collect_candidate_pairs);
             for n1 in neighbors {
                 for n2 in neighbors {
                     pairs_to_check.insert(CandidatePair::new(n1, n2));
@@ -85,6 +89,7 @@ impl<'a> Index<'a> {
         debug!("found {} unique pairs to compare", pairs_to_check.len());
 
         for (i, pair) in pairs_to_check.iter().enumerate() {
+            profile_section!(check_candidates);
             let id_a = pair.0;
             let id_b = pair.1;
             if id_a != id_b {

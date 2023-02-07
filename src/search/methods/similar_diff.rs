@@ -2,6 +2,7 @@ pub mod compare;
 
 use crate::git::Commit;
 use crate::{SearchMethod, SearchResult};
+use firestorm::{profile_method, profile_section};
 use hora::core::ann_index::ANNIndex;
 use log::debug;
 use ngrammatic::{Ngram, NgramBuilder, Pad};
@@ -18,11 +19,13 @@ pub struct SimilarityDiffMatch();
 // TODO: This search must find at least the same cherry-picks as the exact search, otherwise it is missing cherry-picks
 impl SearchMethod for SimilarityDiffMatch {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        profile_method!(search);
         debug!("retrieved a total of {} commits", commits.len());
         let start = Instant::now();
 
         let mut ngram_map = HashMap::<&Commit, Ngram>::new();
         for commit in commits {
+            profile_section!(build_ngram_map);
             // TODO: implement own but similar approach to improve clarity
             let ngram = NgramBuilder::new(commit.diff().diff_text())
                 .arity(2)
@@ -42,6 +45,7 @@ impl SearchMethod for SimilarityDiffMatch {
         let mut commit_f32_map: HashMap<&Commit, Vec<f32>> = commits
             .iter()
             .map(|c| {
+                profile_section!(build_commit_f32_map);
                 let vec = c
                     .diff()
                     .diff_text()
@@ -60,20 +64,24 @@ impl SearchMethod for SimilarityDiffMatch {
             max_length,
             &hora::index::hnsw_params::HNSWParams::<f32>::default(),
         );
-        for (i, commit) in commits.iter().enumerate() {
-            // all vectors need to be padded
-            let diff_as_f32: &mut Vec<f32> = commit_f32_map.get_mut(&commit).unwrap();
-            while diff_as_f32.len() < max_length {
-                diff_as_f32.push(0.0);
+        {
+            profile_section!(build_index);
+            for (i, commit) in commits.iter().enumerate() {
+                // all vectors need to be padded
+                let diff_as_f32: &mut Vec<f32> = commit_f32_map.get_mut(&commit).unwrap();
+                while diff_as_f32.len() < max_length {
+                    diff_as_f32.push(0.0);
+                }
+                index.add(diff_as_f32, i).unwrap();
             }
-            index.add(diff_as_f32, i).unwrap();
+            index.build(hora::core::metrics::Metric::Euclidean).unwrap();
         }
-        index.build(hora::core::metrics::Metric::Euclidean).unwrap();
 
         // search for the nearest neighbors of each commit
         let mut results = HashSet::new();
         let mut count = 0;
         for (i, (commit, f32_vec)) in commit_f32_map.iter().enumerate() {
+            profile_section!(search_neighbors);
             let neighbors = index.search(f32_vec, 100);
             count += neighbors.len();
             let neighbors = neighbors
@@ -82,6 +90,7 @@ impl SearchMethod for SimilarityDiffMatch {
                 .collect::<Vec<&Commit>>();
             let ngram = ngram_map.get(commit).unwrap();
             for other in neighbors {
+                profile_section!(check_neighbors);
                 if *commit == other {
                     continue;
                 }
@@ -179,6 +188,7 @@ pub struct BruteForceMatch();
 
 impl SearchMethod for BruteForceMatch {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        profile_method!(search);
         // TODO: threshold as parameter
         let candidates = brute_force_search(commits, 0.5);
         candidates
@@ -204,12 +214,14 @@ pub struct ANNMatch();
 
 impl SearchMethod for ANNMatch {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        profile_method!(search);
         // TODO: threshold as parameter
         let mut index = Index::new(0.5);
 
         debug!("starting indexing of {} commits", commits.len());
         let start = Instant::now();
         for (i, commit) in commits.iter().enumerate() {
+            profile_section!(build_index);
             index.insert(commit);
             if i % 1000 == 0 {
                 debug!("finished indexing for {} commits", i);
