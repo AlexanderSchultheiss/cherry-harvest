@@ -337,7 +337,10 @@ impl<'repo> From<G2Diff<'repo>> for Diff {
                         });
                         // add the line to the hunk, if it is not the hunk header
                         if diff_line.origin() != 'H' {
-                            hunk.body.push(DiffLine { content: String::from_utf8_lossy(&Vec::from(diff_line.content())).to_string(), line_type: LineType::try_from(diff_line.origin()).unwrap() }
+                            hunk.body.push(
+                                DiffLine {
+                                    content: String::from_utf8_lossy(&Vec::from(diff_line.content())).to_string(),
+                                    line_type: LineType::try_from(diff_line.origin()).unwrap() }
                             );
                         }
                     }

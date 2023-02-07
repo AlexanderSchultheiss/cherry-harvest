@@ -1,6 +1,6 @@
 use crate::git::Commit;
-use std::collections::HashSet;
 use firestorm::profile_fn;
+use std::collections::HashSet;
 
 mod methods;
 mod util;
