@@ -11,6 +11,7 @@ pub use git::Commit;
 pub use git::Diff;
 pub use git::RepoLocation;
 pub use search::ANNMatch;
+pub use search::HNSWSearch;
 pub use search::BruteForceMatch;
 pub use search::CherryAndTarget;
 pub use search::ExactDiffMatch;

@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::time::Instant;
 
-const DATASET: &'static str = "/home/alex/data/VEVOS_Simulation";
+const DATASET: &'static str = "/home/alex/data/busybox";
 
 /// Initializes the logger and load the ground truth.
 fn init() -> Instant {
@@ -93,6 +93,23 @@ fn ann_similarity_search() {
     }
 
     // Last total runtime ... never finished ... took too long
+    info!("test finished in {:?}", start.elapsed())
+}
+
+#[test]
+#[ignore]
+fn hnsw_similarity_search() {
+    let start = init();
+
+    let call = || {
+        let search_method = cherry_harvest::HNSWSearch::default();
+        let _ = cherry_harvest::search_with(&repo_location(), search_method);
+    };
+
+    if firestorm::enabled() {
+        firestorm::bench("./flames/hnsw_similarity", call).unwrap();
+    }
+
     info!("test finished in {:?}", start.elapsed())
 }
 
