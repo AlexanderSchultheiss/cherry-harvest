@@ -127,11 +127,11 @@ Overall, there are several approaches that can be taken if the syntax and gramma
 
 > Are they better than LSH?
 
- It depends on the specific use case. Locality-sensitive hashing (LSH) is a technique that is commonly used to approximate the nearest neighbors of a given item in a dataset. HNSWs are a more recent development that can provide more accurate results for certain types of datasets and distance measures.
+ It depends on the specific use case. Locality-sensitive hashing (LSH) is a technique that is commonly used to approximate the nearest neighbors of a given item in a DATASET. HNSWs are a more recent development that can provide more accurate results for certain types of datasets and distance measures.
 
 > For example?
 
-As an example, consider a recommendation system for a streaming music service. In this case, the dataset would consist of a large collection of songs, and the goal of the recommendation system would be to quickly find the songs that are most similar to a given song. LSH is a good technique for this problem when the similarity between songs is measured by their audio content. However, if the similarity is measured by other factors, such as the genre or artist of the songs, then HNSWs may be a better choice.
+As an example, consider a recommendation system for a streaming music service. In this case, the DATASET would consist of a large collection of songs, and the goal of the recommendation system would be to quickly find the songs that are most similar to a given song. LSH is a good technique for this problem when the similarity between songs is measured by their audio content. However, if the similarity is measured by other factors, such as the genre or artist of the songs, then HNSWs may be a better choice.
 
 > So if the similarity should focus on the content rather than metadata, I should apply LSH?
 
