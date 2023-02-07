@@ -23,18 +23,7 @@ fn repo_location() -> RepoLocation {
 
 #[test]
 #[ignore]
-fn similarity_diff_scalability() {
-    let start = init();
-    let search_method = SimilarityDiffMatch::default();
-    // Last search runtime was 116.9s (but without the custom external crate improvements that I had tried locally once)
-    let _ = cherry_harvest::search_with(&repo_location(), search_method);
-    // Last total runtime was 151.2s
-    info!("test finished in {:?}", start.elapsed())
-}
-
-#[test]
-#[ignore]
-fn message_based_scalability() {
+fn message_based() {
     let start = init();
     let search_method = cherry_harvest::MessageScan::default();
     // Last search runtime was 0.0s
@@ -45,7 +34,7 @@ fn message_based_scalability() {
 
 #[test]
 #[ignore]
-fn exact_diff_scalability() {
+fn exact_match() {
     let start = init();
     let search_method = ExactDiffMatch::default();
     // Last search runtime was 0.7s
@@ -56,7 +45,18 @@ fn exact_diff_scalability() {
 
 #[test]
 #[ignore]
-fn ann_scalability() {
+fn hora_similarity_search() {
+    let start = init();
+    let search_method = SimilarityDiffMatch::default();
+    // Last search runtime was 116.9s (but without the custom external crate improvements that I had tried locally once)
+    let _ = cherry_harvest::search_with(&repo_location(), search_method);
+    // Last total runtime was 151.2s
+    info!("test finished in {:?}", start.elapsed())
+}
+
+#[test]
+#[ignore]
+fn ann_similarity_search() {
     let start = init();
     let search_method = cherry_harvest::ANNMatch::default();
     // Last search runtime ... never finished ... took too long
@@ -67,7 +67,7 @@ fn ann_scalability() {
 
 #[test]
 #[ignore]
-fn brute_force_scalability() {
+fn brute_force_similarity_search() {
     let start = init();
     let search_method = BruteForceMatch::default();
     // Last search runtime was ... never finished ... took too long
