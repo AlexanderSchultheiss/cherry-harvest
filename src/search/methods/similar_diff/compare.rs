@@ -1,12 +1,12 @@
 use crate::git::LineType;
-use crate::Diff;
+use crate::{Commit, Diff};
 use firestorm::{profile_fn, profile_method, profile_section};
 use std::collections::{HashMap, HashSet};
 
 pub type Similarity = f64;
 
 pub struct ChangeSimilarityComparator<'a> {
-    change_map: HashMap<&'a Diff, HashSet<String>>,
+    change_map: HashMap<&'a str, HashSet<String>>,
 }
 
 impl<'a> ChangeSimilarityComparator<'a> {
@@ -16,24 +16,24 @@ impl<'a> ChangeSimilarityComparator<'a> {
         }
     }
 
-    pub fn change_similarity(&mut self, diff_a: &'a Diff, diff_b: &'a Diff) -> Similarity {
+    pub fn change_similarity(&mut self, commit_a: &'a Commit, commit_b: &'a Commit) -> Similarity {
         profile_method!(change_similarity);
         {
             profile_section!(check_and_insert);
-            if !self.change_map.contains_key(diff_a) {
+            if !self.change_map.contains_key(commit_a.id()) {
                 self.change_map
-                    .insert(diff_a, Self::extract_changes(diff_a));
+                    .insert(commit_a.id(), Self::extract_changes(commit_a.diff()));
             }
-            if !self.change_map.contains_key(diff_b) {
+            if !self.change_map.contains_key(commit_b.id()) {
                 self.change_map
-                    .insert(diff_b, Self::extract_changes(diff_b));
+                    .insert(commit_b.id(), Self::extract_changes(commit_b.diff()));
             }
         }
 
         {
             profile_section!(get_and_calculate);
-            let changes_a = self.change_map.get(diff_a).unwrap();
-            let changes_b = self.change_map.get(diff_b).unwrap();
+            let changes_a = self.change_map.get(commit_a.id()).unwrap();
+            let changes_b = self.change_map.get(commit_b.id()).unwrap();
 
             {
                 profile_section!(intersection_and_similarity);
@@ -78,7 +78,8 @@ impl<'a> ChangeSimilarityComparator<'a> {
 mod tests {
     use crate::git::IdeaPatch;
     use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
-    use crate::Diff;
+    use crate::{Commit, Diff};
+    use git2::Time;
     use log::{debug, LevelFilter};
 
     fn init() {
@@ -88,39 +89,81 @@ mod tests {
             .try_init();
     }
 
-    fn cherry_a() -> Diff {
-        Diff::from(IdeaPatch(CHERRY_A.to_string()))
+    fn cherry_a() -> Commit {
+        Commit::new(
+            "cherry_a".to_string(),
+            "Some message".to_string(),
+            Diff::from(IdeaPatch(CHERRY_A.to_string())),
+            "author".to_string(),
+            "commiter".to_string(),
+            Time::new(0, 0),
+        )
     }
 
-    fn cherry_b() -> Diff {
-        Diff::from(IdeaPatch(CHERRY_B.to_string()))
+    fn cherry_b() -> Commit {
+        Commit::new(
+            "cherry_b".to_string(),
+            "Some message".to_string(),
+            Diff::from(IdeaPatch(CHERRY_B.to_string())),
+            "author".to_string(),
+            "commiter".to_string(),
+            Time::new(0, 0),
+        )
     }
 
-    fn pick_a() -> Diff {
-        Diff::from(IdeaPatch(PICK_A.to_string()))
+    fn pick_a() -> Commit {
+        Commit::new(
+            "pick_a".to_string(),
+            "Some message".to_string(),
+            Diff::from(IdeaPatch(PICK_A.to_string())),
+            "author".to_string(),
+            "commiter".to_string(),
+            Time::new(0, 0),
+        )
     }
 
-    fn pick_b() -> Diff {
-        Diff::from(IdeaPatch(PICK_B.to_string()))
+    fn pick_b() -> Commit {
+        Commit::new(
+            "pick_b".to_string(),
+            "Some message".to_string(),
+            Diff::from(IdeaPatch(PICK_B.to_string())),
+            "author".to_string(),
+            "commiter".to_string(),
+            Time::new(0, 0),
+        )
     }
 
-    fn isolated_a() -> Diff {
-        Diff::from(IdeaPatch(ISOLATED_COMMIT_A.to_string()))
+    fn isolated_a() -> Commit {
+        Commit::new(
+            "isolated_a".to_string(),
+            "Some message".to_string(),
+            Diff::from(IdeaPatch(ISOLATED_COMMIT_A.to_string())),
+            "author".to_string(),
+            "commiter".to_string(),
+            Time::new(0, 0),
+        )
     }
 
-    fn isolated_b() -> Diff {
-        Diff::from(IdeaPatch(ISOLATED_COMMIT_B.to_string()))
+    fn isolated_b() -> Commit {
+        Commit::new(
+            "isolated_b".to_string(),
+            "Some message".to_string(),
+            Diff::from(IdeaPatch(ISOLATED_COMMIT_B.to_string())),
+            "author".to_string(),
+            "commiter".to_string(),
+            Time::new(0, 0),
+        )
     }
 
     #[test]
     fn debug_diff_parsing() {
         init();
-        debug!("{}", cherry_a());
-        debug!("{}", cherry_b());
-        debug!("{}", pick_a());
-        debug!("{}", pick_b());
-        debug!("{}", isolated_a());
-        debug!("{}", isolated_b());
+        debug!("{}", cherry_a().diff());
+        debug!("{}", cherry_b().diff());
+        debug!("{}", pick_a().diff());
+        debug!("{}", pick_b().diff());
+        debug!("{}", isolated_a().diff());
+        debug!("{}", isolated_b().diff());
     }
 
     #[test]

@@ -28,7 +28,7 @@ pub fn brute_force_search(commits: &[Commit], threshold: f64) -> HashSet<CherryA
                 debug!("compared {i}th commit to {} commits...", j)
             }
 
-            if comparator.change_similarity(first.diff(), second.diff()) > threshold {
+            if comparator.change_similarity(first, second) > threshold {
                 // create a commit pair whose order depends on the commit time of both commits
                 let cherry_and_target = CherryAndTarget::construct(first, second);
                 candidates.insert(cherry_and_target);

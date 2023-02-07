@@ -73,7 +73,10 @@ impl<'a> Index<'a> {
 
     pub fn candidates(&self) -> HashSet<CherryAndTarget> {
         profile_method!(candidates);
-        debug!("finding util among {} entries", self.commit_index.len());
+        debug!(
+            "finding candidate pairs among {} entries",
+            self.commit_index.len()
+        );
         let mut candidates = HashSet::new();
         let mut comparator = ChangeSimilarityComparator::new();
 
@@ -96,7 +99,7 @@ impl<'a> Index<'a> {
                 let commit_a = self.commit_storage.get(id_a).unwrap();
                 let commit_b = self.commit_storage.get(id_b).unwrap();
 
-                if comparator.change_similarity(commit_a.diff(), commit_b.diff()) > self.threshold {
+                if comparator.change_similarity(commit_a, commit_b) > self.threshold {
                     // create a commit pair whose order depends on the commit time of both commits
                     let cherry_and_target = CherryAndTarget::construct(commit_a, commit_b);
                     candidates.insert(cherry_and_target);
