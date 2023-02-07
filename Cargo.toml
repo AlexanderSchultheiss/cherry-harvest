@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-git2 = "0.15.0"
+git2 = "0.16.1"
 temp-dir = "0.1.11"
 env_logger = "0.10.0"
 log = "0.4.17"
@@ -21,5 +21,5 @@ firestorm = { version= "0.5.1", features=["enable_system_time"] }
 criterion = "0.4.0"
 
 [[bench]]
-name = "candidate_search"
+name = "ann_search"
 harness = false
