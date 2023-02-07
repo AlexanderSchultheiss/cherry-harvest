@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
+use std::mem;
 use std::path::{Path, PathBuf};
 use temp_dir::TempDir;
 
@@ -325,6 +326,7 @@ impl<'repo> From<G2Diff<'repo>> for Diff {
                 match hunk {
                     None => { /* Skip this delta if it does not belong to a hunk (i.e., the header line of the diff)*/ }
                     Some(h) => {
+                        profile_section!(hunk_header);
                         let hunk_head = String::from_utf8_lossy(h.header()).into_owned();
                         // retrieve the hunk from the map, or create it in the map if it does not exist yet
                         let hunk = hunk_map.entry(hunk_head.clone()).or_insert(Hunk {
@@ -335,8 +337,11 @@ impl<'repo> From<G2Diff<'repo>> for Diff {
                             old_start: h.old_start(),
                             new_start: h.new_start(),
                         });
+                        drop(hunk_header);
+
                         // add the line to the hunk, if it is not the hunk header
                         if diff_line.origin() != 'H' {
+                            profile_section!(hunk_body);
                             hunk.body.push(
                                 DiffLine {
                                     content: String::from_utf8_lossy(&Vec::from(diff_line.content())).to_string(),
