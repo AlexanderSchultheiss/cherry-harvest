@@ -1,6 +1,8 @@
 use bit_vec::BitVec;
 use cherry_harvest::git::{IdeaPatch, LoadedRepository};
-use cherry_harvest::search::ann::preprocessing::{shingle_diff, MinHash, ShingledText, Vocabulary};
+use cherry_harvest::search::ann::preprocessing::{
+    preprocess_commits, shingle_diff, MinHash, ShingledText, Vocabulary,
+};
 use cherry_harvest::{collect_commits, git, Diff, RepoLocation};
 use criterion::{criterion_group, criterion_main, Criterion};
 use git2::BranchType;
@@ -18,7 +20,7 @@ pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
     });
 }
 
-const DATASET: &str = "/home/alex/data/cherries-one";
+const DATASET: &str = "/home/alex/data/VEVOS_Simulation";
 fn repo_location() -> RepoLocation<'static> {
     RepoLocation::Filesystem(Path::new(DATASET))
 }
@@ -56,7 +58,23 @@ pub fn minhash(c: &mut Criterion) {
     let bitvec = BitVec::from_bytes(&bytes);
 
     c.bench_function("calculate_minhash", |b| {
-        b.iter(|| minhash.hash_signature::<u32>(&bitvec))
+        b.iter(|| minhash.hash_signature(&bitvec))
+    });
+}
+
+pub fn commit_preprocessing(c: &mut Criterion) {
+    let commits = match git::clone_or_load(&repo_location()).unwrap() {
+        LoadedRepository::LocalRepo { repository, .. } => {
+            collect_commits(&repository, BranchType::Local)
+        }
+        LoadedRepository::RemoteRepo { repository, .. } => {
+            collect_commits(&repository, BranchType::Remote)
+        }
+    };
+    c.bench_function("preprocess_commits", |b| {
+        b.iter(|| {
+            preprocess_commits(&commits, 3, 32);
+        })
     });
 }
 
@@ -64,7 +82,8 @@ criterion_group!(
     benches,
     shingle_arity_3_benchmark,
     vocabulary_building,
-    minhash
+    minhash,
+    commit_preprocessing
 );
 criterion_main!(benches);
 

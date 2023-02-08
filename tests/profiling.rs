@@ -3,7 +3,7 @@ use log::{info, LevelFilter};
 use std::path::Path;
 use std::time::Instant;
 
-const DATASET: &str = "/home/alex/data/busybox/";
+const DATASET: &str = "/home/alex/data/cherries-one/";
 
 /// Initializes the logger and load the ground truth.
 fn init() -> Instant {

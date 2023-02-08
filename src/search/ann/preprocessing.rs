@@ -3,13 +3,15 @@ use crate::error::ErrorKind::ANNPreprocessing;
 use crate::{Commit, Diff};
 use bit_vec::BitVec;
 use firestorm::{profile_fn, profile_method};
-use num_traits::{cast, Num, NumCast};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
+use std::sync::mpsc::channel;
+use std::sync::Arc;
+use threadpool::ThreadPool;
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Debug, Default, Hash)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Debug, Default, Hash, Clone)]
 pub struct Shingle(String);
 
 impl Display for Shingle {
@@ -28,26 +30,42 @@ pub fn shingle_diff(diff: &Diff, arity: usize) -> ShingledText {
     ShingledText::new(diff.diff_text(), arity)
 }
 
-pub fn preprocess_commits<T: Num + NumCast>(
+pub fn preprocess_commits(
     commits: &[Commit],
     arity: usize,
     signature_size: usize,
-) -> Vec<Signature<T>> {
-    let shingled_diffs: Vec<ShingledText> = commits
-        .iter()
-        .map(|c| shingle_diff(c.diff(), arity))
-        .collect();
+) -> Vec<Signature> {
+    let n_workers = 24;
+    let pool = ThreadPool::new(n_workers);
 
-    let vocabulary = Vocabulary::build(&shingled_diffs);
-    let minhash = MinHash::new(signature_size, vocabulary.len());
+    let (sender, receiver) = channel();
 
-    shingled_diffs
-        .iter()
-        .map(|sd| {
-            let one_hot = vocabulary.one_hot(sd).unwrap();
-            minhash.hash_signature(&one_hot)
+    commits.iter().map(|c| c.diff().clone()).for_each(|diff| {
+        let sender = sender.clone();
+
+        pool.execute(move || {
+            sender.send(shingle_diff(&diff, arity)).unwrap();
         })
-        .collect()
+    });
+    drop(sender);
+
+    let shingled_diffs: Vec<ShingledText> = receiver.iter().collect();
+
+    let vocabulary = Arc::new(Vocabulary::build(&shingled_diffs));
+    let minhash = Arc::new(MinHash::new(signature_size, vocabulary.len()));
+
+    let (sender, receiver) = channel();
+    shingled_diffs.into_iter().for_each(|sd| {
+        let sender = sender.clone();
+        let vocabulary = Arc::clone(&vocabulary);
+        let minhash = Arc::clone(&minhash);
+        pool.execute(move || {
+            let one_hot = vocabulary.one_hot(&sd).unwrap();
+            sender.send(minhash.hash_signature(&one_hot)).unwrap();
+        })
+    });
+    drop(sender);
+    receiver.iter().collect()
 }
 
 impl ShingledText {
@@ -80,14 +98,21 @@ impl Display for ShingledText {
 }
 
 #[derive(Debug)]
-pub struct Vocabulary<'a>(HashMap<&'a Shingle, usize>);
+pub struct Vocabulary(HashMap<Shingle, usize>);
 
-impl<'a> Vocabulary<'a> {
-    pub fn build(shingled_texts: &'a [ShingledText]) -> Self {
+impl Vocabulary {
+    pub fn build(shingled_texts: &[ShingledText]) -> Self {
         profile_fn!(build_vocabulary);
         // Filter duplicate shingles for vocabulary creation
-        let shingles: HashSet<&Shingle> =
-            shingled_texts.iter().flat_map(|sd| &sd.shingles).collect();
+        let mut shingles = HashSet::new();
+        shingled_texts
+            .iter()
+            .flat_map(|sd| &sd.shingles)
+            .for_each(|s| {
+                if !shingles.contains(s) {
+                    shingles.insert(s.clone());
+                }
+            });
 
         // The process requires shuffled assignments for the words in the vocabulary
         let mut indices: Vec<usize> = (0..shingles.len()).collect();
@@ -128,7 +153,7 @@ impl<'a> Vocabulary<'a> {
     }
 }
 
-pub type Signature<T> = Vec<T>;
+pub type Signature = Vec<u32>;
 
 pub struct MinHash {
     signature_size: usize,
@@ -157,14 +182,14 @@ impl MinHash {
         }
     }
 
-    pub fn hash_signature<T: Num + NumCast>(&self, one_hot: &BitVec) -> Signature<T> {
+    pub fn hash_signature(&self, one_hot: &BitVec) -> Signature {
         profile_method!(hash_signature);
         assert_eq!(
             one_hot.len(),
             self.data_size,
             "the given one-hot vector's size does not match the expected data size"
         );
-        let mut signature: Signature<T> = Vec::with_capacity(self.signature_size);
+        let mut signature: Signature = Vec::with_capacity(self.signature_size);
 
         for vector in &self.hash_vectors {
             // Get the first value that maps to a 'hot' index
@@ -258,9 +283,9 @@ mod tests {
         one_hot_b.set(1, true);
         one_hot_b.set(2, true);
 
-        let signature_a = minhash.hash_signature::<u32>(&one_hot_a);
-        let signature_b = minhash.hash_signature::<u32>(&one_hot_b);
-        let signature_a2 = minhash.hash_signature::<u32>(&one_hot_a);
+        let signature_a = minhash.hash_signature(&one_hot_a);
+        let signature_b = minhash.hash_signature(&one_hot_b);
+        let signature_a2 = minhash.hash_signature(&one_hot_a);
 
         assert_eq!(signature_a, signature_a2);
         assert_ne!(signature_a, signature_b);
