@@ -24,6 +24,32 @@ pub struct ShingledText {
     arity: usize,
 }
 
+pub fn shingle_diff(diff: &Diff, arity: usize) -> ShingledText {
+    ShingledText::new(diff.diff_text(), arity)
+}
+
+pub fn preprocess_commits<T: Num + NumCast>(
+    commits: &[Commit],
+    arity: usize,
+    signature_size: usize,
+) -> Vec<Signature<T>> {
+    let shingled_diffs: Vec<ShingledText> = commits
+        .iter()
+        .map(|c| shingle_diff(c.diff(), arity))
+        .collect();
+
+    let vocabulary = Vocabulary::build(&shingled_diffs);
+    let minhash = MinHash::new(signature_size, vocabulary.len());
+
+    shingled_diffs
+        .iter()
+        .map(|sd| {
+            let one_hot = vocabulary.one_hot(sd).unwrap();
+            minhash.hash_signature(&one_hot)
+        })
+        .collect()
+}
+
 impl ShingledText {
     pub fn new(text: &str, arity: usize) -> Self {
         profile_fn!(new_shingled_text);
@@ -51,32 +77,6 @@ impl Display for ShingledText {
         }
         Ok(())
     }
-}
-
-pub fn shingle_diff(diff: &Diff, arity: usize) -> ShingledText {
-    ShingledText::new(diff.diff_text(), arity)
-}
-
-pub fn preprocess_commits<T: Num + NumCast>(
-    commits: &[Commit],
-    arity: usize,
-    signature_size: usize,
-) -> Vec<Signature<T>> {
-    let shingled_diffs: Vec<ShingledText> = commits
-        .iter()
-        .map(|c| shingle_diff(c.diff(), arity))
-        .collect();
-
-    let vocabulary = Vocabulary::build(&shingled_diffs);
-    let minhash = MinHash::new(signature_size, vocabulary.len());
-
-    shingled_diffs
-        .iter()
-        .map(|sd| {
-            let one_hot = vocabulary.one_hot(sd).unwrap();
-            minhash.hash_signature(&one_hot)
-        })
-        .collect()
 }
 
 #[derive(Debug)]
@@ -121,6 +121,10 @@ impl<'a> Vocabulary<'a> {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 

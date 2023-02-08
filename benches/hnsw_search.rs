@@ -1,8 +1,8 @@
 use cherry_harvest::RepoLocation;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::path::Path;
 
-const DATASET: &'static str = "/home/alex/data/cherries-one";
+const DATASET: &str = "/home/alex/data/cherries-one";
 
 fn repo_location() -> RepoLocation<'static> {
     RepoLocation::Filesystem(Path::new(DATASET))
@@ -14,7 +14,7 @@ fn search_call() {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("hnsw", |b| b.iter(|| search_call()));
+    c.bench_function("hnsw", |b| b.iter(search_call));
 }
 
 criterion_group!(benches, criterion_benchmark);

@@ -1,11 +1,10 @@
 use bit_vec::BitVec;
 use cherry_harvest::git::{IdeaPatch, LoadedRepository};
-use cherry_harvest::search::ann::preprocessing;
 use cherry_harvest::search::ann::preprocessing::{shingle_diff, MinHash, ShingledText, Vocabulary};
 use cherry_harvest::{collect_commits, git, Diff, RepoLocation};
 use criterion::{criterion_group, criterion_main, Criterion};
 use git2::BranchType;
-use rand::{random, thread_rng};
+use rand::random;
 use std::path::Path;
 
 pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
