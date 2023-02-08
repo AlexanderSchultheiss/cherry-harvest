@@ -36,6 +36,7 @@ pub fn preprocess_commits(
     arity: usize,
     signature_size: usize,
 ) -> Vec<Signature> {
+    profile_fn!(preprocess_commits);
     let n_workers = 24;
     let pool = ThreadPool::new(n_workers);
 
