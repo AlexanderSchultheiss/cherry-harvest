@@ -3,6 +3,7 @@ use crate::error::ErrorKind::ANNPreprocessing;
 use crate::{Commit, Diff};
 use bit_vec::BitVec;
 use firestorm::{profile_fn, profile_method};
+use num_traits::cast;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::{HashMap, HashSet};
