@@ -1,9 +1,11 @@
+use bit_vec::BitVec;
 use cherry_harvest::git::{IdeaPatch, LoadedRepository};
 use cherry_harvest::search::ann::preprocessing;
-use cherry_harvest::search::ann::preprocessing::{shingle_diff, ShingledText, Vocabulary};
+use cherry_harvest::search::ann::preprocessing::{shingle_diff, MinHash, ShingledText, Vocabulary};
 use cherry_harvest::{collect_commits, git, Diff, RepoLocation};
 use criterion::{criterion_group, criterion_main, Criterion};
 use git2::BranchType;
+use rand::{random, thread_rng};
 use std::path::Path;
 
 pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
@@ -42,7 +44,29 @@ pub fn vocabulary_building(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, shingle_arity_3_benchmark, vocabulary_building);
+pub fn minhash(c: &mut Criterion) {
+    let bits_per_byte = 8;
+    let num_byte = 10_000;
+    let minhash = MinHash::new(256, bits_per_byte * num_byte);
+
+    // get a random byte vector
+    let mut bytes: Vec<u8> = vec![];
+    for _ in 0..num_byte {
+        bytes.push(random());
+    }
+    let bitvec = BitVec::from_bytes(&bytes);
+
+    c.bench_function("calculate_minhash", |b| {
+        b.iter(|| minhash.hash_signature(&bitvec))
+    });
+}
+
+criterion_group!(
+    benches,
+    shingle_arity_3_benchmark,
+    vocabulary_building,
+    minhash
+);
 criterion_main!(benches);
 
 const BENCHMARK_DIFF: &str = r#"const CHERRY_A: &str = r#"Subject: [PATCH] feat: added logging
