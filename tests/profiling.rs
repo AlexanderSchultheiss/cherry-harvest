@@ -1,12 +1,9 @@
-use cherry_harvest::{
-    BruteForceMatch, ExactDiffMatch, RepoLocation, SearchMethod, SimilarityDiffMatch,
-};
-use log::{debug, info, LevelFilter};
-use std::collections::HashSet;
+use cherry_harvest::{BruteForceMatch, ExactDiffMatch, RepoLocation, SimilarityDiffMatch};
+use log::{info, LevelFilter};
 use std::path::Path;
 use std::time::Instant;
 
-const DATASET: &'static str = "/home/alex/data/busybox";
+const DATASET: &str = "/home/alex/data/VEVOS_Simulation/";
 
 /// Initializes the logger and load the ground truth.
 fn init() -> Instant {

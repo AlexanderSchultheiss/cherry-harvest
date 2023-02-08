@@ -1,7 +1,7 @@
 pub mod compare;
 
 use crate::git::Commit;
-use crate::{Diff, SearchMethod, SearchResult};
+use crate::{SearchMethod, SearchResult};
 use firestorm::{profile_method, profile_section};
 use hora::core::ann_index::ANNIndex;
 use log::{debug, info};
@@ -253,7 +253,7 @@ pub struct HNSWSearch();
 pub const NAME_HNSW: &str = "HNSW";
 
 use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
-use hnsw_rs::dist::{DistJaccard, DistL2};
+use hnsw_rs::dist::DistJaccard;
 use hnsw_rs::hnsw::{Hnsw, Neighbour};
 
 impl SearchMethod for HNSWSearch {

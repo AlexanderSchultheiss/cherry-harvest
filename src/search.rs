@@ -2,14 +2,15 @@ use crate::git::Commit;
 use firestorm::profile_fn;
 use std::collections::HashSet;
 
-mod methods;
+pub mod ann;
+pub mod methods;
 mod util;
 
 pub use methods::exact_diff::ExactDiffMatch;
 pub use methods::message_scan::MessageScan;
 pub use methods::similar_diff::ANNMatch;
-pub use methods::similar_diff::HNSWSearch;
 pub use methods::similar_diff::BruteForceMatch;
+pub use methods::similar_diff::HNSWSearch;
 pub use methods::similar_diff::SimilarityDiffMatch;
 
 #[derive(Debug, Hash, PartialEq, Eq)]

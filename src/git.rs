@@ -7,7 +7,6 @@ use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-use std::mem;
 use std::path::{Path, PathBuf};
 use temp_dir::TempDir;
 

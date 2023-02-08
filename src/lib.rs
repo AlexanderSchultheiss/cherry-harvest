@@ -3,18 +3,18 @@ use git2::{BranchType, Repository};
 use log::{debug, info};
 use std::collections::HashMap;
 
-mod error;
-mod git;
-mod search;
+pub mod error;
+pub mod git;
+pub mod search;
 
 pub use git::Commit;
 pub use git::Diff;
 pub use git::RepoLocation;
 pub use search::ANNMatch;
-pub use search::HNSWSearch;
 pub use search::BruteForceMatch;
 pub use search::CherryAndTarget;
 pub use search::ExactDiffMatch;
+pub use search::HNSWSearch;
 pub use search::MessageScan;
 pub use search::SearchMethod;
 pub use search::SearchResult;
