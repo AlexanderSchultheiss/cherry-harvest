@@ -57,7 +57,7 @@ pub fn minhash(c: &mut Criterion) {
     let bitvec = BitVec::from_bytes(&bytes);
 
     c.bench_function("calculate_minhash", |b| {
-        b.iter(|| minhash.hash_signature(&bitvec))
+        b.iter(|| minhash.hash_signature::<u32>(&bitvec))
     });
 }
 

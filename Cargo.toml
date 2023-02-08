@@ -19,6 +19,7 @@ hora = "0.1.1"
 firestorm = { version= "0.5.1", features=["enable_system_time"] }
 hnsw_rs = "0.1.17"
 bit-vec = "0.6.3"
+num-traits = "0.2.15"
 
 [dev-dependencies]
 criterion = "0.4.0"

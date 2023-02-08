@@ -1,7 +1,9 @@
 use crate::error::Error;
 use crate::error::ErrorKind::ANNPreprocessing;
-use crate::Diff;
+use crate::{Commit, Diff};
 use bit_vec::BitVec;
+use firestorm::{profile_fn, profile_method};
+use num_traits::{cast, Num, NumCast};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::{HashMap, HashSet};
@@ -24,6 +26,7 @@ pub struct ShingledText {
 
 impl ShingledText {
     pub fn new(text: &str, arity: usize) -> Self {
+        profile_fn!(new_shingled_text);
         let lines: Vec<&str> = text.lines().collect();
         let mut shingles = Vec::new();
         for window_position in 0..lines.len() {
@@ -54,11 +57,34 @@ pub fn shingle_diff(diff: &Diff, arity: usize) -> ShingledText {
     ShingledText::new(diff.diff_text(), arity)
 }
 
+pub fn preprocess_commits<T: Num + NumCast>(
+    commits: &[Commit],
+    arity: usize,
+    signature_size: usize,
+) -> Vec<Signature<T>> {
+    let shingled_diffs: Vec<ShingledText> = commits
+        .iter()
+        .map(|c| shingle_diff(c.diff(), arity))
+        .collect();
+
+    let vocabulary = Vocabulary::build(&shingled_diffs);
+    let minhash = MinHash::new(signature_size, vocabulary.len());
+
+    shingled_diffs
+        .iter()
+        .map(|sd| {
+            let one_hot = vocabulary.one_hot(sd).unwrap();
+            minhash.hash_signature(&one_hot)
+        })
+        .collect()
+}
+
 #[derive(Debug)]
 pub struct Vocabulary<'a>(HashMap<&'a Shingle, usize>);
 
 impl<'a> Vocabulary<'a> {
     pub fn build(shingled_texts: &'a [ShingledText]) -> Self {
+        profile_fn!(build_vocabulary);
         // Filter duplicate shingles for vocabulary creation
         let shingles: HashSet<&Shingle> =
             shingled_texts.iter().flat_map(|sd| &sd.shingles).collect();
@@ -79,6 +105,7 @@ impl<'a> Vocabulary<'a> {
     }
 
     pub fn one_hot(&self, shingled_diff: &ShingledText) -> Result<BitVec, Error> {
+        profile_method!(one_hot);
         let mut one_hot: BitVec = BitVec::from_elem(self.0.len(), false);
 
         // Set values of all occurring shingles to 1
@@ -91,9 +118,13 @@ impl<'a> Vocabulary<'a> {
 
         Ok(one_hot)
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
-pub type Signature = Vec<usize>;
+pub type Signature<T> = Vec<T>;
 
 pub struct MinHash {
     signature_size: usize,
@@ -103,6 +134,7 @@ pub struct MinHash {
 
 impl MinHash {
     pub fn new(signature_size: usize, data_size: usize) -> Self {
+        profile_fn!(new_minhash);
         // We require one hash function for each dimension in the signature
         let mut hash_vectors = Vec::with_capacity(signature_size);
         // We require one value for each word in the vocabulary, for which we want to apply MinHash
@@ -121,13 +153,14 @@ impl MinHash {
         }
     }
 
-    pub fn hash_signature(&self, one_hot: &BitVec) -> Signature {
+    pub fn hash_signature<T: Num + NumCast>(&self, one_hot: &BitVec) -> Signature<T> {
+        profile_method!(hash_signature);
         assert_eq!(
             one_hot.len(),
             self.data_size,
             "the given one-hot vector's size does not match the expected data size"
         );
-        let mut signature: Signature = Vec::with_capacity(self.signature_size);
+        let mut signature: Signature<T> = Vec::with_capacity(self.signature_size);
 
         for vector in &self.hash_vectors {
             // Get the first value that maps to a 'hot' index
@@ -136,7 +169,7 @@ impl MinHash {
             // values to indices (technically, its the other way around)
             for (value, index) in vector.iter().enumerate() {
                 if one_hot.get(*index).unwrap() {
-                    signature.push(value);
+                    signature.push(cast(value).unwrap());
                     break;
                 }
             }
@@ -152,6 +185,7 @@ mod tests {
     use crate::search::ann::preprocessing::{shingle_diff, MinHash, ShingledText, Vocabulary};
     use crate::Diff;
     use bit_vec::BitVec;
+    use git2::Signature;
 
     #[test]
     fn simple_shingle_arity_3() {
@@ -220,9 +254,9 @@ mod tests {
         one_hot_b.set(1, true);
         one_hot_b.set(2, true);
 
-        let signature_a = minhash.hash_signature(&one_hot_a);
-        let signature_b = minhash.hash_signature(&one_hot_b);
-        let signature_a2 = minhash.hash_signature(&one_hot_a);
+        let signature_a = minhash.hash_signature::<u32>(&one_hot_a);
+        let signature_b = minhash.hash_signature::<u32>(&one_hot_b);
+        let signature_a2 = minhash.hash_signature::<u32>(&one_hot_a);
 
         assert_eq!(signature_a, signature_a2);
         assert_ne!(signature_a, signature_b);

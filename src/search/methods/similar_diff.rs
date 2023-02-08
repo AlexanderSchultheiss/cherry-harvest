@@ -252,8 +252,9 @@ pub struct HNSWSearch();
 
 pub const NAME_HNSW: &str = "HNSW";
 
+use crate::search::ann::preprocessing::preprocess_commits;
 use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
-use hnsw_rs::dist::DistJaccard;
+use hnsw_rs::dist::DistL2;
 use hnsw_rs::hnsw::{Hnsw, Neighbour};
 
 impl SearchMethod for HNSWSearch {
@@ -261,13 +262,7 @@ impl SearchMethod for HNSWSearch {
         profile_method!(search);
         info!("searching for cherry-picks with an HNSW");
         // convert_commits
-        let commits_converted: Vec<Vec<u8>> = {
-            profile_section!(convert_commits);
-            commits
-                .iter()
-                .map(|commit| commit.diff().diff_text().as_bytes().to_vec())
-                .collect()
-        };
+        let commits_converted: Vec<Vec<u32>> = preprocess_commits(commits, 3, 32);
         debug!("converted all commits to simple data vectors");
 
         //  reading data
@@ -276,13 +271,8 @@ impl SearchMethod for HNSWSearch {
         let nb_layer = 16.min((nb_elem as f32).ln().trunc() as usize);
         let ef_c = 400;
         // allocating network
-        let mut hnsw = Hnsw::<u8, DistJaccard>::new(
-            max_nb_connection,
-            nb_elem,
-            nb_layer,
-            ef_c,
-            DistJaccard {},
-        );
+        let mut hnsw =
+            Hnsw::<u32, DistL2>::new(max_nb_connection, nb_elem, nb_layer, ef_c, DistL2 {});
         debug!("allocated network");
 
         hnsw.set_extend_candidates(false);
