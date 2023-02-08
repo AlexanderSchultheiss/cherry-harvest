@@ -129,7 +129,7 @@ pub fn search_with<T: SearchMethod + 'static>(
 }
 
 /// Collect the commits of all local or all remote branches depending on the given BranchType
-fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<Commit> {
+pub fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<Commit> {
     profile_fn!(collect_commits);
     let branch_heads = git::branch_heads(repository, branch_type);
     debug!(

@@ -7,6 +7,7 @@ pub enum ErrorKind {
     RepoLoad(GError),
     GitDiff(GError),
     DiffParse(String),
+    ANNPreprocessing(String),
 }
 
 #[derive(Debug)]
@@ -24,7 +25,7 @@ impl Display for ErrorKind {
             Self::RepoLoad(error) | Self::RepoClone(error) | Self::GitDiff(error) => {
                 write!(f, "{error}")
             }
-            Self::DiffParse(error) => {
+            Self::DiffParse(error) | Self::ANNPreprocessing(error) => {
                 write!(f, "{error}")
             }
         }

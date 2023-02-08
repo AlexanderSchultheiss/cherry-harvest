@@ -1,7 +1,10 @@
-use cherry_harvest::git::IdeaPatch;
+use cherry_harvest::git::{IdeaPatch, LoadedRepository};
 use cherry_harvest::search::ann::preprocessing;
-use cherry_harvest::Diff;
+use cherry_harvest::search::ann::preprocessing::{shingle_diff, ShingledText, Vocabulary};
+use cherry_harvest::{collect_commits, git, Diff, RepoLocation};
 use criterion::{criterion_group, criterion_main, Criterion};
+use git2::BranchType;
+use std::path::Path;
 
 pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
     c.bench_function("shingle_arity_3", |b| {
@@ -9,12 +12,37 @@ pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
             let diff = Diff::from(IdeaPatch(BENCHMARK_DIFF.to_string()));
             let arity = 3;
 
-            preprocessing::shingle_diff(&diff, arity);
+            shingle_diff(&diff, arity);
         })
     });
 }
 
-criterion_group!(benches, shingle_arity_3_benchmark);
+const DATASET: &str = "/home/alex/data/cherries-one";
+fn repo_location() -> RepoLocation<'static> {
+    RepoLocation::Filesystem(Path::new(DATASET))
+}
+
+pub fn vocabulary_building(c: &mut Criterion) {
+    let commits = match git::clone_or_load(&repo_location()).unwrap() {
+        LoadedRepository::LocalRepo { repository, .. } => {
+            collect_commits(&repository, BranchType::Local)
+        }
+        LoadedRepository::RemoteRepo { repository, .. } => {
+            collect_commits(&repository, BranchType::Remote)
+        }
+    };
+    let shingled_diffs: Vec<ShingledText> = commits
+        .into_iter()
+        .map(|c| shingle_diff(c.diff(), 3))
+        .collect();
+    c.bench_function("build_shingle_vocab", |b| {
+        b.iter(|| {
+            Vocabulary::build(&shingled_diffs);
+        })
+    });
+}
+
+criterion_group!(benches, shingle_arity_3_benchmark, vocabulary_building);
 criterion_main!(benches);
 
 const BENCHMARK_DIFF: &str = r#"const CHERRY_A: &str = r#"Subject: [PATCH] feat: added logging

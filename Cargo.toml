@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 git2 = "0.16.1"
+rand = "0.8.5"
 temp-dir = "0.1.11"
 env_logger = "0.10.0"
 log = "0.4.17"
