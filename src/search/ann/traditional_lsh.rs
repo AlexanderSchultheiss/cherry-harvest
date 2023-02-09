@@ -1,4 +1,5 @@
 use crate::search::ann::preprocessing::Signature;
+use std::iter::zip;
 
 pub type Band<'a> = &'a [u32];
 
@@ -19,9 +20,13 @@ pub fn split_signature(signature: &Signature, n_splits: usize) -> Vec<Band> {
     bands
 }
 
+fn candidate_check(bands_a: &Vec<Band>, bands_b: &Vec<Band>) -> bool {
+    zip(bands_a, bands_b).any(|(band_a, band_b)| band_a == band_b)
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::search::ann::traditional_lsh::split_signature;
+    use crate::search::ann::traditional_lsh::{candidate_check, split_signature};
 
     #[test]
     fn simple_signature_split() {
@@ -63,5 +68,29 @@ mod tests {
         let signature = vec![1, 3, 4, 8, 23];
 
         let splits = split_signature(&signature, 0);
+    }
+
+    #[test]
+    fn signatures_are_candidates() {
+        let sig_a = vec![0, 3, 2, 4, 60, 103];
+        let sig_b = vec![1, 4, 2, 4, 603, 0];
+
+        let n_splits = 3;
+        let banded_a = split_signature(&sig_a, n_splits);
+        let banded_b = split_signature(&sig_b, n_splits);
+
+        assert!(candidate_check(&banded_a, &banded_b));
+    }
+
+    #[test]
+    fn signatures_are_not_candidates() {
+        let sig_a = vec![0, 3, 2, 4, 60, 103];
+        let sig_b = vec![1, 4, 2, 5, 603, 0];
+
+        let n_splits = 3;
+        let banded_a = split_signature(&sig_a, n_splits);
+        let banded_b = split_signature(&sig_b, n_splits);
+
+        assert!(!candidate_check(&banded_a, &banded_b));
     }
 }
