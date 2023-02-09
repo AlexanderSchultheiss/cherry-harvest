@@ -262,7 +262,7 @@ impl SearchMethod for HNSWSearch {
         profile_method!(search);
         info!("searching for cherry-picks with an HNSW");
         // convert_commits
-        let commits_converted: Vec<Vec<u32>> = preprocess_commits(commits, 3, 32);
+        let commits_converted: Vec<Vec<u32>> = preprocess_commits(commits, 3, 16);
         debug!("converted all commits to simple data vectors");
 
         //  reading data
@@ -292,7 +292,7 @@ impl SearchMethod for HNSWSearch {
         //  Now the bench with 10 neighbours
         let mut knn_neighbours_for_tests = Vec::<Vec<Neighbour>>::with_capacity(nb_elem);
         hnsw.set_searching_mode(true);
-        let knbn = 10;
+        let knbn = 32;
         let ef_c = max_nb_connection;
         // search 10 nearest neighbours for test data
         {

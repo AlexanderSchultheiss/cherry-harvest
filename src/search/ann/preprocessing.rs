@@ -356,13 +356,10 @@ mod tests {
 
     #[test]
     fn text_signature_similarity() {
-        let signatures = preprocess_texts(&[TEXT, TEXT_CLOSE, TEXT_FAR], 3, 256);
+        let signatures = preprocess_texts(&[TEXT, TEXT_CLOSE, TEXT_FAR], 3, 8);
 
         let sig_distance = |s1: &Signature, s2: &Signature| {
-            s1.iter()
-                .zip(s2.iter())
-                .map(|(v1, v2)| u32::abs_diff(*v1, *v2))
-                .sum::<u32>()
+            s1.iter().zip(s2.iter()).filter(|(v1, v2)| v1 != v2).count()
         };
 
         let distance_close = sig_distance(&signatures[0], &signatures[1]);
