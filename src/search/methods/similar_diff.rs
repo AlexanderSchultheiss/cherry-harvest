@@ -8,6 +8,7 @@ use log::{debug, info};
 use ngrammatic::{Ngram, NgramBuilder, Pad};
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
+use std::iter::zip;
 use std::time::Instant;
 
 pub const NAME_SIMILARITY_DIFF_MATCH: &str = "SimilarityDiffMatch";
@@ -23,56 +24,30 @@ impl SearchMethod for SimilarityDiffMatch {
         debug!("retrieved a total of {} commits", commits.len());
         let start = Instant::now();
 
-        let mut ngram_map = HashMap::<&Commit, Ngram>::new();
-        for commit in commits {
-            profile_section!(build_ngram_map);
-            // TODO: implement own but similar approach to improve clarity
-            let ngram = NgramBuilder::new(commit.diff().diff_text())
-                .arity(2)
-                .pad_left(Pad::Auto)
-                .pad_right(Pad::Auto)
-                .finish();
-            ngram_map.insert(commit, ngram);
-        }
-        debug!("converted all commits to ngrams in {:?}", start.elapsed());
+        let signature_length = 100;
+        let commit_signatures = preprocess_commits(commits, 3, signature_length);
+        let commit_signatures: Vec<Vec<f32>> = commit_signatures
+            .into_iter()
+            .map(|s| s.into_iter().map(|v| v as f32).collect())
+            .collect();
+        debug!(
+            "converted all commits to signatures in {:?}",
+            start.elapsed()
+        );
 
         let start = Instant::now();
 
-        // prepare a map of commits to f32 vectors of their diff
-        // the f32 vectors are required for the ANN search
-        let mut max_length = 0;
-        // TODO: is there a better way to convert text to float vectors?
-        let mut commit_f32_map: HashMap<&Commit, Vec<f32>> = commits
-            .iter()
-            .map(|c| {
-                profile_section!(build_commit_f32_map);
-                let vec = c
-                    .diff()
-                    .diff_text()
-                    .as_bytes()
-                    .iter()
-                    .map(|b| *b as f32)
-                    .take(64)
-                    .collect::<Vec<f32>>();
-                max_length = max(max_length, vec.len());
-                (c, vec)
-            })
-            .collect();
-
         // build the index for the ANN search
         let mut index = hora::index::hnsw_idx::HNSWIndex::<f32, usize>::new(
-            max_length,
+            signature_length,
             &hora::index::hnsw_params::HNSWParams::<f32>::default(),
         );
         {
             profile_section!(build_index);
-            for (i, commit) in commits.iter().enumerate() {
-                // all vectors need to be padded
-                let diff_as_f32: &mut Vec<f32> = commit_f32_map.get_mut(&commit).unwrap();
-                while diff_as_f32.len() < max_length {
-                    diff_as_f32.push(0.0);
-                }
-                index.add(diff_as_f32, i).unwrap();
+            for (i, signature) in commit_signatures.iter().enumerate() {
+                index
+                    .add(signature, i)
+                    .expect(&format!("signature_len: {}", signature.len()));
             }
             index.build(hora::core::metrics::Metric::Euclidean).unwrap();
         }
@@ -80,24 +55,23 @@ impl SearchMethod for SimilarityDiffMatch {
         // search for the nearest neighbors of each commit
         let mut results = HashSet::new();
         let mut count = 0;
-        for (i, (commit, f32_vec)) in commit_f32_map.iter().enumerate() {
+        let mut comparator = ChangeSimilarityComparator::new();
+        for (i, (commit, signature)) in zip(commits, commit_signatures).enumerate() {
             profile_section!(search_neighbors);
-            let neighbors = index.search(f32_vec, 100);
+            let neighbors = index.search(&signature, 100);
             count += neighbors.len();
             let neighbors = neighbors
                 .into_iter()
                 .map(|i| commits.get(i).unwrap())
                 .collect::<Vec<&Commit>>();
-            let ngram = ngram_map.get(commit).unwrap();
             for other in neighbors {
                 profile_section!(check_neighbors);
-                if *commit == other {
+                if commit == other {
                     continue;
                 }
-                let other_ngram = ngram_map.get(other).unwrap();
 
                 // Compare both
-                if ngram.matches_with_warp(other_ngram, 1.0, 0.95).is_some() {
+                if comparator.change_similarity(commit, other) > 0.85 {
                     results.insert(SearchResult::new(
                         NAME_SIMILARITY_DIFF_MATCH.to_string(),
                         // create a commit pair whose order depends on the commit time of both commits

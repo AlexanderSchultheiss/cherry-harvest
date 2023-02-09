@@ -99,7 +99,13 @@ fn shingles_into_signatures_multi_threaded(
         })
     });
     drop(sender);
-    receiver.iter().collect()
+    receiver
+        .iter()
+        .map(|s| {
+            assert_eq!(s.len(), signature_size);
+            s
+        })
+        .collect()
 }
 
 impl ShingledText {
@@ -111,11 +117,17 @@ impl ShingledText {
             let mut shingle_lines = Vec::with_capacity(arity);
             for index in window_position..(window_position + arity) {
                 let line = lines.get(index).map_or("", |x| x).trim();
-                if !line.is_empty() {
-                    shingle_lines.push(line);
+                match line.is_empty() {
+                    // we have to treat empty lines, because otherwise a ShingledText might be completely empty
+                    true => shingle_lines.push("\n"),
+                    false => shingle_lines.push(line),
                 }
             }
             shingles.push(Shingle(shingle_lines.concat()));
+        }
+
+        if shingles.is_empty() {
+            shingles.push(Shingle("EMPTY".to_string()));
         }
 
         ShingledText { shingles, arity }
@@ -202,7 +214,7 @@ impl MinHash {
         let mut hash_vectors = Vec::with_capacity(signature_size);
         // We require one value for each word in the vocabulary, for which we want to apply MinHash
         let mut initial_vector: Vec<usize> = (0..data_size).collect();
-
+        assert_eq!(initial_vector.len(), data_size);
         let mut rng = thread_rng();
         for _ in 0..signature_size {
             initial_vector.shuffle(&mut rng);
@@ -226,17 +238,26 @@ impl MinHash {
         let mut signature: Signature = Vec::with_capacity(self.signature_size);
 
         for vector in &self.hash_vectors {
+            assert_eq!(vector.len(), self.data_size);
             // Get the first value that maps to a 'hot' index
             // value and index are switched here on purpose, because MinHashing expects that the values
             // are incremented from lowest to highest. Thus, we assume that our shuffled vector maps
             // values to indices (technically, its the other way around)
             for (value, index) in vector.iter().enumerate() {
                 if one_hot.get(*index).unwrap() {
-                    signature.push(cast(value).unwrap());
+                    signature.push(value as u32);
                     break;
                 }
             }
         }
+
+        assert_eq!(
+            signature.len(),
+            self.signature_size,
+            "signature size does not match; one-hot: {}; hash_vectors: {}",
+            one_hot.len(),
+            self.hash_vectors.len()
+        );
 
         signature
     }

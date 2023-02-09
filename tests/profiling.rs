@@ -1,9 +1,9 @@
 use cherry_harvest::{BruteForceMatch, ExactDiffMatch, RepoLocation, SimilarityDiffMatch};
-use log::{info, LevelFilter};
+use log::{debug, info, LevelFilter};
 use std::path::Path;
 use std::time::Instant;
 
-const DATASET: &str = "/home/alex/data/cherries-one/";
+const DATASET: &str = "/home/alex/data/VEVOS_Simulation/";
 
 /// Initializes the logger and load the ground truth.
 fn init() -> Instant {
@@ -63,7 +63,8 @@ fn hora_similarity_search() {
     let call = || {
         let search_method = SimilarityDiffMatch::default();
         // Last search runtime was 116.9s (but without the custom external crate improvements that I had tried locally once)
-        let _ = cherry_harvest::search_with(&repo_location(), search_method);
+        let results = cherry_harvest::search_with(&repo_location(), search_method);
+        results.iter().for_each(|r| debug!("{:?}", r.commit_pair()))
     };
 
     if firestorm::enabled() {

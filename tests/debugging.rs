@@ -19,7 +19,7 @@ fn init() -> Instant {
 
 #[test]
 #[ignore]
-fn similarity_finds_exact() {
+fn hora_finds_exact() {
     let start = init();
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
