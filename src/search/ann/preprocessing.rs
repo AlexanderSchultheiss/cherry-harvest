@@ -298,6 +298,7 @@ mod tests {
         assert_eq!(count_first, 3);
         let count_second = one_hot_second.iter().filter(|v| *v).count();
         assert_eq!(count_second, 3);
+        assert_eq!(vocabulary.len(), 5);
 
         let ones_in_intersection = one_hot_first
             .into_iter()
@@ -306,6 +307,31 @@ mod tests {
             .filter(|v| *v)
             .count();
         assert_eq!(ones_in_intersection, 1);
+    }
+
+    #[test]
+    fn text_one_hot_similarity() {
+        // We expect that all values in the one-hot encoding are 1
+        let shingled_texts = vec![
+            ShingledText::new(TEXT, 2),
+            ShingledText::new(TEXT_CLOSE, 2),
+            ShingledText::new(TEXT_FAR, 2),
+        ];
+
+        let vocabulary = Vocabulary::build(&shingled_texts);
+        let one_hot_base = vocabulary.one_hot(&shingled_texts[0]).unwrap();
+        let one_hot_close = vocabulary.one_hot(&shingled_texts[1]).unwrap();
+        let one_hot_far = vocabulary.one_hot(&shingled_texts[2]).unwrap();
+
+        let one_hot_distance =
+            |s1: &BitVec, s2: &BitVec| s1.iter().zip(s2.iter()).filter(|(v1, v2)| v1 != v2).count();
+
+        let distance_close = one_hot_distance(&one_hot_base, &one_hot_close);
+        let distance_far = one_hot_distance(&one_hot_base, &one_hot_far);
+        assert!(
+            distance_close < distance_far,
+            "{distance_close}:{distance_far}"
+        );
     }
 
     #[test]
@@ -329,7 +355,7 @@ mod tests {
     }
 
     #[test]
-    fn minhash_of_diffs() {
+    fn text_signature_similarity() {
         let signatures = preprocess_texts(&[TEXT, TEXT_CLOSE, TEXT_FAR], 3, 256);
 
         let sig_distance = |s1: &Signature, s2: &Signature| {
