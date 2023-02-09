@@ -31,12 +31,11 @@ pub fn shingle_diff(diff: &Diff, arity: usize) -> ShingledText {
     ShingledText::new(diff.diff_text(), arity)
 }
 
-pub fn preprocess_commits(
-    commits: &[Commit],
-    arity: usize,
-    signature_size: usize,
-) -> Vec<Signature> {
-    profile_fn!(preprocess_commits);
+pub fn shingle_text(diff: &str, arity: usize) -> ShingledText {
+    ShingledText::new(diff, arity)
+}
+
+fn shingle_commits_multi_threaded(commits: &[Commit], arity: usize) -> Vec<ShingledText> {
     let n_workers = 24;
     let pool = ThreadPool::new(n_workers);
 
@@ -51,13 +50,46 @@ pub fn preprocess_commits(
     });
     drop(sender);
 
-    let shingled_diffs: Vec<ShingledText> = receiver.iter().collect();
+    receiver.iter().collect()
+}
 
-    let vocabulary = Arc::new(Vocabulary::build(&shingled_diffs));
+fn shingle_texts(texts: &[&str], arity: usize) -> Vec<ShingledText> {
+    texts
+        .iter()
+        .map(|text| shingle_text(&text, arity))
+        .collect()
+}
+
+pub fn preprocess_commits(
+    commits: &[Commit],
+    arity: usize,
+    signature_size: usize,
+) -> Vec<Signature> {
+    profile_fn!(preprocess_commits);
+    let shingled_commits = shingle_commits_multi_threaded(commits, arity);
+
+    shingles_into_signatures_multi_threaded(shingled_commits, signature_size)
+}
+
+pub fn preprocess_texts(texts: &[&str], arity: usize, signature_size: usize) -> Vec<Signature> {
+    profile_fn!(preprocess_commits);
+    let shingled_commits = shingle_texts(texts, arity);
+
+    shingles_into_signatures_multi_threaded(shingled_commits, signature_size)
+}
+
+fn shingles_into_signatures_multi_threaded(
+    shingled_texts: Vec<ShingledText>,
+    signature_size: usize,
+) -> Vec<Signature> {
+    let n_workers = 24;
+    let pool = ThreadPool::new(n_workers);
+
+    let vocabulary = Arc::new(Vocabulary::build(&shingled_texts));
     let minhash = Arc::new(MinHash::new(signature_size, vocabulary.len()));
 
     let (sender, receiver) = channel();
-    shingled_diffs.into_iter().for_each(|sd| {
+    shingled_texts.into_iter().for_each(|sd| {
         let sender = sender.clone();
         let vocabulary = Arc::clone(&vocabulary);
         let minhash = Arc::clone(&minhash);
@@ -213,10 +245,13 @@ impl MinHash {
 #[cfg(test)]
 mod tests {
     use crate::git::IdeaPatch;
-    use crate::search::ann::preprocessing::{shingle_diff, MinHash, ShingledText, Vocabulary};
+    use crate::search::ann::preprocessing::{
+        preprocess_commits, preprocess_texts, shingle_diff, MinHash, ShingledText, Signature,
+        Vocabulary,
+    };
     use crate::Diff;
     use bit_vec::BitVec;
-    use git2::Signature;
+    use num_traits::abs;
 
     #[test]
     fn simple_shingle_arity_3() {
@@ -293,6 +328,25 @@ mod tests {
         assert_ne!(signature_a, signature_b);
     }
 
+    #[test]
+    fn minhash_of_diffs() {
+        let signatures = preprocess_texts(&[TEXT, TEXT_CLOSE, TEXT_FAR], 3, 256);
+
+        let sig_distance = |s1: &Signature, s2: &Signature| {
+            s1.iter()
+                .zip(s2.iter())
+                .map(|(v1, v2)| u32::abs_diff(*v1, *v2))
+                .sum::<u32>()
+        };
+
+        let distance_close = sig_distance(&signatures[0], &signatures[1]);
+        let distance_far = sig_distance(&signatures[0], &signatures[2]);
+        assert!(
+            distance_close < distance_far,
+            "{distance_close}:{distance_far}"
+        );
+    }
+
     const DIFF: &str = r#"
 Subject: [PATCH] feat: removed functions
 ---
@@ -312,6 +366,56 @@ diff --git a/src/main.rs b/src/main.rs
 -fn foo() {
 -    println!("foo!");
 -}
+"#;
+
+    const TEXT: &str = r#"
+@@ -15,18 +15,3 @@
+         println!("So much!");
+ }
+-fn foo() {
+-    println!("bar!");
+-}
+     }
+ }
+-fn foo() {
+-    println!("bar!");
+-}
+"#;
+
+    const TEXT_CLOSE: &str = r#"
+@@ -15,18 +15,3 @@
+         println!("So much!");
+     }
+ }
+-fn foo() {
+-    println!("bar!");
+-}
+"#;
+
+    const TEXT_FAR: &str = r#"
+@@ -1,8 +1,12 @@
+ mod dev;
+ mod error;
++#[macro_use]
++extern crate log;
+ 
+ fn main() {
+-    println!("Hello, world!");
++    env_logger::init();
++
++    info!("starting up");
+ 
+     let mut x = 0;
+ 
+@@ -12,6 +16,6 @@
+     }
+ 
+     if x > 7 {
+-        println!("So much!");
++        info!("Goodbye!");
+     }
+ }
+ 
 "#;
 
     const EXPECTED_3_SHINGLE: &str = r#"--- a/src/main.rs+++ b/src/main.rs@@ -15,18 +15,3 @@
