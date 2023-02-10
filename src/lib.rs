@@ -62,7 +62,7 @@ pub fn search_with_multiple(
         repo_location,
         methods.len()
     );
-    let commits = match git::clone_or_load(repo_location).unwrap() {
+    let mut commits = match git::clone_or_load(repo_location).unwrap() {
         LoadedRepository::LocalRepo { repository, .. } => {
             collect_commits(&repository, BranchType::Local)
         }
@@ -70,6 +70,11 @@ pub fn search_with_multiple(
             collect_commits(&repository, BranchType::Remote)
         }
     };
+    // Some commits have empty textual diffs (e.g., only changes to file modifiers)
+    // We cannot consider these as cherry-picks, because no text == no information
+    commits.retain(|commit| !commit.diff().diff_text().is_empty() && !commit.diff().hunks.is_empty());
+    // Reassign to remove mutability
+    let commits = commits;
     {
         profile_section!(map_results);
         let results = methods
