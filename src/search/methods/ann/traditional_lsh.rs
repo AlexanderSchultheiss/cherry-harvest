@@ -41,18 +41,18 @@ impl TraditionalLSH {
         arity: usize,
         signature_size: usize,
         n_worker_threads: usize,
-        n_bands: usize,
+        band_size: usize,
         threshold: f64,
     ) -> Self {
         assert_eq!(
-            signature_size % n_bands,
+            signature_size % band_size,
             0,
-            "a signature of length {signature_size} cannot be divided into {n_bands} bands"
+            "a signature of length {signature_size} cannot be divided into bands of length {band_size}"
         );
         Self {
             arity,
             signature_size,
-            n_bands,
+            n_bands: signature_size / band_size,
             n_worker_threads,
             threshold,
         }
@@ -63,7 +63,7 @@ impl TraditionalLSH {
         signatures: &'sigs [Signature],
     ) -> Vec<HashMap<Band<'sigs>, HashSet<ID>>> {
         profile_method!(build_band_maps);
-        let mut band_maps: Vec<HashMap<Band, HashSet<ID>>> = Vec::with_capacity(self.n_bands);
+        let mut band_maps: Vec<HashMap<Band, HashSet<ID>>> = vec![HashMap::default(); self.n_bands];
 
         // Build the band maps
         signatures
@@ -77,8 +77,9 @@ impl TraditionalLSH {
                     .for_each(|(band, map)| {
                         let entry = map.entry(band).or_insert(HashSet::new());
                         entry.insert(commit_index);
-                    })
+                    });
             });
+        debug!("build {} of {} band maps", band_maps.len(), self.n_bands);
         band_maps
     }
 
@@ -88,6 +89,7 @@ impl TraditionalLSH {
     ) -> HashSet<IdPair> {
         profile_method!(collect_candidates);
         let mut id_pairs = HashSet::new();
+        debug!("collecting candidates");
         band_maps
             .iter_mut()
             .flat_map(|map| {
@@ -140,7 +142,11 @@ impl SearchMethod for TraditionalLSH {
             self.signature_size,
             self.n_worker_threads,
         );
-        debug!("created signatures for all commits");
+        debug!(
+            "created {} signatures for {} commits",
+            signatures.len(),
+            commits.len()
+        );
 
         let band_maps = self.build_band_maps(&signatures);
         debug!("banded all signatures");

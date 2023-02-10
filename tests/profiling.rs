@@ -126,7 +126,7 @@ fn traditional_lsh_similarity_search() {
     let start = init();
 
     let call = || {
-        let search_method = cherry_harvest::TraditionalLSH::new(3, 1000, 24, 10, 0.8);
+        let search_method = cherry_harvest::TraditionalLSH::new(3, 2048, 24, 2, 0.7);
         let _ = cherry_harvest::search_with(&repo_location(), search_method);
     };
 
