@@ -38,3 +38,7 @@ harness = false
 [[bench]]
 name = "ann_preprocessing"
 harness = false
+
+[[bench]]
+name = "traditional_lsh"
+harness = false

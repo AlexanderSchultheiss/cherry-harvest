@@ -3,7 +3,6 @@ use crate::error::ErrorKind::ANNPreprocessing;
 use crate::{Commit, Diff};
 use bit_vec::BitVec;
 use firestorm::{profile_fn, profile_method};
-use num_traits::cast;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::{HashMap, HashSet};
@@ -57,10 +56,7 @@ fn shingle_commits_multi_threaded(
 }
 
 fn shingle_texts(texts: &[&str], arity: usize) -> Vec<ShingledText> {
-    texts
-        .iter()
-        .map(|text| shingle_text(&text, arity))
-        .collect()
+    texts.iter().map(|text| shingle_text(text, arity)).collect()
 }
 
 pub fn preprocess_commits(
@@ -265,13 +261,11 @@ impl MinHash {
 #[cfg(test)]
 mod tests {
     use crate::git::IdeaPatch;
-    use crate::search::ann::preprocessing::{
-        preprocess_commits, preprocess_texts, shingle_diff, MinHash, ShingledText, Signature,
-        Vocabulary,
+    use crate::search::methods::ann::preprocessing::{
+        preprocess_texts, shingle_diff, MinHash, ShingledText, Signature, Vocabulary,
     };
     use crate::Diff;
     use bit_vec::BitVec;
-    use num_traits::abs;
 
     #[test]
     fn simple_shingle_arity_3() {

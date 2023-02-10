@@ -19,6 +19,7 @@ pub use search::MessageScan;
 pub use search::SearchMethod;
 pub use search::SearchResult;
 pub use search::SimilarityDiffMatch;
+pub use search::TraditionalLSH;
 
 // For profiling with flame graphs to find bottlenecks
 pub(crate) use firestorm::{profile_fn, profile_method, profile_section};

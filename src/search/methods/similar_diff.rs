@@ -5,9 +5,7 @@ use crate::{SearchMethod, SearchResult};
 use firestorm::{profile_method, profile_section};
 use hora::core::ann_index::ANNIndex;
 use log::{debug, info};
-use ngrammatic::{Ngram, NgramBuilder, Pad};
-use std::cmp::max;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::iter::zip;
 use std::time::Instant;
 
@@ -226,7 +224,7 @@ pub struct HNSWSearch();
 
 pub const NAME_HNSW: &str = "HNSW";
 
-use crate::search::ann::preprocessing::preprocess_commits;
+use crate::search::methods::ann::preprocessing::preprocess_commits;
 use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
 use hnsw_rs::dist::DistL2;
 use hnsw_rs::hnsw::{Hnsw, Neighbour};

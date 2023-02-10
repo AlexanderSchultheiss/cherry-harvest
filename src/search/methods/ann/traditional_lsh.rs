@@ -1,14 +1,10 @@
-use crate::search::ann::preprocessing::{preprocess_commits, Signature};
+use crate::search::methods::ann::preprocessing::{preprocess_commits, Signature};
 use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
 use crate::{CherryAndTarget, Commit, SearchMethod, SearchResult};
 use firestorm::profile_method;
-use std::borrow::Borrow;
+use log::{debug, info};
 use std::collections::{HashMap, HashSet};
-use std::iter::zip;
-use std::process::id;
-use std::sync::mpsc::channel;
-use std::sync::Arc;
-use threadpool::ThreadPool;
+use std::time::Instant;
 
 pub type Band<'a> = &'a [u32];
 
@@ -29,31 +25,10 @@ pub fn split_signature(signature: &Signature, n_splits: usize) -> Vec<Band> {
     bands
 }
 
-pub fn split_signature_async<'a>(signature: Arc<Signature>, n_splits: usize) -> Vec<Band<'a>> {
-    assert_eq!(
-        signature.len() % n_splits,
-        0,
-        "cannot divide a signature of length {} by {n_splits}",
-        signature.len()
-    );
-
-    let split_size = signature.len() / n_splits;
-
-    let mut bands: Vec<Band> = Vec::with_capacity(n_splits);
-    for band in signature.chunks(split_size) {
-        bands.push(band);
-    }
-    bands
-}
-
-fn candidate_check(bands_a: &Vec<Band>, bands_b: &Vec<Band>) -> bool {
-    zip(bands_a, bands_b).any(|(band_a, band_b)| band_a == band_b)
-}
-
 type ID = usize;
 
 #[derive(Debug)]
-pub struct LSH {
+pub struct TraditionalLSH {
     arity: usize,
     signature_size: usize,
     n_bands: usize,
@@ -61,7 +36,7 @@ pub struct LSH {
     threshold: f64,
 }
 
-impl LSH {
+impl TraditionalLSH {
     pub fn new(
         arity: usize,
         signature_size: usize,
@@ -83,29 +58,17 @@ impl LSH {
         }
     }
 
-    fn build_band_maps(&self, signatures: Vec<Signature>) -> Vec<HashMap<Band, HashSet<ID>>> {
+    fn build_band_maps<'sigs>(
+        &self,
+        signatures: &'sigs [Signature],
+    ) -> Vec<HashMap<Band<'sigs>, HashSet<ID>>> {
         profile_method!(build_band_maps);
         let mut band_maps: Vec<HashMap<Band, HashSet<ID>>> = Vec::with_capacity(self.n_bands);
 
-        let signatures: Vec<Arc<Signature>> = signatures.into_iter().map(|s| Arc::new(s)).collect();
-
-        let pool = ThreadPool::new(self.n_worker_threads);
-        let (sender, receiver) = channel();
-
-        for signature in signatures {
-            let sender_clone = sender.clone();
-            let sig_clone = Arc::clone(&signature);
-            let n_bands = self.n_bands;
-            pool.execute(move || {
-                let bands = split_signature_async(sig_clone, n_bands);
-                sender_clone.send(bands).unwrap()
-            })
-        }
-        drop(sender);
-
         // Build the band maps
-        receiver
+        signatures
             .iter()
+            .map(|signature| split_signature(signature, self.n_bands))
             .enumerate()
             .for_each(|(commit_index, bands)| {
                 bands
@@ -166,8 +129,10 @@ impl LSH {
     }
 }
 
-impl SearchMethod for LSH {
+impl SearchMethod for TraditionalLSH {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        let start = Instant::now();
+        info!("initialized traditional LSH approach");
         profile_method!(search_lsh);
         let signatures = preprocess_commits(
             commits,
@@ -175,15 +140,19 @@ impl SearchMethod for LSH {
             self.signature_size,
             self.n_worker_threads,
         );
+        debug!("created signatures for all commits");
 
-        let band_maps = self.build_band_maps(signatures);
+        let band_maps = self.build_band_maps(&signatures);
+        debug!("banded all signatures");
 
         // Search for pairs
-        let estimated_candidates_per_commit = 10;
-        let mut id_pairs = self.collect_candidates(band_maps);
+        let id_pairs = self.collect_candidates(band_maps);
+        debug!("collected {} candidate pairs", id_pairs.len());
 
         // Final similarity check
-        self.build_results(id_pairs, commits)
+        let results = self.build_results(id_pairs, commits);
+        debug!("found {} results in {:?}", results.len(), start.elapsed());
+        results
     }
 
     fn name(&self) -> &'static str {
@@ -205,7 +174,8 @@ impl IdPair {
 
 #[cfg(test)]
 mod tests {
-    use crate::search::ann::traditional_lsh::{candidate_check, split_signature};
+    use crate::search::methods::ann::traditional_lsh::{split_signature, Band};
+    use std::iter::zip;
 
     #[test]
     fn simple_signature_split() {
@@ -224,8 +194,7 @@ mod tests {
     #[should_panic]
     fn invalid_signature_split() {
         let signature = vec![1, 3, 4, 8, 23];
-
-        let splits = split_signature(&signature, 3);
+        split_signature(&signature, 3);
     }
 
     #[test]
@@ -246,7 +215,7 @@ mod tests {
     fn zero_split() {
         let signature = vec![1, 3, 4, 8, 23];
 
-        let splits = split_signature(&signature, 0);
+        split_signature(&signature, 0);
     }
 
     #[test]
@@ -271,5 +240,9 @@ mod tests {
         let banded_b = split_signature(&sig_b, n_splits);
 
         assert!(!candidate_check(&banded_a, &banded_b));
+    }
+
+    fn candidate_check(bands_a: &Vec<Band>, bands_b: &Vec<Band>) -> bool {
+        zip(bands_a, bands_b).any(|(band_a, band_b)| band_a == band_b)
     }
 }
