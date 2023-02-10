@@ -89,7 +89,9 @@ fn hnsw_finds_exact() {
 #[ignore]
 fn traditional_lsh_finds_exact() {
     let start = init();
+    let print = true;
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
+    // let repo = cherry_harvest::RepoLocation::Server("https://github.com/VariantSync/DiffDetective");
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
     let lsh_search = Box::new(TraditionalLSH::new(8, 100, 24, 5, 0.7)) as Box<dyn SearchMethod>;
     let methods = vec![exact_diff, lsh_search];
@@ -107,16 +109,18 @@ fn traditional_lsh_finds_exact() {
         _ => panic!("unexpected search method among results."),
     });
 
-    println!("EXACT:");
-    for r in &exact_results {
-        println!("{} : {}", r.cherry(), r.target())
-    }
-    println!("+++++++++++++");
-    println!("+++++++++++++");
-    println!("+++++++++++++");
-    println!("LSH:");
-    for r in &lsh_results {
-        println!("{} : {}", r.cherry(), r.target())
+    if print {
+        println!("EXACT:");
+        for r in &exact_results {
+            println!("{} : {}", r.cherry(), r.target())
+        }
+        println!("+++++++++++++");
+        println!("+++++++++++++");
+        println!("+++++++++++++");
+        println!("LSH:");
+        for r in &lsh_results {
+            println!("{} : {}", r.cherry(), r.target())
+        }
     }
 
     lsh_results.retain(|e| exact_results.contains(e));

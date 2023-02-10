@@ -119,7 +119,9 @@ impl TraditionalLSH {
         for IdPair(id_a, id_b) in id_pairs.into_iter() {
             let commit_a = &commits[id_a];
             let commit_b = &commits[id_b];
-
+            if commit_a.id() == commit_b.id() {
+                continue;
+            }
             if similarity_comparator.change_similarity(commit_a, commit_b) > self.threshold {
                 results.insert(SearchResult::new(
                     self.name().to_string(),
