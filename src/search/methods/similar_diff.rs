@@ -25,7 +25,7 @@ impl SearchMethod for SimilarityDiffMatch {
         let start = Instant::now();
 
         let signature_length = 100;
-        let commit_signatures = preprocess_commits(commits, 3, signature_length);
+        let commit_signatures = preprocess_commits(commits, 3, signature_length, 24);
         let commit_signatures: Vec<Vec<f32>> = commit_signatures
             .into_iter()
             .map(|s| s.into_iter().map(|v| v as f32).collect())
@@ -236,7 +236,7 @@ impl SearchMethod for HNSWSearch {
         profile_method!(search);
         info!("searching for cherry-picks with an HNSW");
         // convert_commits
-        let commits_converted: Vec<Vec<u32>> = preprocess_commits(commits, 3, 100);
+        let commits_converted: Vec<Vec<u32>> = preprocess_commits(commits, 3, 100, 24);
         debug!("converted all commits to simple data vectors");
 
         //  reading data

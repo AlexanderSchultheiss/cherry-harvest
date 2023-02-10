@@ -35,8 +35,11 @@ pub fn shingle_text(diff: &str, arity: usize) -> ShingledText {
     ShingledText::new(diff, arity)
 }
 
-fn shingle_commits_multi_threaded(commits: &[Commit], arity: usize) -> Vec<ShingledText> {
-    let n_workers = 24;
+fn shingle_commits_multi_threaded(
+    commits: &[Commit],
+    arity: usize,
+    n_workers: usize,
+) -> Vec<ShingledText> {
     let pool = ThreadPool::new(n_workers);
 
     let (sender, receiver) = channel();
@@ -64,25 +67,31 @@ pub fn preprocess_commits(
     commits: &[Commit],
     arity: usize,
     signature_size: usize,
+    n_worker_threads: usize,
 ) -> Vec<Signature> {
     profile_fn!(preprocess_commits);
-    let shingled_commits = shingle_commits_multi_threaded(commits, arity);
+    let shingled_commits = shingle_commits_multi_threaded(commits, arity, n_worker_threads);
 
-    shingles_into_signatures_multi_threaded(shingled_commits, signature_size)
+    shingles_into_signatures_multi_threaded(shingled_commits, signature_size, n_worker_threads)
 }
 
-pub fn preprocess_texts(texts: &[&str], arity: usize, signature_size: usize) -> Vec<Signature> {
+pub fn preprocess_texts(
+    texts: &[&str],
+    arity: usize,
+    signature_size: usize,
+    n_worker_threads: usize,
+) -> Vec<Signature> {
     profile_fn!(preprocess_commits);
     let shingled_commits = shingle_texts(texts, arity);
 
-    shingles_into_signatures_multi_threaded(shingled_commits, signature_size)
+    shingles_into_signatures_multi_threaded(shingled_commits, signature_size, n_worker_threads)
 }
 
 fn shingles_into_signatures_multi_threaded(
     shingled_texts: Vec<ShingledText>,
     signature_size: usize,
+    n_workers: usize,
 ) -> Vec<Signature> {
-    let n_workers = 24;
     let pool = ThreadPool::new(n_workers);
 
     let vocabulary = Arc::new(Vocabulary::build(&shingled_texts));
@@ -367,7 +376,7 @@ mod tests {
 
     #[test]
     fn text_signature_similarity() {
-        let signatures = preprocess_texts(&[TEXT, TEXT_CLOSE, TEXT_FAR], 3, 8);
+        let signatures = preprocess_texts(&[TEXT, TEXT_CLOSE, TEXT_FAR], 3, 8, 24);
 
         let sig_distance = |s1: &Signature, s2: &Signature| {
             s1.iter().zip(s2.iter()).filter(|(v1, v2)| v1 != v2).count()
