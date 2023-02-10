@@ -214,7 +214,6 @@ impl MinHash {
         let mut hash_vectors = Vec::with_capacity(signature_size);
         // We require one value for each word in the vocabulary, for which we want to apply MinHash
         let mut initial_vector: Vec<usize> = (0..data_size).collect();
-        assert_eq!(initial_vector.len(), data_size);
         let mut rng = thread_rng();
         for _ in 0..signature_size {
             initial_vector.shuffle(&mut rng);
@@ -238,7 +237,6 @@ impl MinHash {
         let mut signature: Signature = Vec::with_capacity(self.signature_size);
 
         for vector in &self.hash_vectors {
-            assert_eq!(vector.len(), self.data_size);
             // Get the first value that maps to a 'hot' index
             // value and index are switched here on purpose, because MinHashing expects that the values
             // are incremented from lowest to highest. Thus, we assume that our shuffled vector maps
@@ -250,14 +248,6 @@ impl MinHash {
                 }
             }
         }
-
-        assert_eq!(
-            signature.len(),
-            self.signature_size,
-            "signature size does not match; one-hot: {}; hash_vectors: {}",
-            one_hot.len(),
-            self.hash_vectors.len()
-        );
 
         signature
     }
