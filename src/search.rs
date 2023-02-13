@@ -8,7 +8,6 @@ mod util;
 pub use methods::exact_diff::ExactDiffMatch;
 pub use methods::message_scan::MessageScan;
 pub use methods::similar_diff::ANNMatch;
-pub use methods::similar_diff::BruteForceMatch;
 pub use methods::similar_diff::HNSWSearch;
 pub use methods::similar_diff::SimilarityDiffMatch;
 pub use methods::ann::traditional_lsh::TraditionalLSH;

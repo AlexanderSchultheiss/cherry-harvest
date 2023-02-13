@@ -149,32 +149,7 @@ impl SearchMethod for SimilarityDiffMatch {
     }
 */
 
-use crate::search::util::brute_force::brute_force_search;
 use crate::CherryAndTarget;
-
-pub const NAME_BRUTE_FORCE: &str = "BruteForce";
-
-/// SimilarityDiffMatch
-#[derive(Default)]
-pub struct BruteForceMatch();
-
-impl SearchMethod for BruteForceMatch {
-    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
-        profile_method!(search);
-        // TODO: threshold as parameter
-        let candidates = brute_force_search(commits, 0.5);
-        candidates
-            .into_iter()
-            .map(|cherry_and_target| {
-                SearchResult::new(NAME_BRUTE_FORCE.to_string(), cherry_and_target)
-            })
-            .collect()
-    }
-
-    fn name(&self) -> &'static str {
-        NAME_BRUTE_FORCE
-    }
-}
 
 use crate::search::util::ann::Index;
 
