@@ -199,7 +199,7 @@ pub struct HNSWSearch();
 
 pub const NAME_HNSW: &str = "HNSW";
 
-use crate::search::methods::ann::preprocessing::preprocess_commits;
+use crate::search::methods::lsh::preprocessing::preprocess_commits;
 use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
 use hnsw_rs::dist::DistL2;
 use hnsw_rs::hnsw::{Hnsw, Neighbour};

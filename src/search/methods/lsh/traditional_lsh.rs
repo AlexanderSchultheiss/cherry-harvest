@@ -1,4 +1,4 @@
-use crate::search::methods::ann::preprocessing::{preprocess_commits, Signature};
+use crate::search::methods::lsh::preprocessing::{preprocess_commits, Signature};
 use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
 use crate::{CherryAndTarget, Commit, SearchMethod, SearchResult};
 use firestorm::profile_method;
@@ -182,7 +182,7 @@ impl IdPair {
 
 #[cfg(test)]
 mod tests {
-    use crate::search::methods::ann::traditional_lsh::{split_signature, Band};
+    use crate::search::methods::lsh::traditional_lsh::{split_signature, Band};
     use std::iter::zip;
 
     #[test]

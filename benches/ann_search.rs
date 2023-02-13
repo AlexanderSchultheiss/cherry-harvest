@@ -14,7 +14,7 @@ fn search_call() {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("ann", |b| b.iter(search_call));
+    c.bench_function("lsh", |b| b.iter(search_call));
 }
 
 criterion_group!(benches, criterion_benchmark);
