@@ -5,7 +5,6 @@ use bit_vec::BitVec;
 use firestorm::{profile_fn, profile_method};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::cmp::min;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 
