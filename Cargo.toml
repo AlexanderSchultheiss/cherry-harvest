@@ -28,3 +28,7 @@ harness = false
 [[bench]]
 name = "traditional_lsh"
 harness = false
+
+[[bench]]
+name = "similarity"
+harness = false

@@ -1,13 +1,14 @@
 mod compare;
 pub mod preprocessing;
 
-use crate::search::methods::lsh::compare::DiffSimilarity;
 use crate::search::methods::lsh::preprocessing::{preprocess_commits, Signature};
 use crate::{CherryAndTarget, Commit, SearchMethod, SearchResult};
 use firestorm::profile_method;
 use log::{debug, info};
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
+
+pub use compare::DiffSimilarity;
 
 pub type Band<'a> = &'a [u32];
 
