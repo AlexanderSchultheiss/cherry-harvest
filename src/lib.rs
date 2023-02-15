@@ -10,14 +10,11 @@ pub mod search;
 pub use git::Commit;
 pub use git::Diff;
 pub use git::RepoLocation;
-pub use search::ANNMatch;
 pub use search::CherryAndTarget;
 pub use search::ExactDiffMatch;
-pub use search::HNSWSearch;
 pub use search::MessageScan;
 pub use search::SearchMethod;
 pub use search::SearchResult;
-pub use search::SimilarityDiffMatch;
 pub use search::TraditionalLSH;
 
 // For profiling with flame graphs to find bottlenecks
@@ -57,7 +54,7 @@ pub fn search_with_multiple(
 ) -> Vec<SearchResult> {
     profile_fn!(search_with_multiple);
     info!(
-        "started searching for cherry-picks in {} with {} search(s)",
+        "started searching for cherry-picks in {} with {} search method(s)",
         repo_location,
         methods.len()
     );
@@ -71,7 +68,8 @@ pub fn search_with_multiple(
     };
     // Some commits have empty textual diffs (e.g., only changes to file modifiers)
     // We cannot consider these as cherry-picks, because no text == no information
-    commits.retain(|commit| !commit.diff().diff_text().is_empty() && !commit.diff().hunks.is_empty());
+    commits
+        .retain(|commit| !commit.diff().diff_text().is_empty() && !commit.diff().hunks.is_empty());
     // Reassign to remove mutability
     let commits = commits;
     {

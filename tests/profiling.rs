@@ -1,5 +1,5 @@
-use cherry_harvest::{BruteForceMatch, ExactDiffMatch, RepoLocation, SimilarityDiffMatch};
-use log::{debug, info, LevelFilter};
+use cherry_harvest::{ExactDiffMatch, RepoLocation};
+use log::{info, LevelFilter};
 use std::path::Path;
 use std::time::Instant;
 
@@ -47,74 +47,6 @@ fn exact_match() {
 
     if firestorm::enabled() {
         firestorm::bench("./flames/exact_match", call).unwrap();
-    }
-
-    info!("test finished in {:?}", start.elapsed())
-}
-
-#[test]
-#[ignore]
-fn hora_similarity_search() {
-    let start = init();
-
-    let call = || {
-        let search_method = SimilarityDiffMatch::default();
-        let results = cherry_harvest::search_with(&repo_location(), search_method);
-    };
-
-    if firestorm::enabled() {
-        firestorm::bench("./flames/hora_similarity", call).unwrap();
-    }
-
-    info!("test finished in {:?}", start.elapsed())
-}
-
-#[test]
-#[ignore]
-fn ann_similarity_search() {
-    let start = init();
-
-    let call = || {
-        let search_method = cherry_harvest::ANNMatch::default();
-        let _ = cherry_harvest::search_with(&repo_location(), search_method);
-    };
-
-    if firestorm::enabled() {
-        firestorm::bench("./flames/ann_similarity", call).unwrap();
-    }
-
-    info!("test finished in {:?}", start.elapsed())
-}
-
-#[test]
-#[ignore]
-fn hnsw_similarity_search() {
-    let start = init();
-
-    let call = || {
-        let search_method = cherry_harvest::HNSWSearch::default();
-        let _ = cherry_harvest::search_with(&repo_location(), search_method);
-    };
-
-    if firestorm::enabled() {
-        firestorm::bench("./flames/hnsw_similarity", call).unwrap();
-    }
-
-    info!("test finished in {:?}", start.elapsed())
-}
-
-#[test]
-#[ignore]
-fn brute_force_similarity_search() {
-    let start = init();
-
-    let call = || {
-        let search_method = BruteForceMatch::default();
-        let _ = cherry_harvest::search_with(&repo_location(), search_method);
-    };
-
-    if firestorm::enabled() {
-        firestorm::bench("./flames/brute_force_similarity", call).unwrap();
     }
 
     info!("test finished in {:?}", start.elapsed())

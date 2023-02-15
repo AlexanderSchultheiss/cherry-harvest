@@ -5,12 +5,9 @@ use bit_vec::BitVec;
 use firestorm::{profile_fn, profile_method};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use std::sync::mpsc::channel;
-use std::sync::Arc;
-use threadpool::ThreadPool;
 
 pub type Shingle<'a> = &'a str;
 
@@ -67,6 +64,34 @@ pub fn preprocess_commits(
     let shingled_commits = shingle_commits_multi_threaded(commits, arity, n_worker_threads);
 
     shingles_into_signatures_multi_threaded(shingled_commits, signature_size, n_worker_threads)
+}
+
+pub fn encode_commits_f64(
+    commits: &[Commit],
+    arity: usize,
+    n_worker_threads: usize,
+) -> Vec<Vec<f64>> {
+    profile_fn!(preprocess_commits);
+    let shingled_commits = shingle_commits_multi_threaded(commits, arity, n_worker_threads);
+    let vocabulary = Vocabulary::build(&shingled_commits);
+    shingled_commits
+        .iter()
+        .map(|s| vocabulary.encode_f64(s).unwrap())
+        .collect()
+}
+
+pub fn encode_commits_u32(
+    commits: &[Commit],
+    arity: usize,
+    n_worker_threads: usize,
+) -> Vec<Vec<u32>> {
+    profile_fn!(preprocess_commits);
+    let shingled_commits = shingle_commits_multi_threaded(commits, arity, n_worker_threads);
+    let vocabulary = Vocabulary::build(&shingled_commits);
+    shingled_commits
+        .iter()
+        .map(|s| vocabulary.encode_u32(s).unwrap())
+        .collect()
 }
 
 pub fn preprocess_texts(
@@ -223,6 +248,40 @@ impl<'text> Vocabulary<'text> {
         }
 
         Ok(one_hot)
+    }
+
+    /// Encode a given shingled text by mapping each shingle to a f64 according to the vocabulary
+    pub fn encode_f64(&self, shingled_text: &ShingledText) -> Result<Vec<f64>, Error> {
+        let mut encoding = Vec::with_capacity(shingled_text.shingles.len());
+        let norm_factor = 1.0 / self.0.len() as f64;
+        for shingle in &shingled_text.shingles {
+            match self.0.get(shingle) {
+                None => {return Err(Error::new(
+                    ANNPreprocessing("Shingle in diff not part of vocabulary. Have you used it during vocabulary building?".to_string())))}
+                Some(index) => {
+                    let index = *index as f64;
+                    // For now, we try simple normalization to [0, 1]
+                    let val = index * norm_factor;
+                    encoding.push(val);
+                }
+            }
+        }
+        Ok(encoding)
+    }
+
+    /// Encode a given shingled text by mapping each shingle to an u32 according to the vocabulary
+    pub fn encode_u32(&self, shingled_text: &ShingledText) -> Result<Vec<u32>, Error> {
+        let mut encoding = Vec::with_capacity(shingled_text.shingles.len());
+        for shingle in &shingled_text.shingles {
+            match self.0.get(shingle) {
+                None => {return Err(Error::new(
+                    ANNPreprocessing("Shingle in diff not part of vocabulary. Have you used it during vocabulary building?".to_string())))}
+                Some(index) => {
+                    encoding.push(*index as u32);
+                }
+            }
+        }
+        Ok(encoding)
     }
 
     pub fn len(&self) -> usize {

@@ -3,14 +3,10 @@ use firestorm::profile_fn;
 use std::collections::HashSet;
 
 pub mod methods;
-mod util;
 
 pub use methods::exact_diff::ExactDiffMatch;
+pub use methods::lsh::TraditionalLSH;
 pub use methods::message_scan::MessageScan;
-pub use methods::similar_diff::ANNMatch;
-pub use methods::similar_diff::HNSWSearch;
-pub use methods::similar_diff::SimilarityDiffMatch;
-pub use methods::lsh::traditional_lsh::TraditionalLSH;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct CherryAndTarget {
@@ -163,4 +159,35 @@ pub trait SearchMethod {
     /// The search's name that is to be stored with each SearchResult
     /// TODO: Find a better approach to handling the association of results and search methods
     fn name(&self) -> &'static str;
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{CherryAndTarget, SearchResult};
+    use std::collections::HashSet;
+
+    #[test]
+    fn same_result_same_hash() {
+        let result_a = SearchResult {
+            search_method: "TEST".to_string(),
+            cherry_and_target: CherryAndTarget {
+                cherry: "aaa".to_string(),
+                target: "bbb".to_string(),
+            },
+        };
+
+        let result_b = SearchResult {
+            search_method: "TEST".to_string(),
+            cherry_and_target: CherryAndTarget {
+                cherry: "aaa".to_string(),
+                target: "bbb".to_string(),
+            },
+        };
+
+        let mut set = HashSet::new();
+        set.insert(result_a);
+        set.insert(result_b);
+
+        assert_eq!(set.len(), 1);
+    }
 }

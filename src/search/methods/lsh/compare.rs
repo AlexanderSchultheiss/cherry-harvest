@@ -5,11 +5,11 @@ use std::collections::{HashMap, HashSet};
 
 pub type Similarity = f64;
 
-pub struct ChangeSimilarityComparator<'a> {
+pub struct DiffSimilarity<'a> {
     change_map: HashMap<&'a str, HashSet<String>>,
 }
 
-impl<'a> ChangeSimilarityComparator<'a> {
+impl<'a> DiffSimilarity<'a> {
     pub fn new() -> Self {
         Self {
             change_map: HashMap::new(),
@@ -34,14 +34,20 @@ impl<'a> ChangeSimilarityComparator<'a> {
             profile_section!(get_and_calculate);
             let changes_a = self.change_map.get(commit_a.id()).unwrap();
             let changes_b = self.change_map.get(commit_b.id()).unwrap();
+            let diff_lines_a: HashSet<&str> = commit_a.diff().diff_text().lines().collect();
+            let diff_lines_b: HashSet<&str> = commit_b.diff().diff_text().lines().collect();
 
             {
                 profile_section!(intersection_and_similarity);
-                let intersection_size = changes_a.intersection(changes_b).count() as f64;
-                let changes_a_ratio = intersection_size / changes_a.len() as f64;
-                let changes_b_ratio = intersection_size / changes_b.len() as f64;
+                let intersection_size_changes = changes_a.intersection(changes_b).count() as f64;
+                let union_size_changes = changes_a.union(changes_b).count() as f64;
+                let intersection_size_diff =
+                    diff_lines_a.intersection(&diff_lines_b).count() as f64;
+                let union_size_diff = diff_lines_a.union(&diff_lines_b).count() as f64;
 
-                f64::max(changes_a_ratio, changes_b_ratio)
+                let jaccard_changes = intersection_size_changes / union_size_changes;
+                let jaccard_diff = intersection_size_diff / union_size_diff;
+                (jaccard_changes + jaccard_diff) / 2.0
             }
         }
     }
@@ -77,7 +83,7 @@ impl<'a> ChangeSimilarityComparator<'a> {
 #[cfg(test)]
 mod tests {
     use crate::git::IdeaPatch;
-    use crate::search::methods::similar_diff::compare::ChangeSimilarityComparator;
+    use crate::search::methods::similar_diff::compare::DiffSimilarity;
     use crate::{Commit, Diff};
     use git2::Time;
     use log::{debug, LevelFilter};
@@ -170,7 +176,7 @@ mod tests {
     fn exact_diff_max_similar() {
         init();
         const TARGET_SIMILARITY: f64 = 0.99999;
-        let mut comparator = ChangeSimilarityComparator::new();
+        let mut comparator = DiffSimilarity::new();
         let cherry_a = cherry_a();
         let cherry_b = cherry_b();
         let pick_a = pick_a();
@@ -193,7 +199,7 @@ mod tests {
         let pick_a = pick_a();
         let cherry_b = cherry_b();
         let pick_b = pick_b();
-        let mut comparator = ChangeSimilarityComparator::new();
+        let mut comparator = DiffSimilarity::new();
 
         // assert high similarity
         assert!(comparator.change_similarity(&cherry_a, &pick_a) > TARGET_SIMILARITY);
@@ -214,7 +220,7 @@ mod tests {
     fn non_cherries_not_similar() {
         init();
         const TARGET_SIMILARITY: f64 = 0.5;
-        let mut comparator = ChangeSimilarityComparator::new();
+        let mut comparator = DiffSimilarity::new();
 
         let diffs = vec![cherry_a(), pick_b(), isolated_a(), isolated_b()];
 

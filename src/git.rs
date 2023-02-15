@@ -208,7 +208,7 @@ impl Diff {
                     .iter()
                     .map(|l| l.to_string())
                     .collect::<Vec<String>>()
-                    .join("\n")
+                    .join("")
             );
         }
         diff_text

@@ -1,6 +1,6 @@
 mod util;
 
-use cherry_harvest::{ANNMatch, ExactDiffMatch, MessageScan, RepoLocation, SimilarityDiffMatch};
+use cherry_harvest::{ExactDiffMatch, MessageScan, RepoLocation};
 use log::{info, LevelFilter};
 use util::ground_truth::GroundTruth;
 
@@ -57,56 +57,6 @@ fn diff_exact() {
         .iter()
         .map(|r| {
             assert_eq!(r.search_method(), "ExactDiffMatch");
-            r.commit_pair().as_vec()
-        })
-        .collect::<Vec<Vec<&String>>>();
-    for expected in expected_commits {
-        info!("checking {:#?}", expected);
-        assert!(result_ids.contains(&expected));
-    }
-}
-
-#[test]
-fn diff_similarity() {
-    let ground_truth = init();
-
-    let method = SimilarityDiffMatch::default();
-    let results = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
-    assert_eq!(results.len(), ground_truth.entries().len());
-    let expected_commits = ground_truth
-        .entries()
-        .iter()
-        .map(|entry| vec![&entry.source.0, &entry.target.0])
-        .collect::<Vec<Vec<&String>>>();
-    let result_ids = results
-        .iter()
-        .map(|r| {
-            assert_eq!(r.search_method(), "SimilarityDiffMatch");
-            r.commit_pair().as_vec()
-        })
-        .collect::<Vec<Vec<&String>>>();
-    for expected in expected_commits {
-        info!("checking {:#?}", expected);
-        assert!(result_ids.contains(&expected));
-    }
-}
-
-#[test]
-fn diff_ann() {
-    let ground_truth = init();
-
-    let method = ANNMatch::default();
-    let results = cherry_harvest::search_with(&RepoLocation::Server(CHERRIES_ONE), method);
-    assert_eq!(results.len(), ground_truth.entries().len());
-    let expected_commits = ground_truth
-        .entries()
-        .iter()
-        .map(|entry| vec![&entry.source.0, &entry.target.0])
-        .collect::<Vec<Vec<&String>>>();
-    let result_ids = results
-        .iter()
-        .map(|r| {
-            assert_eq!(r.search_method(), "SimilarityDiffMatch");
             r.commit_pair().as_vec()
         })
         .collect::<Vec<Vec<&String>>>();
