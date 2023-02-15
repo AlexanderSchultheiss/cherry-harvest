@@ -16,6 +16,16 @@ impl<'a> DiffSimilarity<'a> {
         }
     }
 
+    /// Calculate the mean Jaccard similarity for the changes and the full diff text for the two
+    /// given commits. Thereby, the metric accounts for the similarity of only the changes, but
+    /// also takes the similarity of context lines into account, which is important in the case
+    /// of very simple changes, such as insertions of empty lines.
+    ///
+    /// The leading and trailing whitespace of lines is ignored.
+    ///
+    /// Moreover, multiple occurrences of the same line are handled by concatenating a count of
+    /// how often this line has been observed.
+    /// TODO: Improve runtime by removing concatenation. Use a dedicated Struct with Hash impl.
     pub fn change_similarity(&mut self, commit_a: &'a Commit, commit_b: &'a Commit) -> Similarity {
         profile_method!(change_similarity);
         {
@@ -266,18 +276,18 @@ diff --git a/src/main.rs b/src/main.rs
 --- a/src/main.rs	(revision 4e39e242712568e6f9f5b6ff113839603b722683)
 +++ b/src/main.rs	(revision 018a1bde4fb5e987157a6e8f07a7d378d5f19484)
 @@ -1,8 +1,12 @@
- mod dev;
- mod error;
-+#[macro_use]
-+extern crate log;
- 
- fn main() {
--    println!("Hello, world!");
-+    env_logger::init();
-+
-+    info!("starting up");
- 
-     let mut x = 1;
+        mod dev;
+        mod error;
++       #[macro_use]
++       extern crate log;
+        
+        fn main() {
+-           println!("Hello, world!");
++           env_logger::init();
++       
++           info!("starting up");
+        
+            let mut x = 1;
 "#;
 
     const CHERRY_B: &str = r#"
