@@ -11,6 +11,11 @@ use std::time::Instant;
 
 pub type Band<'a> = &'a [u32];
 
+/// Split a given signature into n bands of size `(signature.len() / n_splits)`
+///
+/// # Panics
+/// This functions panics if the signature cannot be split into bands of equal size (i.e., if the
+/// length of the signature is not dividable by n_splits)
 pub fn split_signature(signature: &Signature, n_splits: usize) -> Vec<Band> {
     assert_eq!(
         signature.len() % n_splits,
@@ -30,6 +35,21 @@ pub fn split_signature(signature: &Signature, n_splits: usize) -> Vec<Band> {
 
 type ID = usize;
 
+/// Implementation of traditional locality-sensitive hashing. This approach tries to find
+/// commits that have highly similar diffs, but do not necessarily have to have the same diff.
+///
+/// This search method first converts commits into signature vectors of a given length.
+/// Afterwards, the signatures are banded (i.e., split into multiple sub-vectors of equal length)
+/// and the bands are hashed to individual hash maps.
+///
+/// The LHS approach can then identify match candidates by searching for hash conflicts among the
+/// bands of different signatures. If at least one conflict occurs, the affected signatures are
+/// considered match candidates.
+///
+/// This approach corresponds to an approximate nearest neighbor search without a strict number of
+/// neighbors being searched. By searching for possible match candidates, the number of total
+/// similarity comparisons can be reduced considerably. This makes it possible to consider larger
+/// quantities of commits.
 #[derive(Debug)]
 pub struct TraditionalLSH {
     arity: usize,
@@ -39,7 +59,34 @@ pub struct TraditionalLSH {
 }
 
 impl TraditionalLSH {
-    pub fn new(arity: usize, signature_size: usize, band_size: usize, threshold: f64) -> Self {
+    /// Initialize the traditional LHS approach with the given parameters:
+    /// * arity: Size of the sliding window used for the creation of the signature. This defines the
+    /// size of shingles created during the shingling of a given text. A higher value
+    /// will lead to more strict signatures which in turn will lead to less candidates being found.
+    /// A good value to try out is `8`.
+    ///
+    /// * signature_size: Number of values in each signature vector. A greater number of values
+    /// will improve the chance to find matching candidates, but will negatively impact the runtime.
+    /// A good value to try is `100`.
+    ///
+    /// * band_size: LHS splits each signatures into sub-vectors (aka. bands) of this size. Smaller bands
+    /// increase the chance of hash conflicts and thus lead to more candidates being found. However, this
+    /// also increases the runtime. The 'signature_size' must be dividable by `band_size`. A good
+    /// value to try is `5` for a signature size of `100`.
+    ///
+    /// * similarity_threshold: The similarity threshold must have a value in the interval `[0, 1]`.
+    /// It defines the lowest value of similarity a candidate pair must have in order to be considered
+    /// a real match. A good value to start is `0.75`.
+    ///
+    /// # Panics
+    /// This function panics if the signature size cannot be divided by the band size
+    /// (i.e. `signature_size % band_size != 0).
+    pub fn new(
+        arity: usize,
+        signature_size: usize,
+        band_size: usize,
+        similarity_threshold: f64,
+    ) -> Self {
         assert_eq!(
             signature_size % band_size,
             0,
@@ -49,10 +96,12 @@ impl TraditionalLSH {
             arity,
             signature_size,
             n_bands: signature_size / band_size,
-            threshold,
+            threshold: similarity_threshold,
         }
     }
 
+    /// Build the hash maps for the different bands. The maps are used to collect all signatures
+    /// that have a hash conflict for a specific band.
     fn build_band_maps<'sigs>(
         &self,
         signatures: &'sigs [Signature],
@@ -78,6 +127,7 @@ impl TraditionalLSH {
         band_maps
     }
 
+    /// Collect all match candidates from the band hash maps.
     fn collect_candidates(
         &self,
         mut band_maps: Vec<HashMap<Band, HashSet<ID>>>,
@@ -103,6 +153,7 @@ impl TraditionalLSH {
         id_pairs
     }
 
+    /// Collect the final matches by comparing the similarities of match candidates
     fn build_results(
         &self,
         id_pairs: HashSet<IdPair>,
@@ -158,6 +209,7 @@ impl SearchMethod for TraditionalLSH {
     }
 }
 
+/// Represent a pair of ids in which the ids are ordered ascending.
 #[derive(Eq, PartialEq, Hash)]
 struct IdPair(ID, ID);
 
