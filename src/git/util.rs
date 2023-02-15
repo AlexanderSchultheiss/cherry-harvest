@@ -67,6 +67,29 @@ fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
     })
 }
 
+/// Collect the commits of all local or all remote branches depending on the given BranchType
+pub fn collect_commits(repository: &G2Repository, branch_type: BranchType) -> HashSet<Commit> {
+    profile_fn!(collect_commits);
+    let branch_heads = branch_heads(repository, branch_type);
+    debug!(
+        "found {} heads of {:?} branches in repository.",
+        branch_heads.len(),
+        branch_type
+    );
+
+    let commits: HashSet<Commit> = branch_heads
+        .iter()
+        .flat_map(|h| history_for_commit(repository, h.id()))
+        .collect();
+    info!(
+        "found {} commits in {} {:?} branches",
+        commits.len(),
+        branch_heads.len(),
+        branch_type,
+    );
+    commits
+}
+
 /// Determines the diff of the given commit (i.e., the changes that were applied by this commit.
 ///
 /// # Errors
@@ -144,7 +167,7 @@ pub fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> Vec<Comm
             count += 1;
             if count % 10_000 == 0 {
                 info!(
-                    "processed {} unique commits for head {}...[still running]",
+                    "processed {} commits for head {}...[still running]",
                     processed_ids.len(),
                     commit_id
                 );

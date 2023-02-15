@@ -12,6 +12,7 @@ use temp_dir::TempDir;
 
 pub use util::branch_heads;
 pub use util::clone_or_load;
+pub use util::collect_commits;
 pub use util::commit_diff;
 pub use util::history_for_commit;
 
@@ -475,9 +476,13 @@ impl From<IdeaPatch> for Diff {
 #[derivative(PartialEq, Eq, Hash)]
 pub struct Commit {
     id: String,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     message: String,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     diff: Diff,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     author: String,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     committer: String,
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
     time: Time,

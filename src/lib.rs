@@ -1,6 +1,6 @@
-use crate::git::LoadedRepository;
-use git2::{BranchType, Repository};
-use log::{debug, info};
+pub use crate::git::collect_commits;
+use git2::BranchType;
+use log::info;
 use std::collections::HashMap;
 
 pub mod error;
@@ -18,6 +18,7 @@ pub use search::SearchResult;
 pub use search::TraditionalLSH;
 
 // For profiling with flame graphs to find bottlenecks
+use crate::git::LoadedRepository;
 pub(crate) use firestorm::{profile_fn, profile_section};
 
 /// Searches for cherry picks with all given search methods.
@@ -70,8 +71,8 @@ pub fn search_with_multiple(
     // We cannot consider these as cherry-picks, because no text == no information
     commits
         .retain(|commit| !commit.diff().diff_text().is_empty() && !commit.diff().hunks.is_empty());
-    // Reassign to remove mutability
-    let commits = commits;
+    // Reassign to remove mutability and to convert to vector
+    let commits = commits.into_iter().collect::<Vec<Commit>>();
     {
         profile_section!(map_results);
         let results = methods
@@ -129,27 +130,4 @@ pub fn search_with<T: SearchMethod + 'static>(
 ) -> Vec<SearchResult> {
     profile_fn!(search_with);
     search_with_multiple(repo_location, &vec![Box::new(method)])
-}
-
-/// Collect the commits of all local or all remote branches depending on the given BranchType
-pub fn collect_commits(repository: &Repository, branch_type: BranchType) -> Vec<Commit> {
-    profile_fn!(collect_commits);
-    let branch_heads = git::branch_heads(repository, branch_type);
-    debug!(
-        "found {} heads of {:?} branches in repository.",
-        branch_heads.len(),
-        branch_type
-    );
-
-    let commits: Vec<Commit> = branch_heads
-        .iter()
-        .flat_map(|h| git::history_for_commit(repository, h.id()))
-        .collect();
-    info!(
-        "found {} commits in {} {:?} branches",
-        commits.len(),
-        branch_heads.len(),
-        branch_type,
-    );
-    commits
 }
