@@ -10,11 +10,8 @@ use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use temp_dir::TempDir;
 
-pub use util::branch_heads;
 pub use util::clone_or_load;
 pub use util::collect_commits;
-pub use util::commit_diff;
-pub use util::history_for_commit;
 
 /// The location of a git repository. A repository can either be located locally in the file system or
 /// online on a server.

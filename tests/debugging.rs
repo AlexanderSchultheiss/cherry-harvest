@@ -19,7 +19,7 @@ fn init() -> Instant {
 #[ignore]
 fn traditional_lsh_finds_exact() {
     let start = init();
-    let print = true;
+    let print = false;
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     // let repo = cherry_harvest::RepoLocation::Server("https://github.com/VariantSync/DiffDetective");
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;

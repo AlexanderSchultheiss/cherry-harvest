@@ -77,7 +77,7 @@ pub fn collect_commits(repository: &G2Repository, branch_type: BranchType) -> Ha
         branch_type
     );
 
-    let commits: HashSet<Commit> = branch_heads
+    let commits: HashSet<HashableG2Commit> = branch_heads
         .iter()
         .flat_map(|h| history_for_commit(repository, h.id()))
         .collect();
@@ -87,7 +87,15 @@ pub fn collect_commits(repository: &G2Repository, branch_type: BranchType) -> Ha
         branch_heads.len(),
         branch_type,
     );
-    commits
+    info!("converting all commits to internal representation with a diff");
+    let mut converted_commits = HashSet::with_capacity(commits.len());
+    for (i, hashable_commit) in commits.into_iter().enumerate() {
+        if i % 5000 == 0 {
+            info!("converted {i} commits");
+        }
+        converted_commits.insert(convert_commit(repository, hashable_commit.commit));
+    }
+    converted_commits
 }
 
 /// Determines the diff of the given commit (i.e., the changes that were applied by this commit.
@@ -95,8 +103,8 @@ pub fn collect_commits(repository: &G2Repository, branch_type: BranchType) -> Ha
 /// # Errors
 /// Returns a GitDiff error, if git2 returns an error during diffing.
 ///
-/// // TODO: This requires way too much time! Make this a lazy, cached function
-pub fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff, Error> {
+/// // TODO: This requires way too much time!
+fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff, Error> {
     profile_fn!(commit_diff);
     repository
         .diff_tree_to_tree(
@@ -116,7 +124,7 @@ pub fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff,
 /// Collects the branch heads (i.e., most recent commits) of all local or remote branches.
 ///
 /// This functions explicitly filters the HEAD, in order to not consider the current HEAD branch twice.
-pub fn branch_heads(repository: &G2Repository, branch_type: BranchType) -> Vec<G2Commit> {
+fn branch_heads(repository: &G2Repository, branch_type: BranchType) -> Vec<G2Commit> {
     profile_fn!(branch_heads);
     repository
         .branches(Some(branch_type))
@@ -148,16 +156,16 @@ fn retrieve_regular_branch_heads(branch: Branch) -> Option<G2Commit> {
 ///
 /// If the repo has the commit history A->B->C->D, where A is the oldest commit,
 /// calling *history_for_commit(repo, C)* will return *vec![C, B, A]*.
-pub fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> Vec<Commit> {
+fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<HashableG2Commit> {
     profile_fn!(history_for_commit);
     let mut processed_ids = HashSet::new();
     debug!("started collecting the history of {}", commit_id);
-    let mut commits = vec![];
+    let mut commits = HashSet::<HashableG2Commit>::new();
     let start_commit = repository.find_commit(commit_id).unwrap();
     processed_ids.insert(start_commit.id());
 
     let mut parents = start_commit.parents().collect::<Vec<G2Commit>>();
-    commits.push(convert_commit(repository, start_commit));
+    commits.insert(HashableG2Commit::new(start_commit));
 
     let mut count: u64 = 0;
     while !parents.is_empty() {
@@ -177,7 +185,7 @@ pub fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> Vec<Comm
                 processed_ids.insert(parent.id());
                 // we only consider non-merge commits
                 if parent.parent_count() < 2 {
-                    commits.push(convert_commit(repository, parent));
+                    commits.insert(HashableG2Commit::new(parent));
                 }
             }
         }
@@ -202,6 +210,26 @@ fn convert_commit(repository: &G2Repository, commit: G2Commit) -> Commit {
         author: commit.author().to_string(),
         committer: commit.committer().to_string(),
         time: commit.time(),
+    }
+}
+
+use derivative::Derivative;
+
+/// All relevant data for a commit.
+#[derive(Debug, Clone, Derivative)]
+#[derivative(PartialEq, Eq, Hash)]
+struct HashableG2Commit<'a> {
+    commit_id: Oid,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    commit: G2Commit<'a>,
+}
+
+impl<'a> HashableG2Commit<'a> {
+    fn new(commit: G2Commit<'a>) -> HashableG2Commit<'a> {
+        Self {
+            commit_id: commit.id(),
+            commit,
+        }
     }
 }
 
