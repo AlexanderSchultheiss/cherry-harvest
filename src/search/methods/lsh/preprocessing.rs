@@ -5,6 +5,7 @@ use bit_vec::BitVec;
 use firestorm::{profile_fn, profile_method};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use std::cmp::min;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 
@@ -97,10 +98,11 @@ impl<'a> ShingledText<'a> {
         for (i, window_position) in char_indices.iter().enumerate() {
             // chars can take more than one index; thus, we have to index into the char_indices vector
             let index_of_end_index = i + arity;
-            if index_of_end_index >= char_indices.len() {
-                break;
-            }
-            let window_end = char_indices[index_of_end_index];
+            let window_end = if index_of_end_index >= char_indices.len() {
+                text.len()
+            } else {
+                char_indices[index_of_end_index]
+            };
 
             let shingle = &text[*window_position..window_end];
             shingles.push(shingle);
@@ -301,10 +303,10 @@ mod tests {
         let one_hot_second = vocabulary.one_hot(&shingled_texts[1]).unwrap();
 
         let count_first = one_hot_first.iter().filter(|v| *v).count();
-        assert_eq!(count_first, 4);
+        assert_eq!(count_first, 5);
         let count_second = one_hot_second.iter().filter(|v| *v).count();
-        assert_eq!(count_second, 4);
-        assert_eq!(vocabulary.len(), 6);
+        assert_eq!(count_second, 5);
+        assert_eq!(vocabulary.len(), 8);
 
         let ones_in_intersection = one_hot_first
             .into_iter()
