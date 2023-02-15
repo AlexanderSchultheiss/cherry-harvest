@@ -1,6 +1,5 @@
 use cherry_harvest::RepoLocation;
 use criterion::{criterion_group, criterion_main, Criterion};
-use log::{debug, info};
 use std::path::Path;
 
 const DATASET: &str = "/home/alex/data/cherries-one";
