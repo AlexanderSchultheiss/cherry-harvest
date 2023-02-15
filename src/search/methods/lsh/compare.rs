@@ -5,15 +5,27 @@ use std::collections::{HashMap, HashSet};
 
 pub type Similarity = f64;
 
+#[derive(Hash, Eq, PartialEq, Debug, Copy, Clone)]
+struct CountedLine<'a> {
+    content: &'a str,
+    count: usize,
+    line_type: LineType,
+}
+
+#[derive(Hash, Eq, PartialEq, Debug, Copy, Clone)]
+struct UncountedLine<'a> {
+    content: &'a str,
+    line_type: LineType,
+}
+
+#[derive(Default)]
 pub struct DiffSimilarity<'a> {
-    change_map: HashMap<&'a str, HashSet<String>>,
+    counted_lines: HashMap<&'a str, HashSet<CountedLine<'a>>>,
 }
 
 impl<'a> DiffSimilarity<'a> {
     pub fn new() -> Self {
-        Self {
-            change_map: HashMap::new(),
-        }
+        Self::default()
     }
 
     /// Calculate the mean Jaccard similarity for the changes and the full diff text for the two
@@ -30,30 +42,29 @@ impl<'a> DiffSimilarity<'a> {
         profile_method!(change_similarity);
         {
             profile_section!(check_and_insert);
-            if !self.change_map.contains_key(commit_a.id()) {
-                self.change_map
-                    .insert(commit_a.id(), Self::extract_changes(commit_a.diff()));
+            if !self.counted_lines.contains_key(commit_a.id()) {
+                self.counted_lines
+                    .insert(commit_a.id(), Self::counted_lines(commit_a.diff()));
             }
-            if !self.change_map.contains_key(commit_b.id()) {
-                self.change_map
-                    .insert(commit_b.id(), Self::extract_changes(commit_b.diff()));
+            if !self.counted_lines.contains_key(commit_b.id()) {
+                self.counted_lines
+                    .insert(commit_b.id(), Self::counted_lines(commit_b.diff()));
             }
         }
 
         {
             profile_section!(get_and_calculate);
-            let changes_a = self.change_map.get(commit_a.id()).unwrap();
-            let changes_b = self.change_map.get(commit_b.id()).unwrap();
-            let diff_lines_a: HashSet<&str> = commit_a.diff().diff_text().lines().collect();
-            let diff_lines_b: HashSet<&str> = commit_b.diff().diff_text().lines().collect();
+            let diff_lines_a = self.counted_lines.get(commit_a.id()).unwrap();
+            let diff_lines_b = self.counted_lines.get(commit_b.id()).unwrap();
+            let changes_a = Self::extract_changes(diff_lines_a);
+            let changes_b = Self::extract_changes(diff_lines_b);
 
             {
                 profile_section!(intersection_and_similarity);
-                let intersection_size_changes = changes_a.intersection(changes_b).count() as f64;
-                let union_size_changes = changes_a.union(changes_b).count() as f64;
-                let intersection_size_diff =
-                    diff_lines_a.intersection(&diff_lines_b).count() as f64;
-                let union_size_diff = diff_lines_a.union(&diff_lines_b).count() as f64;
+                let intersection_size_changes = changes_a.intersection(&changes_b).count() as f64;
+                let union_size_changes = changes_a.union(&changes_b).count() as f64;
+                let intersection_size_diff = diff_lines_a.intersection(diff_lines_b).count() as f64;
+                let union_size_diff = diff_lines_a.union(diff_lines_b).count() as f64;
 
                 let jaccard_changes = intersection_size_changes / union_size_changes;
                 let jaccard_diff = intersection_size_diff / union_size_diff;
@@ -62,31 +73,48 @@ impl<'a> DiffSimilarity<'a> {
         }
     }
 
-    fn extract_changes(diff: &Diff) -> HashSet<String> {
+    fn counted_lines(diff: &Diff) -> HashSet<CountedLine> {
         profile_fn!(extract_changes);
-        let mut change_count: HashMap<String, u32> = HashMap::new();
+        let mut change_count: HashMap<UncountedLine, usize> = HashMap::new();
 
         diff.hunks
             .iter()
             .flat_map(|h| h.body())
+            // Append the line type prefix to the line
+            .map(|l| UncountedLine {
+                content: l.content().trim(),
+                line_type: l.line_type(),
+            })
+            .map(|change_line| {
+                // We add a count to each change to distinguish between multiple occurrences of the same change
+                let count = change_count.entry(change_line).or_insert(0);
+                *count += 1;
+                CountedLine {
+                    content: change_line.content,
+                    count: *count,
+                    line_type: change_line.line_type,
+                }
+            })
+            .collect::<HashSet<CountedLine>>()
+    }
+
+    fn extract_changes<'b>(lines: &HashSet<CountedLine<'b>>) -> HashSet<CountedLine<'b>> {
+        let mut set = HashSet::new();
+        lines
+            .iter()
             .filter(|l| {
                 matches!(
-                    l.line_type(),
+                    l.line_type,
                     LineType::Addition
                         | LineType::Deletion
                         | LineType::AddEofnl
                         | LineType::DelEofnl
                 )
             })
-            // Append the line type prefix to the line
-            .map(|l| l.line_type().char().to_string() + l.content().trim())
-            .map(|change_line| {
-                // We add a count to each change to distinguish between multiple occurrences of the same change
-                let count = change_count.entry(change_line.clone()).or_insert(0);
-                *count += 1;
-                format!("{change_line}|>>{count}<<|")
-            })
-            .collect::<HashSet<String>>()
+            .for_each(|l| {
+                set.insert(*l);
+            });
+        set
     }
 }
 
