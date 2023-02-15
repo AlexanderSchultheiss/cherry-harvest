@@ -82,36 +82,13 @@ fn shingles_into_signatures(
     shingled_texts
         .iter()
         .map(|st| {
-            let one_hot = vocabulary.one_hot(&st).unwrap();
+            let one_hot = vocabulary.one_hot(st).unwrap();
             minhash.hash_signature(&one_hot)
         })
         .collect()
 }
 
 impl<'a> ShingledText<'a> {
-    // pub fn new(text: &str, arity: usize) -> Self {
-    //     profile_fn!(new_shingled_text);
-    //     let lines: Vec<&str> = text.lines().collect();
-    //     let mut shingles = Vec::new();
-    //     for window_position in 0..lines.len() {
-    //         let mut shingle_lines = Vec::with_capacity(arity);
-    //         for index in window_position..(window_position + arity) {
-    //             let line = lines.get(index).map_or("", |x| x).trim();
-    //             match line.is_empty() {
-    //                 // we have to treat empty lines, because otherwise a ShingledText might be completely empty
-    //                 true => shingle_lines.push("\n"),
-    //                 false => shingle_lines.push(line),
-    //             }
-    //         }
-    //         shingles.push(Shingle(shingle_lines.concat()));
-    //     }
-    //
-    //     if shingles.is_empty() {
-    //         shingles.push(Shingle("EMPTY".to_string()));
-    //     }
-    //
-    //     ShingledText { shingles, arity }
-    // }
     pub fn new(text: &'a str, arity: usize) -> Self {
         profile_fn!(new_shingled_text);
         let mut shingles = Vec::new();
@@ -299,24 +276,6 @@ mod tests {
     use crate::Diff;
     use bit_vec::BitVec;
 
-    // #[test]
-    // fn simple_shingle_arity_3() {
-    //     let diff = Diff::from(IdeaPatch(DIFF.to_string()));
-    //     let arity = 3;
-    //
-    //     let shingled_diff = shingle_diff(&diff, arity);
-    //     assert_eq!(shingled_diff.to_string(), EXPECTED_3_SHINGLE.to_string());
-    // }
-    //
-    // #[test]
-    // fn simple_shingle_arity_1() {
-    //     let diff = Diff::from(IdeaPatch(DIFF.to_string()));
-    //     let arity = 1;
-    //
-    //     let shingled_diff = shingle_diff(&diff, arity);
-    //     assert_eq!(shingled_diff.to_string(), EXPECTED_1_SHINGLE.to_string());
-    // }
-
     #[test]
     fn one_hot_with_only_one_diff() {
         // We expect that all values in the one-hot encoding are 1
@@ -486,29 +445,5 @@ diff --git a/src/main.rs b/src/main.rs
      }
  }
  
-"#;
-
-    const EXPECTED_3_SHINGLE: &str = r#"--- a/src/main.rs+++ b/src/main.rs@@ -15,18 +15,3 @@
-+++ b/src/main.rs@@ -15,18 +15,3 @@println!("So much!");
-@@ -15,18 +15,3 @@println!("So much!");}
-println!("So much!");}}
-}}-
-}--fn foo() {
---fn foo() {-    println!("foo!");
--fn foo() {-    println!("foo!");-}
--    println!("foo!");-}
--}
-"#;
-
-    const EXPECTED_1_SHINGLE: &str = r#"--- a/src/main.rs
-+++ b/src/main.rs
-@@ -15,18 +15,3 @@
-println!("So much!");
-}
-}
--
--fn foo() {
--    println!("foo!");
--}
 "#;
 }
