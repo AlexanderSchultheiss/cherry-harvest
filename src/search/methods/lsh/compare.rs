@@ -37,7 +37,6 @@ impl<'a> DiffSimilarity<'a> {
     ///
     /// Moreover, multiple occurrences of the same line are handled by concatenating a count of
     /// how often this line has been observed.
-    /// TODO: Improve runtime by removing concatenation. Use a dedicated Struct with Hash impl.
     pub fn change_similarity(&mut self, commit_a: &'a Commit, commit_b: &'a Commit) -> Similarity {
         profile_method!(change_similarity);
         {
