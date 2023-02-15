@@ -1,5 +1,6 @@
 use crate::git::Commit;
 use firestorm::profile_fn;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 pub mod methods;
@@ -8,10 +9,49 @@ pub use methods::exact_diff::ExactDiffMatch;
 pub use methods::lsh::TraditionalLSH;
 pub use methods::message_scan::MessageScan;
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CherryAndTarget {
-    cherry: String,
-    target: String,
+    cherry: CommitMetadata,
+    target: CommitMetadata,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CommitMetadata {
+    id: String,
+    message: String,
+    author: String,
+    committer: String,
+    time: String,
+}
+
+impl CommitMetadata {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+    pub fn author(&self) -> &str {
+        &self.author
+    }
+    pub fn committer(&self) -> &str {
+        &self.committer
+    }
+    pub fn time(&self) -> &str {
+        &self.time
+    }
+}
+
+impl From<&Commit> for CommitMetadata {
+    fn from(commit: &Commit) -> Self {
+        Self {
+            id: commit.id().to_string(),
+            message: commit.message().to_string(),
+            author: commit.author().to_string(),
+            committer: commit.committer().to_string(),
+            time: format!("{:?}", commit.time()),
+        }
+    }
 }
 
 // TODO: A commit can only be the target for a cherry-pick once? Or should the library return all possible source-target pairs?
@@ -22,41 +62,38 @@ impl CherryAndTarget {
         profile_fn!(construct);
         if commit_a.time() < commit_b.time() {
             // commit_a is older than commit_b
-            Self {
-                cherry: String::from(commit_a.id()),
-                target: String::from(commit_b.id()),
-            }
+            Self::new(commit_a, commit_b)
         } else {
-            Self {
-                cherry: String::from(commit_b.id()),
-                target: String::from(commit_a.id()),
-            }
+            Self::new(commit_b, commit_a)
         }
     }
 
     /// Create a new CherryPick with the ids of two commits for which the cherry and target relationship is known
-    pub fn new(cherry: String, target: String) -> Self {
-        Self { cherry, target }
+    pub fn new(cherry: &Commit, target: &Commit) -> Self {
+        Self {
+            cherry: CommitMetadata::from(cherry),
+            target: CommitMetadata::from(target),
+        }
     }
 
-    pub fn as_vec(&self) -> Vec<&String> {
+    pub fn as_vec(&self) -> Vec<&CommitMetadata> {
         vec![&self.cherry, &self.target]
     }
 
-    pub fn into_vec(self) -> Vec<String> {
+    pub fn into_vec(self) -> Vec<CommitMetadata> {
         vec![self.cherry, self.target]
     }
 
-    pub fn cherry(&self) -> &str {
+    pub fn cherry(&self) -> &CommitMetadata {
         &self.cherry
     }
 
-    pub fn target(&self) -> &str {
+    pub fn target(&self) -> &CommitMetadata {
         &self.target
     }
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SearchResult {
     search_method: String,
     cherry_and_target: CherryAndTarget,
@@ -147,8 +184,8 @@ impl SearchResult {
 ///     let results = NaiveSearch().search(&commits);
 ///     assert_eq!(results.len(), 1);
 ///     results.iter().map(|r| r.commit_pair()).for_each(|p| {
-///         assert_eq!(p.cherry(), commits[0].id());
-///         assert_eq!(p.target(), commits[1].id());
+///         assert_eq!(p.cherry().id(), commits[0].id());
+///         assert_eq!(p.target().id(), commits[1].id());
 ///     })
 /// }
 /// ```
@@ -163,24 +200,40 @@ pub trait SearchMethod {
 
 #[cfg(test)]
 mod tests {
+    use crate::search::CommitMetadata;
     use crate::{CherryAndTarget, SearchResult};
     use std::collections::HashSet;
 
     #[test]
     fn same_result_same_hash() {
+        let create_a = || CommitMetadata {
+            id: "aaa".to_string(),
+            message: "aaa".to_string(),
+            author: "aaa".to_string(),
+            committer: "aaa".to_string(),
+            time: "aaa".to_string(),
+        };
+        let create_b = || CommitMetadata {
+            id: "aba".to_string(),
+            message: "aba".to_string(),
+            author: "aba".to_string(),
+            committer: "aba".to_string(),
+            time: "aba".to_string(),
+        };
+
         let result_a = SearchResult {
             search_method: "TEST".to_string(),
             cherry_and_target: CherryAndTarget {
-                cherry: "aaa".to_string(),
-                target: "bbb".to_string(),
+                cherry: create_a(),
+                target: create_b(),
             },
         };
 
         let result_b = SearchResult {
             search_method: "TEST".to_string(),
             cherry_and_target: CherryAndTarget {
-                cherry: "aaa".to_string(),
-                target: "bbb".to_string(),
+                cherry: create_a(),
+                target: create_b(),
             },
         };
 

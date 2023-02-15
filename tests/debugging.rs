@@ -42,14 +42,14 @@ fn traditional_lsh_finds_exact() {
     if print {
         println!("EXACT:");
         for r in &exact_results {
-            println!("{} : {}", r.cherry(), r.target())
+            println!("{} : {}", r.cherry().id(), r.target().id())
         }
         println!("+++++++++++++");
         println!("+++++++++++++");
         println!("+++++++++++++");
         println!("LSH:");
         for r in &lsh_results {
-            println!("{} : {}", r.cherry(), r.target())
+            println!("{} : {}", r.cherry().id(), r.target().id())
         }
     }
 

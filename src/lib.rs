@@ -6,6 +6,7 @@ use std::collections::HashMap;
 pub mod error;
 pub mod git;
 pub mod search;
+mod setup;
 
 pub use git::Commit;
 pub use git::Diff;
@@ -46,7 +47,7 @@ pub(crate) use firestorm::{profile_fn, profile_section};
 ///         .commit_pair()
 ///         .as_vec()
 ///         .iter()
-///         .for_each(|c| assert!(expected_commits.contains(&c.as_str())))
+///         .for_each(|c| assert!(expected_commits.contains(&c.id())))
 /// }
 /// ```
 pub fn search_with_multiple(
@@ -121,7 +122,7 @@ pub fn search_with_multiple(
 ///         .commit_pair()
 ///         .as_vec()
 ///         .iter()
-///         .for_each(|c| assert!(expected_commits.contains(&c.as_str())))
+///         .for_each(|c| assert!(expected_commits.contains(&c.id())))
 /// }
 /// ```
 pub fn search_with<T: SearchMethod + 'static>(

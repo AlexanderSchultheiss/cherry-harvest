@@ -3,7 +3,7 @@ use crate::search::SearchMethod;
 use crate::{CherryAndTarget, SearchResult};
 use firestorm::profile_method;
 use log::debug;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
 /// MessageScan identifies cherry picks based on the automatically created text in a commit message.
@@ -32,6 +32,11 @@ impl SearchMethod for MessageScan {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
         profile_method!(search);
         let start = Instant::now();
+        let mut commit_map = HashMap::with_capacity(commits.len());
+        commits.iter().for_each(|c| {
+            commit_map.insert(c.id(), c);
+        });
+
         let search_str = "(cherry picked from commit ";
         let results: HashSet<SearchResult> = commits
             .iter()
@@ -45,7 +50,7 @@ impl SearchMethod for MessageScan {
                         return Some(SearchResult::new(
                             String::from(NAME),
                             // Pair of Source-Target
-                            CherryAndTarget::new(cherry_id, String::from(c.id())),
+                            CherryAndTarget::new(commit_map.get(cherry_id.as_str()).unwrap(), c),
                         ));
                     }
                 }
