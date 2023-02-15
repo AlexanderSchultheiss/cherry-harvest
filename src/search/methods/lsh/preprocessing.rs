@@ -5,7 +5,6 @@ use bit_vec::BitVec;
 use firestorm::{profile_fn, profile_method};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::cmp::min;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 
@@ -25,25 +24,7 @@ pub fn shingle_text(diff: &str, arity: usize) -> ShingledText {
     ShingledText::new(diff, arity)
 }
 
-fn shingle_commits_multi_threaded(
-    commits: &[Commit],
-    arity: usize,
-    n_workers: usize,
-) -> Vec<ShingledText> {
-    // let pool = ThreadPool::new(n_workers);
-
-    // let (sender, receiver) = channel();
-
-    // commits.iter().for_each(|commit| {
-    // let sender = sender.clone();
-
-    // pool.execute(move || {
-    //     sender.send(shingle_diff(&commit.diff(), arity)).unwrap();
-    // })
-    // });
-    // drop(sender);
-
-    // receiver.iter().collect()
+fn shingle_commits(commits: &[Commit], arity: usize) -> Vec<ShingledText> {
     commits
         .iter()
         .map(|c| shingle_diff(c.diff(), arity))
@@ -58,21 +39,16 @@ pub fn preprocess_commits(
     commits: &[Commit],
     arity: usize,
     signature_size: usize,
-    n_worker_threads: usize,
 ) -> Vec<Signature> {
     profile_fn!(preprocess_commits);
-    let shingled_commits = shingle_commits_multi_threaded(commits, arity, n_worker_threads);
+    let shingled_commits = shingle_commits(commits, arity);
 
-    shingles_into_signatures_multi_threaded(shingled_commits, signature_size, n_worker_threads)
+    shingles_into_signatures(shingled_commits, signature_size)
 }
 
-pub fn encode_commits_f64(
-    commits: &[Commit],
-    arity: usize,
-    n_worker_threads: usize,
-) -> Vec<Vec<f64>> {
+pub fn encode_commits_f64(commits: &[Commit], arity: usize) -> Vec<Vec<f64>> {
     profile_fn!(preprocess_commits);
-    let shingled_commits = shingle_commits_multi_threaded(commits, arity, n_worker_threads);
+    let shingled_commits = shingle_commits(commits, arity);
     let vocabulary = Vocabulary::build(&shingled_commits);
     shingled_commits
         .iter()
@@ -80,13 +56,9 @@ pub fn encode_commits_f64(
         .collect()
 }
 
-pub fn encode_commits_u32(
-    commits: &[Commit],
-    arity: usize,
-    n_worker_threads: usize,
-) -> Vec<Vec<u32>> {
+pub fn encode_commits_u32(commits: &[Commit], arity: usize) -> Vec<Vec<u32>> {
     profile_fn!(preprocess_commits);
-    let shingled_commits = shingle_commits_multi_threaded(commits, arity, n_worker_threads);
+    let shingled_commits = shingle_commits(commits, arity);
     let vocabulary = Vocabulary::build(&shingled_commits);
     shingled_commits
         .iter()
@@ -94,46 +66,17 @@ pub fn encode_commits_u32(
         .collect()
 }
 
-pub fn preprocess_texts(
-    texts: &[&str],
-    arity: usize,
-    signature_size: usize,
-    n_worker_threads: usize,
-) -> Vec<Signature> {
+pub fn preprocess_texts(texts: &[&str], arity: usize, signature_size: usize) -> Vec<Signature> {
     profile_fn!(preprocess_commits);
     let shingled_commits = shingle_texts(texts, arity);
 
-    shingles_into_signatures_multi_threaded(shingled_commits, signature_size, n_worker_threads)
+    shingles_into_signatures(shingled_commits, signature_size)
 }
 
-fn shingles_into_signatures_multi_threaded(
+fn shingles_into_signatures(
     shingled_texts: Vec<ShingledText>,
     signature_size: usize,
-    n_workers: usize,
 ) -> Vec<Signature> {
-    // let pool = ThreadPool::new(n_workers);
-    //
-    // let vocabulary = Arc::new(Vocabulary::build(&shingled_texts));
-    // let minhash = Arc::new(MinHash::new(signature_size, vocabulary.len()));
-    //
-    // let (sender, receiver) = channel();
-    // shingled_texts.into_iter().for_each(|sd| {
-    //     let sender = sender.clone();
-    //     let vocabulary = Arc::clone(&vocabulary);
-    //     let minhash = Arc::clone(&minhash);
-    //     pool.execute(move || {
-    //         let one_hot = vocabulary.one_hot(&sd).unwrap();
-    //         sender.send(minhash.hash_signature(&one_hot)).unwrap();
-    //     })
-    // });
-    // drop(sender);
-    // receiver
-    //     .iter()
-    //     .map(|s| {
-    //         assert_eq!(s.len(), signature_size);
-    //         s
-    //     })
-    //     .collect()
     let vocabulary = Vocabulary::build(&shingled_texts);
     let minhash = MinHash::new(signature_size, vocabulary.len());
     shingled_texts
@@ -460,7 +403,7 @@ mod tests {
 
     #[test]
     fn text_signature_similarity() {
-        let signatures = preprocess_texts(&[TEXT, TEXT_CLOSE, TEXT_FAR], 3, 8, 24);
+        let signatures = preprocess_texts(&[TEXT, TEXT_CLOSE, TEXT_FAR], 3, 8);
 
         let sig_distance = |s1: &Signature, s2: &Signature| {
             s1.iter().zip(s2.iter()).filter(|(v1, v2)| v1 != v2).count()

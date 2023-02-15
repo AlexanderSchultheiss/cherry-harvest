@@ -83,7 +83,7 @@ impl<'a> DiffSimilarity<'a> {
 #[cfg(test)]
 mod tests {
     use crate::git::IdeaPatch;
-    use crate::search::methods::similar_diff::compare::DiffSimilarity;
+    use crate::search::methods::lsh::compare::DiffSimilarity;
     use crate::{Commit, Diff};
     use git2::Time;
     use log::{debug, LevelFilter};

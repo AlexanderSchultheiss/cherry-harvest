@@ -73,7 +73,7 @@ pub fn commit_preprocessing(c: &mut Criterion) {
     };
     c.bench_function("preprocess_commits", |b| {
         b.iter(|| {
-            preprocess_commits(&commits, 3, 32, 24);
+            preprocess_commits(&commits, 3, 32);
         })
     });
 }

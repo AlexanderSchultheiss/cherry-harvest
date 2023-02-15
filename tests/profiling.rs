@@ -1,4 +1,4 @@
-use cherry_harvest::{ExactDiffMatch, RepoLocation};
+use cherry_harvest::{ExactDiffMatch, RepoLocation, TraditionalLSH};
 use log::{info, LevelFilter};
 use std::path::Path;
 use std::time::Instant;
@@ -58,7 +58,7 @@ fn traditional_lsh_similarity_search() {
     let start = init();
 
     let call = || {
-        let search_method = cherry_harvest::TraditionalLSH::new(3, 2048, 24, 2, 0.7);
+        let search_method = TraditionalLSH::new(3, 2048, 2, 0.7);
         let _ = cherry_harvest::search_with(&repo_location(), search_method);
     };
 

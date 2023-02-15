@@ -10,7 +10,7 @@ fn repo_location() -> RepoLocation<'static> {
 }
 
 fn search_call() {
-    let search_method = cherry_harvest::TraditionalLSH::new(3, 2048, 24, 2, 0.7);
+    let search_method = cherry_harvest::TraditionalLSH::new(3, 2048, 2, 0.7);
     cherry_harvest::search_with(&repo_location(), search_method);
 }
 

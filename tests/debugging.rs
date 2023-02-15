@@ -23,7 +23,7 @@ fn traditional_lsh_finds_exact() {
     let repo = cherry_harvest::RepoLocation::Filesystem(Path::new("/home/alex/data/busybox/"));
     // let repo = cherry_harvest::RepoLocation::Server("https://github.com/VariantSync/DiffDetective");
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
-    let lsh_search = Box::new(TraditionalLSH::new(8, 100, 24, 5, 0.7)) as Box<dyn SearchMethod>;
+    let lsh_search = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
     let methods = vec![exact_diff, lsh_search];
     let results = cherry_harvest::search_with_multiple(&repo, &methods);
 

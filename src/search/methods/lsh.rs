@@ -35,18 +35,11 @@ pub struct TraditionalLSH {
     arity: usize,
     signature_size: usize,
     n_bands: usize,
-    n_worker_threads: usize,
     threshold: f64,
 }
 
 impl TraditionalLSH {
-    pub fn new(
-        arity: usize,
-        signature_size: usize,
-        n_worker_threads: usize,
-        band_size: usize,
-        threshold: f64,
-    ) -> Self {
+    pub fn new(arity: usize, signature_size: usize, band_size: usize, threshold: f64) -> Self {
         assert_eq!(
             signature_size % band_size,
             0,
@@ -56,7 +49,6 @@ impl TraditionalLSH {
             arity,
             signature_size,
             n_bands: signature_size / band_size,
-            n_worker_threads,
             threshold,
         }
     }
@@ -141,12 +133,7 @@ impl SearchMethod for TraditionalLSH {
         let start = Instant::now();
         info!("initialized traditional LSH approach");
         profile_method!(search_lsh);
-        let signatures = preprocess_commits(
-            commits,
-            self.arity,
-            self.signature_size,
-            self.n_worker_threads,
-        );
+        let signatures = preprocess_commits(commits, self.arity, self.signature_size);
         debug!(
             "created {} signatures for {} commits",
             signatures.len(),
