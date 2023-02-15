@@ -72,7 +72,7 @@ fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
 /// # Errors
 /// Returns a GitDiff error, if git2 returns an error during diffing.
 ///
-/// // TODO: This requires way too much time! Bottleneck
+/// // TODO: This requires way too much time! Make this a lazy, cached function
 pub fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff, Error> {
     profile_fn!(commit_diff);
     repository
