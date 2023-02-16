@@ -16,6 +16,11 @@ serde_yaml = "0.9.14"
 derivative = "2.2.0"
 firestorm = { version= "0.5.1", features=["enable_system_time"] }
 bit-vec = "0.6.3"
+octocrab = {version = "0.18.1", features = ["stream"]}
+tokio = {version = "1.25.0", features = ["full"] }
+futures-util = "0.3.26"
+reqwest = "0.11.14"
+chrono = "0.4.23"
 
 [dev-dependencies]
 criterion = "0.4.0"

@@ -2,12 +2,12 @@ mod util;
 
 use derivative::Derivative;
 use firestorm::{profile_fn, profile_method, profile_section};
-use git2::{Diff as G2Diff, DiffFormat, Repository, Time};
+use git2::{Diff as G2Diff, DiffFormat, Repository as G2Repo, Time};
 use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use temp_dir::TempDir;
 
 pub use util::clone_or_load;
@@ -24,7 +24,7 @@ pub use util::collect_commits;
 /// ## Specifying a remote repository
 /// ```
 /// use cherry_harvest::RepoLocation;
-/// let location = RepoLocation::Server("https://github.com/rust-lang/git2-rs.git");
+/// let location = RepoLocation::Server("https://github.com/rust-lang/git2-rs.git".to_string());
 /// ```
 ///
 /// ## Specifying a local repository
@@ -32,14 +32,14 @@ pub use util::collect_commits;
 /// use std::env;
 /// use cherry_harvest::RepoLocation;
 /// let path_buf = env::current_dir().unwrap();
-/// let location = RepoLocation::Filesystem(path_buf.as_path());
+/// let location = RepoLocation::Filesystem(path_buf);
 /// ```
-pub enum RepoLocation<'a> {
-    Filesystem(&'a Path),
-    Server(&'a str),
+pub enum RepoLocation {
+    Filesystem(PathBuf),
+    Server(String),
 }
 
-impl<'a> RepoLocation<'a> {
+impl RepoLocation {
     /// Creates a string slice of either the path or the url to the repository, depending on the
     /// RepoLocation variant.
     fn to_str(&self) -> &str {
@@ -52,7 +52,7 @@ impl<'a> RepoLocation<'a> {
     }
 }
 
-impl<'a> Display for RepoLocation<'a> {
+impl Display for RepoLocation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             RepoLocation::Filesystem(_) => {
@@ -69,11 +69,11 @@ impl<'a> Display for RepoLocation<'a> {
 pub enum LoadedRepository {
     LocalRepo {
         path: String,
-        repository: Repository,
+        repository: G2Repo,
     },
     RemoteRepo {
         url: String,
-        repository: Repository,
+        repository: G2Repo,
         directory: TempDir,
     },
 }

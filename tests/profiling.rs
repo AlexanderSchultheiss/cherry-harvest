@@ -1,6 +1,6 @@
 use cherry_harvest::{ExactDiffMatch, RepoLocation, TraditionalLSH};
 use log::{info, LevelFilter};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 const DATASET: &str = "/home/alex/data/VEVOS_Simulation/";
@@ -14,8 +14,8 @@ fn init() -> Instant {
     Instant::now()
 }
 
-fn repo_location() -> RepoLocation<'static> {
-    RepoLocation::Filesystem(Path::new(DATASET))
+fn repo_location() -> RepoLocation {
+    RepoLocation::Filesystem(PathBuf::from(Path::new(DATASET)))
 }
 
 #[test]

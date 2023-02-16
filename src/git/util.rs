@@ -248,7 +248,7 @@ mod tests {
         use std::env;
         // We try to open this project's repository
         let path_buf = env::current_dir().unwrap();
-        let location = RepoLocation::Filesystem(path_buf.as_path());
+        let location = RepoLocation::Filesystem(path_buf);
         let loaded_repo = clone_or_load(&location).unwrap();
         if let LocalRepo { path, .. } = loaded_repo {
             assert_eq!(path, location.to_str());
@@ -273,7 +273,7 @@ mod tests {
         use std::env;
         // We try to open this project's repository
         let path_buf = env::current_dir().unwrap();
-        let location = RepoLocation::Filesystem(path_buf.as_path());
+        let location = RepoLocation::Filesystem(path_buf);
         let loaded_repo = clone_or_load(&location).unwrap();
         let oid = Oid::from_str("fe849e49cfe6239068ab45fa6680979c59e1bbd9").unwrap();
         if let LocalRepo { repository, .. } = loaded_repo {
@@ -294,7 +294,7 @@ mod tests {
     #[test]
     fn clone_remote_repo() {
         init();
-        let location = RepoLocation::Server("https://github.com/rust-lang/git2-rs.git");
+        let location = RepoLocation::Server("https://github.com/rust-lang/git2-rs.git".to_string());
         let loaded_repo = clone_or_load(&location).unwrap();
         if let RemoteRepo { url, .. } = loaded_repo {
             assert_eq!(url, location.to_str());
