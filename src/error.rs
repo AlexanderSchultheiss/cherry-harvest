@@ -1,13 +1,15 @@
-use git2::Error as GError;
+use git2::Error as G2Error;
+use octocrab::Error as GHError;
 use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    RepoClone(GError),
-    RepoLoad(GError),
-    GitDiff(GError),
+    RepoClone(G2Error),
+    RepoLoad(G2Error),
+    GitDiff(G2Error),
     DiffParse(String),
     ANNPreprocessing(String),
+    GitHub(GHError),
 }
 
 #[derive(Debug)]
@@ -26,6 +28,9 @@ impl Display for ErrorKind {
                 write!(f, "{error}")
             }
             Self::DiffParse(error) | Self::ANNPreprocessing(error) => {
+                write!(f, "{error}")
+            }
+            Self::GitHub(error) => {
                 write!(f, "{error}")
             }
         }

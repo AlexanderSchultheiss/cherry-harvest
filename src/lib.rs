@@ -8,6 +8,7 @@ pub mod git;
 pub mod search;
 mod setup;
 
+pub use error::Error;
 pub use git::Commit;
 pub use git::Diff;
 pub use git::RepoLocation;
@@ -31,7 +32,7 @@ pub(crate) use firestorm::{profile_fn, profile_section};
 ///
 /// let method = MessageScan::default();
 /// // link to a test repository
-/// let server = "https://github.com/AlexanderSchultheiss/cherries-one";
+/// let server = "https://github.com/AlexanderSchultheiss/cherries-one".to_string();
 /// let results = cherry_harvest::search_with(&RepoLocation::Server(server), method);
 /// assert_eq!(results.len(), 2);
 /// let expected_commits = vec![
@@ -103,7 +104,7 @@ pub fn search_with_multiple(
 /// // initialize the search search
 /// let search = MessageScan::default();
 /// // link to a test repository
-/// let server = "https://github.com/AlexanderSchultheiss/cherries-one";
+/// let server = "https://github.com/AlexanderSchultheiss/cherries-one".to_string();
 /// // execute the search for cherry picks
 /// let results = cherry_harvest::search_with(&RepoLocation::Server(server), search);
 ///
