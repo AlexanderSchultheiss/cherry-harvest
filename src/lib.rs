@@ -6,7 +6,7 @@ use std::collections::HashMap;
 pub mod error;
 pub mod git;
 pub mod search;
-mod setup;
+pub mod setup;
 
 pub use error::Error;
 pub use git::Commit;

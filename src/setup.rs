@@ -1,2 +1,2 @@
 mod github;
-mod sampling;
+pub mod sampling;

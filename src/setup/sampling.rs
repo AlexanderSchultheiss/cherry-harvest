@@ -36,7 +36,13 @@ impl SampleRange {
     }
 }
 
-pub struct RepoSample(Vec<ForkNetwork>);
+pub struct Sample(Vec<ForkNetwork>);
+
+impl Sample {
+    pub fn networks(&self) -> &Vec<ForkNetwork> {
+        &self.0
+    }
+}
 
 pub struct GitHubSampler {
     previously_sampled: HashSet<RepositoryId>,
@@ -63,7 +69,7 @@ impl GitHubSampler {
 }
 
 impl Iterator for GitHubSampler {
-    type Item = RepoSample;
+    type Item = Sample;
 
     fn next(&mut self) -> Option<Self::Item> {
         debug!("retrieving next sample");
@@ -132,7 +138,7 @@ impl Iterator for GitHubSampler {
                     networks.push(network)
                 }
 
-                Some(RepoSample(networks))
+                Some(Sample(networks))
             }
         }
     }
