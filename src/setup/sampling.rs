@@ -2,6 +2,7 @@ use crate::setup::github::{first_repo_pushed_after_datetime, ForkNetwork, GitHub
 use crate::Error;
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use log::warn;
+use octocrab::models::{Repository, RepositoryId};
 use rand::rngs::ThreadRng;
 use rand::Rng;
 use std::collections::HashSet;
@@ -39,7 +40,7 @@ impl SampleRange {
 pub struct RepoSample(Vec<ForkNetwork>);
 
 pub struct GitHubSampler {
-    previously_sampled: HashSet<String>,
+    previously_sampled: HashSet<RepositoryId>,
     sample_range: SampleRange,
     sample_size: usize,
     random: ThreadRng,
@@ -59,7 +60,7 @@ impl GitHubSampler {
 }
 
 impl Iterator for GitHubSampler {
-    type Item = GitHubRepo;
+    type Item = ForkNetwork;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut next = None;
@@ -80,13 +81,46 @@ impl Iterator for GitHubSampler {
             let random_repo = first_repo_pushed_after_datetime(random_datetime);
             let random_repo = self.runtime.block_on(random_repo);
             match random_repo {
-                Ok(repo) => next = repo,
+                Ok(Some(repo)) => match self.previously_sampled.contains(&repo.id) {
+                    true => next = None,
+                    false => next = Some(repo),
+                },
                 Err(_) => {
                     todo!()
                 }
+                Ok(None) => next = None,
             }
             sample_count += 1;
         }
-        next
+
+        // Get the fork network
+        match next {
+            None => None,
+            Some(repo) => {
+                let network = ForkNetwork::build_from(repo);
+                // We do not want to sample the same network twice
+                network.repository_ids().iter().for_each(|id| {
+                    self.previously_sampled.insert(*id);
+                });
+                Some(network)
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::setup::sampling::{GitHubSampler, SampleRange};
+    use chrono::NaiveDate;
+
+    #[test]
+    fn single_sample() {
+        let range = SampleRange::new(
+            NaiveDate::from_ymd_opt(2015, 1, 1).unwrap(),
+            NaiveDate::from_ymd_opt(2022, 1, 1).unwrap(),
+        );
+        let mut sampler = GitHubSampler::new(range, 1);
+        let network = sampler.next().unwrap();
+        println!("sampled {} forks", network.len())
     }
 }
