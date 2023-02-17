@@ -60,14 +60,14 @@ pub struct ForkNetwork {
     // Maps parent ids to children ids (i.e., forks). Only includes repos that have been forked.
     forks: HashMap<RepositoryId, Vec<RepositoryId>>,
     // The maximum number of forks that this network can consist of
-    max_forks: usize,
+    max_forks: Option<usize>,
 }
 
 impl ForkNetwork {
     // TODO: test
     // TODO: Refactor to improve readability
     // TODO: Implement Display for ForkNetwork for manual verification
-    pub fn build_from(seed: OctoRepo, max_forks: usize) -> Self {
+    pub fn build_from(seed: OctoRepo, max_forks: Option<usize>) -> Self {
         debug!("building fork network for {}:{}", seed.name, seed.id);
         let source_id;
         let mut repository_map = HashMap::new();
@@ -89,8 +89,10 @@ impl ForkNetwork {
 
         let source = repository_map.get(&source_id).unwrap();
 
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+
         let mut forks_retrieved = 0;
-        let mut forks = retrieve_forks(source, max_forks);
+        let mut forks = runtime.block_on(retrieve_forks(source, max_forks));
         if let Some(repos) = forks.as_ref() {
             // Map the source to its children
             let children_ids: Vec<RepositoryId> = repos.iter().map(|c| c.id).collect();
@@ -111,7 +113,10 @@ impl ForkNetwork {
                 let fork_id = fork.id;
                 debug!("fork_id: {fork_id}");
                 // Handle all forks of the fork (i.e., the forks children)
-                if let Some(mut children) = retrieve_forks(fork, max_forks - forks_retrieved) {
+                if let Some(mut children) = runtime.block_on(retrieve_forks(
+                    fork,
+                    max_forks.map(|mf| mf - forks_retrieved),
+                )) {
                     let children_ids: Vec<RepositoryId> = children.iter().map(|c| c.id).collect();
                     forks_retrieved += children_ids.len();
                     debug!("fork {fork_id} has {} forks of its own", children.len());
@@ -132,7 +137,7 @@ impl ForkNetwork {
                 true => forks = None,
                 false => forks = Some(fork_children),
             }
-            if forks_retrieved >= max_forks {
+            if Some(forks_retrieved) >= max_forks {
                 break;
             }
         }
@@ -179,22 +184,20 @@ impl ForkNetwork {
     }
 }
 
-fn retrieve_forks(octo_repo: &OctoRepo, max_forks: usize) -> Option<Vec<OctoRepo>> {
+async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Option<Vec<OctoRepo>> {
     match octo_repo.forks_count {
         None => return None,
         Some(num) if num == 0 => return None,
-        Some(num) => (debug!("discovered {num} forks")),
+        Some(num) => debug!("discovered {num} forks"),
     }
     let url = match &octo_repo.forks_url {
         None => return None,
         Some(url) => url.clone(),
     };
 
-    let runtime = tokio::runtime::Runtime::new().unwrap();
-
     // Retrieve the first page with forks
-    let api_result: Result<Page<OctoRepo>, octocrab::Error> = runtime.block_on(forks_api(url));
-    let mut page = match api_result {
+    let api_result: Result<Page<OctoRepo>, octocrab::Error> = forks_api(url).await;
+    let page = match api_result {
         Ok(page) => page,
         Err(error) => {
             error!("{error}");
@@ -203,33 +206,7 @@ fn retrieve_forks(octo_repo: &OctoRepo, max_forks: usize) -> Option<Vec<OctoRepo
     };
 
     // Loop through all pages and collect all forks in them
-    let mut forks = vec![];
-    'breakable: loop {
-        // Collect forks in current page
-        for fork in &page {
-            if forks.len() == max_forks {
-                break 'breakable;
-            }
-            forks.push(fork.clone());
-        }
-        // Get the next page
-        match runtime.block_on(get_page::<OctoRepo>(&page.next)) {
-            Ok(Some(p)) => {
-                page = p;
-            }
-            Ok(None) => {
-                // No more pages left
-                break 'breakable;
-            }
-            Err(error) => {
-                error!("{error}");
-            }
-        }
-    }
-    match forks.is_empty() {
-        true => None,
-        false => Some(forks),
-    }
+    collect_repos_from_pages(page, max_forks).await
 }
 
 async fn get_page<T: serde::de::DeserializeOwned>(
@@ -247,10 +224,11 @@ async fn forks_api(forks_url_for_repo: Url) -> Result<Page<OctoRepo>, octocrab::
         .await
 }
 
-pub async fn repo_created_in_time_range(
+pub async fn repos_created_in_time_range(
+    n_repos: usize,
     start: NaiveDateTime,
     end: NaiveDateTime,
-) -> Result<Option<OctoRepo>, Error> {
+) -> Result<Option<Vec<OctoRepo>>, Error> {
     let time_format = "%Y-%m-%dT%H:%M:%S+00:00";
     let query = format!(
         "created:{}..{}",
@@ -258,61 +236,63 @@ pub async fn repo_created_in_time_range(
         end.format(time_format)
     );
     debug!("search query: '{}'", query);
-    match search_repositories(query.as_str(), 1).await {
-        Ok(page) => match page.items.first() {
-            None => Ok(None),
-            Some(octo_repo) => Ok(Some(octo_repo.clone())),
-        },
-        Err(error) => Err(Error::new(ErrorKind::GitHub(error))),
+
+    // Retrieve the first page
+    let page = match search_repositories(query.as_str()).await {
+        Ok(page) => page,
+        Err(error) => return Err(Error::new(ErrorKind::GitHub(error))),
+    };
+
+    Ok(collect_repos_from_pages(page, Some(n_repos)).await)
+}
+
+async fn collect_repos_from_pages(
+    start_page: Page<OctoRepo>,
+    n_repos: Option<usize>,
+) -> Option<Vec<OctoRepo>> {
+    let mut page = start_page;
+    let mut repos: Vec<OctoRepo> = vec![];
+    'breakable: loop {
+        // Collect repos in current page
+        for repo in &page {
+            if Some(repos.len()) == n_repos {
+                break 'breakable;
+            }
+            repos.push(repo.clone());
+        }
+        // Get the next page
+        match next_page(&page).await {
+            None => break 'breakable,
+            Some(p) => page = p,
+        };
+    }
+    match repos.is_empty() {
+        true => None,
+        false => Some(repos),
     }
 }
 
-pub async fn search_repositories(
-    query: &str,
-    results_per_page: u8,
-) -> Result<Page<OctoRepo>, octocrab::Error> {
+async fn next_page<T: serde::de::DeserializeOwned>(page: &Page<T>) -> Option<Page<T>> {
+    match get_page::<T>(&page.next).await {
+        Ok(Some(p)) => Some(p),
+        Ok(None) => {
+            // No more pages left
+            None
+        }
+        Err(error) => {
+            error!("{error}");
+            None
+        }
+    }
+}
+
+pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab::Error> {
     octocrab::instance()
         .search()
         .repositories(query)
-        .per_page(results_per_page)
         .send()
         .await
 }
 
 #[cfg(test)]
-mod tests {
-    use futures_util::TryStreamExt;
-    use octocrab::models::Repository as GHRepo;
-    use octocrab::repos::RepoHandler;
-    use octocrab::{FromResponse, Page};
-    use std::error::Error;
-    use std::fs;
-    use tokio::pin;
-
-    #[test]
-    fn repo_search() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async move {
-            let octocrab = octocrab::instance();
-            let page = octocrab::instance()
-                .search()
-                .repositories("pushed:>2013-02-01")
-                .per_page(1)
-                .sort("stars")
-                .order("desc")
-                .send()
-                .await
-                .unwrap();
-            // let response = octocrab
-            //     ._get(
-            //         "https://api.github.com/repositories",
-            //         Some(&[("sort", "?")]),
-            //     )
-            //     .await
-            //     .unwrap();
-            // let page: Page<GHRepo> = Page::from_response(response).await.unwrap();
-            let item = &page.items[0];
-            println!("{:#?}", page.items[0]);
-        });
-    }
-}
+mod tests {}
