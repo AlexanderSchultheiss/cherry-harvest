@@ -3,7 +3,7 @@ mod forks;
 use crate::error::{Error, ErrorKind};
 use crate::RepoLocation;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use log::error;
+use log::{debug, error};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
 use reqwest::Url;
@@ -59,11 +59,14 @@ pub struct ForkNetwork {
     parents: HashMap<RepositoryId, RepositoryId>,
     // Maps parent ids to children ids (i.e., forks). Only includes repos that have been forked.
     forks: HashMap<RepositoryId, Vec<RepositoryId>>,
+    // The maximum number of forks that this network can consist of
+    max_forks: usize,
 }
 
 impl ForkNetwork {
     // TODO: test
-    pub fn build_from(seed: OctoRepo) -> Self {
+    pub fn build_from(seed: OctoRepo, max_forks: usize) -> Self {
+        debug!("building fork network for {}:{}", seed.name, seed.id);
         let source_id;
         let mut repository_map = HashMap::new();
         let mut parent_map = HashMap::<RepositoryId, RepositoryId>::new();
@@ -71,10 +74,12 @@ impl ForkNetwork {
 
         match seed.source {
             None => {
+                debug!("the repository is the source of its network");
                 source_id = seed.id;
                 repository_map.insert(seed.id, seed);
             }
             Some(source) => {
+                debug!("found source with id {}", source.id);
                 source_id = source.id;
                 repository_map.insert(source_id, source.as_ref().clone());
             }
@@ -82,23 +87,38 @@ impl ForkNetwork {
 
         let source = repository_map.get(&source_id).unwrap();
 
-        let mut forks = retrieve_forks(source);
+        let mut forks_retrieved = 0;
+        let mut forks = retrieve_forks(source, max_forks);
+        if let Some(repos) = forks.as_ref() {
+            // Map the source to its children
+            let children_ids: Vec<RepositoryId> = repos.iter().map(|c| c.id).collect();
+            forks_retrieved = children_ids.len();
+            // Map each child to the parent and vice versa
+            for child_id in &children_ids {
+                assert!(parent_map.insert(*child_id, source_id).is_none());
+            }
+            assert!(children_map.insert(source_id, children_ids).is_none());
+        } else {
+            debug!("there are no forks");
+        }
+
         while let Some(repos) = forks.as_ref() {
+            debug!("{} forks need to be processed...", repos.len());
             let mut fork_children = vec![];
             for fork in repos {
-                let fork_id = fork.id.clone();
+                let fork_id = fork.id;
+                debug!("fork_id: {fork_id}");
                 // Handle all forks of the fork (i.e., the forks children)
-                if let Some(mut children) = retrieve_forks(fork) {
-                    let children_ids: Vec<RepositoryId> =
-                        children.iter().map(|c| c.id.clone()).collect();
+                if let Some(mut children) = retrieve_forks(fork, max_forks - forks_retrieved) {
+                    let children_ids: Vec<RepositoryId> = children.iter().map(|c| c.id).collect();
+                    forks_retrieved += children_ids.len();
+                    debug!("fork {fork_id} has {} forks of its own", children.len());
                     // Map each child to the parent
                     for child_id in &children_ids {
-                        assert!(parent_map
-                            .insert(child_id.clone(), fork_id.clone())
-                            .is_none());
+                        assert!(parent_map.insert(*child_id, fork_id).is_none());
                     }
                     // Map the parent to its children
-                    assert!(children_map.insert(fork_id.clone(), children_ids).is_none());
+                    assert!(children_map.insert(fork_id, children_ids).is_none());
                     // Collect children for later processing
                     fork_children.append(&mut children);
                 }
@@ -109,6 +129,9 @@ impl ForkNetwork {
             match fork_children.is_empty() {
                 true => forks = None,
                 false => forks = Some(fork_children),
+            }
+            if forks_retrieved >= max_forks {
+                break;
             }
         }
 
@@ -123,6 +146,7 @@ impl ForkNetwork {
             source_id,
             parents: parent_map,
             forks: children_map,
+            max_forks,
         }
     }
 
@@ -147,9 +171,18 @@ impl ForkNetwork {
     pub fn len(&self) -> usize {
         self.repositories.len()
     }
+
+    pub fn source(&self) -> &GitHubRepo {
+        self.repositories.get(&self.source_id).unwrap()
+    }
 }
 
-fn retrieve_forks(octo_repo: &OctoRepo) -> Option<Vec<OctoRepo>> {
+fn retrieve_forks(octo_repo: &OctoRepo, max_forks: usize) -> Option<Vec<OctoRepo>> {
+    match octo_repo.forks_count {
+        None => return None,
+        Some(num) if num == 0 => return None,
+        Some(num) => (debug!("discovered {num} forks")),
+    }
     let url = match &octo_repo.forks_url {
         None => return None,
         Some(url) => url.clone(),
@@ -172,6 +205,9 @@ fn retrieve_forks(octo_repo: &OctoRepo) -> Option<Vec<OctoRepo>> {
     'breakable: loop {
         // Collect forks in current page
         for fork in &page {
+            if forks.len() == max_forks {
+                break 'breakable;
+            }
             forks.push(fork.clone());
         }
         // Get the next page
@@ -185,11 +221,13 @@ fn retrieve_forks(octo_repo: &OctoRepo) -> Option<Vec<OctoRepo>> {
             }
             Err(error) => {
                 error!("{error}");
-                return Some(forks);
             }
         }
     }
-    Some(forks)
+    match forks.is_empty() {
+        true => None,
+        false => Some(forks),
+    }
 }
 
 async fn get_page<T: serde::de::DeserializeOwned>(
@@ -207,15 +245,18 @@ async fn forks_api(forks_url_for_repo: Url) -> Result<Page<OctoRepo>, octocrab::
         .await
 }
 
-pub async fn first_repo_pushed_after_datetime(
-    datetime: NaiveDateTime,
+pub async fn repo_created_in_time_range(
+    start: NaiveDateTime,
+    end: NaiveDateTime,
 ) -> Result<Option<OctoRepo>, Error> {
-    match search_repositories(
-        format!("pushed:>{}", datetime.format("%Y-%m-%dT%H:%M:%S")).as_str(),
-        1,
-    )
-    .await
-    {
+    let time_format = "%Y-%m-%dT%H:%M:%S+00:00";
+    let query = format!(
+        "created:{}..{}",
+        start.format(time_format),
+        end.format(time_format)
+    );
+    debug!("search query: '{}'", query);
+    match search_repositories(query.as_str(), 1).await {
         Ok(page) => match page.items.first() {
             None => Ok(None),
             Some(octo_repo) => Ok(Some(octo_repo.clone())),
