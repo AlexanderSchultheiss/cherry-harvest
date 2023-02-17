@@ -65,6 +65,8 @@ pub struct ForkNetwork {
 
 impl ForkNetwork {
     // TODO: test
+    // TODO: Refactor to improve readability
+    // TODO: Implement Display for ForkNetwork for manual verification
     pub fn build_from(seed: OctoRepo, max_forks: usize) -> Self {
         debug!("building fork network for {}:{}", seed.name, seed.id);
         let source_id;
