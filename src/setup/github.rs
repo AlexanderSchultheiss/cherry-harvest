@@ -8,11 +8,13 @@ use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
 use reqwest::Url;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 
 pub struct GitHubRepo {
     id: RepositoryId,
     name: String,
     location: RepoLocation,
+    owner: Option<String>,
     n_branches: Option<u32>,
     n_commits: Option<u32>,
     n_authors: Option<u32>,
@@ -38,6 +40,7 @@ impl From<&OctoRepo> for GitHubRepo {
             last_updated: octo_repo.updated_at,
             last_pushed: octo_repo.pushed_at,
             n_forks: octo_repo.forks_count,
+            owner: octo_repo.owner.as_ref().map(|u| u.login.clone()),
             // TODO: retrieve missing values
             n_branches: None,
             n_commits: None,
@@ -48,9 +51,7 @@ impl From<&OctoRepo> for GitHubRepo {
     }
 }
 
-// TODO: we want to consider entire fork networks
-// This means that we have to first collect the entire for network for a repository
-// An element in the sample is then a ForkNetwork, not just a single commit!
+// TODO: Document
 pub struct ForkNetwork {
     repositories: HashMap<RepositoryId, GitHubRepo>,
     // The id of the repository at the root of the network
@@ -66,7 +67,6 @@ pub struct ForkNetwork {
 impl ForkNetwork {
     // TODO: test
     // TODO: Refactor to improve readability
-    // TODO: Implement Display for ForkNetwork for manual verification
     pub fn build_from(seed: OctoRepo, max_forks: Option<usize>) -> Self {
         debug!("building fork network for {}:{}", seed.name, seed.id);
         let source_id;
@@ -111,7 +111,6 @@ impl ForkNetwork {
             let mut fork_children = vec![];
             for fork in repos {
                 let fork_id = fork.id;
-                debug!("fork_id: {fork_id}");
                 // Handle all forks of the fork (i.e., the forks children)
                 if let Some(mut children) = runtime.block_on(retrieve_forks(
                     fork,
@@ -181,6 +180,36 @@ impl ForkNetwork {
 
     pub fn source(&self) -> &GitHubRepo {
         self.repositories.get(&self.source_id).unwrap()
+    }
+}
+
+impl Display for ForkNetwork {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let source = self.repositories.get(&self.source_id).unwrap();
+
+        fn write_children(
+            f: &mut Formatter<'_>,
+            network: &ForkNetwork,
+            start: &GitHubRepo,
+            format_text: &str,
+        ) -> std::fmt::Result {
+            write!(
+                f,
+                "{}- {}: {}/{}\n",
+                format_text,
+                start.id,
+                start.owner.as_ref().unwrap(),
+                start.name
+            )?;
+            if let Some(children) = network.forks(start) {
+                for child in children {
+                    write_children(f, network, child, &format!("  {format_text}"))?;
+                }
+            }
+            Ok(())
+        }
+
+        write_children(f, self, source, "")
     }
 }
 

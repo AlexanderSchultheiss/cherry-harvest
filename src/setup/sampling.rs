@@ -163,6 +163,7 @@ mod tests {
         println!("sampled {} networks", sample.0.len());
         for (id, network) in sample.0.iter().enumerate() {
             println!("sampled {} repositories in network {id}", network.len());
+            println!("{}", network);
         }
     }
 }
