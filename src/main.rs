@@ -15,8 +15,14 @@ fn init() {
         .try_init();
 }
 
-// TODO: Update error handling to no longer panic on possible errors
+// TODO: Update error handling to no longer panic on possible errors (address unwrap and panic)
 // TODO: Update error handling so that errors are represented in the saved results
+// TODO: Trace commits to all repositories and branches in which they appear in (required for analysis)
+// TODO: More filter options for GitHub sampling (e.g., number of commits, number of forks)
+// TODO: Create GitHub user for cherry-harvest and sign into octocrab for more requests/minute
+// TODO: Control request rate to GitHub to prevent limit reached errors
+// TODO: Try to improve performance of ANN similarity search by using FAISS
+// TODO: Set up Docker
 
 fn main() {
     init();
