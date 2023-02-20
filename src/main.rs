@@ -6,6 +6,7 @@ use cherry_harvest::{ExactDiffMatch, MessageScan, SearchMethod, TraditionalLSH};
 use chrono::NaiveDate;
 use log::LevelFilter;
 use std::collections::HashMap;
+use std::fs;
 
 fn init() {
     let _ = env_logger::builder()
@@ -24,7 +25,7 @@ fn main() {
         NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
         NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
     );
-    let sampler = GitHubSampler::new(range, 1, Some(20));
+    let sampler = GitHubSampler::new(range, 1, Some(5));
     let sample_runs = 1;
 
     let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
@@ -48,6 +49,11 @@ fn main() {
             for (key, val) in result_map {
                 info!("{key}: {}", val.len());
             }
+
+            // TODO: improve results storage
+            let results = serde_yaml::to_string(&results).unwrap();
+            let path = format!("output/{}.yaml", network.source().name);
+            fs::write(path, results).unwrap();
         }
     }
 }
