@@ -1,5 +1,6 @@
 extern crate core;
 
+use cherry_harvest::git::GitRepository;
 use cherry_harvest::{ExactDiffMatch, SearchMethod, TraditionalLSH};
 use log::{debug, info, LevelFilter};
 use std::collections::HashSet;
@@ -20,14 +21,14 @@ fn init() -> Instant {
 fn traditional_lsh_finds_exact() {
     let start = init();
     let print = false;
-    let repo = cherry_harvest::RepoLocation::Filesystem(PathBuf::from(Path::new(
-        "/home/alex/data/busybox/",
+    let repo = GitRepository::from(cherry_harvest::RepoLocation::Filesystem(PathBuf::from(
+        Path::new("/home/alex/data/busybox/"),
     )));
     // let repo = cherry_harvest::RepoLocation::Server("https://github.com/VariantSync/DiffDetective");
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
     let lsh_search = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
     let methods = vec![exact_diff, lsh_search];
-    let results = cherry_harvest::search_with_multiple(&repo, &methods);
+    let results = cherry_harvest::search_with_multiple(&[&repo], &methods);
 
     let mut exact_results = HashSet::new();
     let mut lsh_results = HashSet::new();

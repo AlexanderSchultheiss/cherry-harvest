@@ -1,8 +1,7 @@
 mod forks;
 
 use crate::error::{Error, ErrorKind};
-use crate::RepoLocation;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use log::{debug, error};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
@@ -10,30 +9,12 @@ use reqwest::Url;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-pub struct GitHubRepo {
-    id: RepositoryId,
-    name: String,
-    location: RepoLocation,
-    owner: Option<String>,
-    n_branches: Option<u32>,
-    n_commits: Option<u32>,
-    n_authors: Option<u32>,
-    n_languages: Option<u32>,
-    n_forks: Option<u32>,
-    n_stars: Option<u32>,
-    main_language: Option<String>,
-    languages: Option<Vec<String>>,
-    creation_date: Option<DateTime<Utc>>,
-    last_updated: Option<DateTime<Utc>>,
-    last_pushed: Option<DateTime<Utc>>,
-}
-
-impl From<&OctoRepo> for GitHubRepo {
+impl From<&OctoRepo> for GitRepository {
     fn from(octo_repo: &OctoRepo) -> Self {
-        GitHubRepo {
+        GitRepository {
             id: octo_repo.id,
             name: octo_repo.name.clone(),
-            location: RepoLocation::Server(octo_repo.url.to_string()),
+            location: RepoLocation::Server(octo_repo.clone_url.as_ref().unwrap().to_string()),
             main_language: octo_repo.language.as_ref().map(|v| v.to_string()),
             n_stars: octo_repo.stargazers_count,
             creation_date: octo_repo.created_at,
@@ -53,7 +34,7 @@ impl From<&OctoRepo> for GitHubRepo {
 
 // TODO: Document
 pub struct ForkNetwork {
-    repositories: HashMap<RepositoryId, GitHubRepo>,
+    repositories: HashMap<RepositoryId, GitRepository>,
     // The id of the repository at the root of the network
     source_id: RepositoryId,
     // Maps child ids to parent ids. Only includes repos that have a parent.
@@ -144,7 +125,7 @@ impl ForkNetwork {
         // Convert all repos
         let repository_map = repository_map
             .into_iter()
-            .map(|(k, v)| (k, GitHubRepo::from(&v)))
+            .map(|(k, v)| (k, GitRepository::from(&v)))
             .collect();
 
         Self {
@@ -160,11 +141,11 @@ impl ForkNetwork {
         self.repositories.keys().copied().collect()
     }
 
-    pub fn repositories(&self) -> Vec<&GitHubRepo> {
+    pub fn repositories(&self) -> Vec<&GitRepository> {
         self.repositories.values().collect()
     }
 
-    pub fn forks(&self, repo: &GitHubRepo) -> Option<Vec<&GitHubRepo>> {
+    pub fn forks(&self, repo: &GitRepository) -> Option<Vec<&GitRepository>> {
         match self.forks.get(&repo.id) {
             None => None,
             Some(fork_ids) => fork_ids
@@ -178,7 +159,7 @@ impl ForkNetwork {
         self.repositories.len()
     }
 
-    pub fn source(&self) -> &GitHubRepo {
+    pub fn source(&self) -> &GitRepository {
         self.repositories.get(&self.source_id).unwrap()
     }
 }
@@ -190,12 +171,12 @@ impl Display for ForkNetwork {
         fn write_children(
             f: &mut Formatter<'_>,
             network: &ForkNetwork,
-            start: &GitHubRepo,
+            start: &GitRepository,
             format_text: &str,
         ) -> std::fmt::Result {
-            write!(
+            writeln!(
                 f,
-                "{}- {}: {}/{}\n",
+                "{}- {}: {}/{}",
                 format_text,
                 start.id,
                 start.owner.as_ref().unwrap(),
@@ -244,7 +225,10 @@ async fn get_page<T: serde::de::DeserializeOwned>(
     octocrab::instance().get_page::<T>(url).await
 }
 
+use crate::git::GitRepository;
+use crate::RepoLocation;
 use forks::ForksExt;
+
 async fn forks_api(forks_url_for_repo: Url) -> Result<Page<OctoRepo>, octocrab::Error> {
     octocrab::instance()
         .forks()

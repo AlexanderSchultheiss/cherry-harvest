@@ -1,13 +1,12 @@
 use bit_vec::BitVec;
-use cherry_harvest::git::{IdeaPatch, LoadedRepository};
+use cherry_harvest::git::IdeaPatch;
 use cherry_harvest::search::methods::lsh::preprocessing::{
     preprocess_commits, shingle_diff, MinHash, ShingledText, Vocabulary,
 };
 use cherry_harvest::{collect_commits, git, Commit, Diff, RepoLocation};
 use criterion::{criterion_group, criterion_main, Criterion};
-use git2::BranchType;
 use rand::random;
-use std::path::Path;
+use std::path::PathBuf;
 
 pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
     c.bench_function("shingle_arity_3", |b| {
@@ -21,19 +20,13 @@ pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
 }
 
 const DATASET: &str = "/home/alex/data/VEVOS_Simulation";
-fn repo_location() -> RepoLocation<'static> {
-    RepoLocation::Filesystem(Path::new(DATASET))
+fn repo_location() -> RepoLocation {
+    RepoLocation::Filesystem(PathBuf::from(DATASET))
 }
 
 pub fn vocabulary_building(c: &mut Criterion) {
-    let commits = match git::clone_or_load(&repo_location()).unwrap() {
-        LoadedRepository::LocalRepo { repository, .. } => {
-            collect_commits(&repository, BranchType::Local)
-        }
-        LoadedRepository::RemoteRepo { repository, .. } => {
-            collect_commits(&repository, BranchType::Remote)
-        }
-    };
+    let repository = git::clone_or_load(&repo_location()).unwrap();
+    let commits = collect_commits(&[repository]);
     let shingled_diffs: Vec<ShingledText> =
         commits.iter().map(|c| shingle_diff(c.diff(), 3)).collect();
     c.bench_function("build_shingle_vocab", |b| {
@@ -61,14 +54,8 @@ pub fn minhash(c: &mut Criterion) {
 }
 
 pub fn commit_preprocessing(c: &mut Criterion) {
-    let commits = match git::clone_or_load(&repo_location()).unwrap() {
-        LoadedRepository::LocalRepo { repository, .. } => {
-            collect_commits(&repository, BranchType::Local)
-        }
-        LoadedRepository::RemoteRepo { repository, .. } => {
-            collect_commits(&repository, BranchType::Remote)
-        }
-    };
+    let repository = git::clone_or_load(&repo_location()).unwrap();
+    let commits = collect_commits(&[repository]);
     let commits: Vec<Commit> = commits.into_iter().collect();
     c.bench_function("preprocess_commits", |b| {
         b.iter(|| {

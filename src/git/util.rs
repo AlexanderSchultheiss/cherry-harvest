@@ -4,7 +4,7 @@ use crate::git::{Commit, Diff, LoadedRepository, RepoLocation};
 use firestorm::profile_fn;
 use git2::{Branch, BranchType, Commit as G2Commit, Oid, Repository as G2Repository};
 use log::{debug, error, info};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use temp_dir::TempDir;
 
@@ -68,32 +68,44 @@ fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
 }
 
 /// Collect the commits of all local or all remote branches depending on the given BranchType
-pub fn collect_commits(repository: &G2Repository, branch_type: BranchType) -> HashSet<Commit> {
+pub fn collect_commits(repositories: &[LoadedRepository]) -> HashSet<Commit> {
     profile_fn!(collect_commits);
-    let branch_heads = branch_heads(repository, branch_type);
-    debug!(
-        "found {} heads of {:?} branches in repository.",
-        branch_heads.len(),
-        branch_type
-    );
+    // track commits and the repositories in which they appear. Repos are identified by their path,
+    // because G2Repository does not implement Hash etc.
+    let mut commits: HashMap<HashableG2Commit, &G2Repository> = HashMap::new();
 
-    let commits: HashSet<HashableG2Commit> = branch_heads
-        .iter()
-        .flat_map(|h| history_for_commit(repository, h.id()))
-        .collect();
-    info!(
-        "found {} commits in {} {:?} branches",
-        commits.len(),
-        branch_heads.len(),
-        branch_type,
-    );
+    // Collect the raw commits of each repo
+    for (i, loaded_repository) in repositories.iter().enumerate() {
+        let (repository, branch_type) = match loaded_repository {
+            LocalRepo { repository, .. } => (repository, BranchType::Local),
+            RemoteRepo { repository, .. } => (repository, BranchType::Remote),
+        };
+        let branch_heads = branch_heads(repository, branch_type);
+        debug!(
+            "found {} heads of {:?} branches in {i}. repository.",
+            branch_heads.len(),
+            branch_type
+        );
+
+        branch_heads
+            .iter()
+            .flat_map(|h| history_for_commit(repository, h.id()))
+            .for_each(|c| {
+                // hereby, we filter duplicate commits and trace each commit to the first repo it
+                // was found in
+                commits.entry(c).or_insert(repository);
+            });
+
+        info!("found {} commits in {i}. repository.", commits.len(),);
+    }
+    info!("found {} unique commits", commits.len());
     info!("converting all commits to internal representation with a diff");
     let mut converted_commits = HashSet::with_capacity(commits.len());
-    for (i, hashable_commit) in commits.into_iter().enumerate() {
-        if i % 5000 == 0 {
-            info!("converted {i} commits");
+    for (i, (hashable_commit, associated_repo)) in commits.into_iter().enumerate() {
+        if i > 0 && i % 5000 == 0 {
+            info!("converted {i} commits...");
         }
-        converted_commits.insert(convert_commit(repository, hashable_commit.commit));
+        converted_commits.insert(convert_commit(associated_repo, hashable_commit.commit));
     }
     converted_commits
 }

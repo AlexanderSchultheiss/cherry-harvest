@@ -1,8 +1,10 @@
 mod util;
 
+use chrono::{DateTime, Utc};
 use derivative::Derivative;
 use firestorm::{profile_fn, profile_method, profile_section};
 use git2::{Diff as G2Diff, DiffFormat, Repository as G2Repo, Time};
+use octocrab::models::RepositoryId;
 use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
 use std::collections::HashMap;
@@ -12,6 +14,79 @@ use temp_dir::TempDir;
 
 pub use util::clone_or_load;
 pub use util::collect_commits;
+
+#[derive(Debug, Clone)]
+pub struct GitRepository {
+    pub id: RepositoryId,
+    pub name: String,
+    pub location: RepoLocation,
+    pub owner: Option<String>,
+    pub n_branches: Option<u32>,
+    pub n_commits: Option<u32>,
+    pub n_authors: Option<u32>,
+    pub n_languages: Option<u32>,
+    pub n_forks: Option<u32>,
+    pub n_stars: Option<u32>,
+    pub main_language: Option<String>,
+    pub languages: Option<Vec<String>>,
+    pub creation_date: Option<DateTime<Utc>>,
+    pub last_updated: Option<DateTime<Utc>>,
+    pub last_pushed: Option<DateTime<Utc>>,
+}
+
+impl GitRepository {
+    pub fn new_simple(id: u64, name: String, location: RepoLocation) -> Self {
+        Self {
+            id: RepositoryId(id),
+            name,
+            location,
+            owner: None,
+            n_branches: None,
+            n_commits: None,
+            n_authors: None,
+            n_languages: None,
+            n_forks: None,
+            n_stars: None,
+            main_language: None,
+            languages: None,
+            creation_date: None,
+            last_updated: None,
+            last_pushed: None,
+        }
+    }
+}
+
+static mut COUNTER: u64 = 0;
+
+/// Simplistic implementation for the purpose of easy testing
+impl From<RepoLocation> for GitRepository {
+    fn from(location: RepoLocation) -> Self {
+        let name = location.to_string();
+        let id = unsafe {
+            // This is only here to make sure that no two RepoLocations have the same id.
+            // Use other initialization functions, if real ids are to be used.
+            COUNTER += 1;
+            RepositoryId(COUNTER)
+        };
+        Self {
+            id,
+            name,
+            location,
+            owner: None,
+            n_branches: None,
+            n_commits: None,
+            n_authors: None,
+            n_languages: None,
+            n_forks: None,
+            n_stars: None,
+            main_language: None,
+            languages: None,
+            creation_date: None,
+            last_updated: None,
+            last_pushed: None,
+        }
+    }
+}
 
 /// The location of a git repository. A repository can either be located locally in the file system or
 /// online on a server.
@@ -34,6 +109,7 @@ pub use util::collect_commits;
 /// let path_buf = env::current_dir().unwrap();
 /// let location = RepoLocation::Filesystem(path_buf);
 /// ```
+#[derive(Debug, Clone)]
 pub enum RepoLocation {
     Filesystem(PathBuf),
     Server(String),

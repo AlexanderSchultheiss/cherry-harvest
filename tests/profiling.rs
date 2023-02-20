@@ -1,3 +1,4 @@
+use cherry_harvest::git::GitRepository;
 use cherry_harvest::{ExactDiffMatch, RepoLocation, TraditionalLSH};
 use log::{info, LevelFilter};
 use std::path::{Path, PathBuf};
@@ -14,8 +15,8 @@ fn init() -> Instant {
     Instant::now()
 }
 
-fn repo_location() -> RepoLocation {
-    RepoLocation::Filesystem(PathBuf::from(Path::new(DATASET)))
+fn repo() -> GitRepository {
+    GitRepository::from(RepoLocation::Filesystem(PathBuf::from(Path::new(DATASET))))
 }
 
 #[test]
@@ -26,7 +27,7 @@ fn message_based() {
     let call = || {
         // Last search runtime was 0.0s
         let search_method = cherry_harvest::MessageScan::default();
-        let _ = cherry_harvest::search_with(&repo_location(), search_method);
+        let _ = cherry_harvest::search_with(&[&repo()], search_method);
     };
 
     if firestorm::enabled() {
@@ -42,7 +43,7 @@ fn exact_match() {
     let start = init();
     let call = || {
         let search_method = ExactDiffMatch::default();
-        let _ = cherry_harvest::search_with(&repo_location(), search_method);
+        let _ = cherry_harvest::search_with(&[&repo()], search_method);
     };
 
     if firestorm::enabled() {
@@ -59,7 +60,7 @@ fn traditional_lsh_similarity_search() {
 
     let call = || {
         let search_method = TraditionalLSH::new(8, 100, 5, 0.7);
-        let _ = cherry_harvest::search_with(&repo_location(), search_method);
+        let _ = cherry_harvest::search_with(&[&repo()], search_method);
     };
 
     if firestorm::enabled() {
