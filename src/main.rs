@@ -23,6 +23,7 @@ fn init() {
 // TODO: Control request rate to GitHub to prevent limit reached errors
 // TODO: Try to improve performance of ANN similarity search by using FAISS
 // TODO: Set up Docker
+// TODO: Set up GitHub repos as fork network with known cherry-picks to validate functionality
 
 fn main() {
     init();
