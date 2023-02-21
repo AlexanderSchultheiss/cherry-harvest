@@ -24,6 +24,7 @@ fn init() {
 // TODO: Try to improve performance of ANN similarity search by using FAISS
 // TODO: Set up Docker
 // TODO: Set up GitHub repos as fork network with known cherry-picks to validate functionality
+// TODO: Plot abbreviated history with cherry-picks as graph (only show relevant events) (svg export)?
 
 fn main() {
     init();
