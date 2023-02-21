@@ -7,12 +7,28 @@ use chrono::NaiveDate;
 use log::LevelFilter;
 use std::collections::HashMap;
 use std::fs;
+use std::process::exit;
 
 fn init() {
     let _ = env_logger::builder()
         .is_test(true)
         .filter_level(LevelFilter::Debug)
         .try_init();
+
+    let token = fs::read_to_string(".authentication").map(|s| match s.is_empty() {
+        true => Some(s),
+        false => None,
+    });
+
+    // Static initialization with a token
+    if let Ok(Some(token)) = token {
+        if let Err(error) =
+            octocrab::initialise(octocrab::Octocrab::builder().personal_token(token))
+        {
+            error!("problem while initializing octocrab: {error}");
+            exit(1);
+        }
+    }
 }
 
 // TODO: Update error handling to no longer panic on possible errors (address unwrap and panic)
