@@ -27,6 +27,7 @@ fn init() {
 // TODO: Plot abbreviated history with cherry-picks as graph (only show relevant events) (svg export)?
 // TODO: Set up all tests to not require local repositories
 // TODO: External configuration file
+// TODO: Reduce type overhead: the lib is working with three different commit types and three different repository types
 
 fn main() {
     init();
@@ -43,13 +44,14 @@ fn main() {
     let lsh_search = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
     let methods = vec![message_based, exact_diff, lsh_search];
 
-    for sample in sampler.take(sample_runs) {
+    sampler.take(sample_runs).for_each(|sample| {
         info!("sampled {} networks", sample.networks().len());
         for (id, network) in sample.networks().iter().enumerate() {
             info!("sampled {} repositories in network {id}", network.len());
-            // TODO: Integrate GitHubRepo in cherry-harvest calls
+
             let results = cherry_harvest::search_with_multiple(&network.repositories(), &methods);
             info!("found a total of {} results", results.len());
+
             let mut result_map = HashMap::new();
             results.iter().for_each(|r| {
                 let method = r.search_method();
@@ -65,5 +67,5 @@ fn main() {
             let path = format!("output/{}.yaml", network.source().name);
             fs::write(path, results).unwrap();
         }
-    }
+    });
 }
