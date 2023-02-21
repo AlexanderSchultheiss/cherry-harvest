@@ -39,3 +39,7 @@ harness = false
 [[bench]]
 name = "similarity"
 harness = false
+
+[[bench]]
+name = "repo_loading"
+harness = false
