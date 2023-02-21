@@ -25,6 +25,8 @@ fn init() {
 // TODO: Set up Docker
 // TODO: Set up GitHub repos as fork network with known cherry-picks to validate functionality
 // TODO: Plot abbreviated history with cherry-picks as graph (only show relevant events) (svg export)?
+// TODO: Set up all tests to not require local repositories
+// TODO: External configuration file
 
 fn main() {
     init();
