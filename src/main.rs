@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use cherry_harvest::setup::sampling::{GitHubSampler, SampleRange};
+use cherry_harvest::sampling::{GitHubSampler, SampleRange};
 use cherry_harvest::{ExactDiffMatch, MessageScan, SearchMethod, TraditionalLSH};
 use chrono::NaiveDate;
 use log::LevelFilter;

@@ -1,3 +1,4 @@
+pub mod github;
 mod util;
 
 use chrono::{DateTime, Utc};
