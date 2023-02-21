@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use derivative::Derivative;
 use firestorm::{profile_fn, profile_method, profile_section};
 use git2::{Diff as G2Diff, DiffFormat, Repository as G2Repo, Time};
+use octocrab::models::Repository as OctoRepo;
 use octocrab::models::RepositoryId;
 use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
@@ -53,6 +54,29 @@ impl GitRepository {
             creation_date: None,
             last_updated: None,
             last_pushed: None,
+        }
+    }
+}
+
+impl From<&OctoRepo> for GitRepository {
+    fn from(octo_repo: &OctoRepo) -> Self {
+        GitRepository {
+            id: octo_repo.id,
+            name: octo_repo.name.clone(),
+            location: RepoLocation::Server(octo_repo.clone_url.as_ref().unwrap().to_string()),
+            main_language: octo_repo.language.as_ref().map(|v| v.to_string()),
+            n_stars: octo_repo.stargazers_count,
+            creation_date: octo_repo.created_at,
+            last_updated: octo_repo.updated_at,
+            last_pushed: octo_repo.pushed_at,
+            n_forks: octo_repo.forks_count,
+            owner: octo_repo.owner.as_ref().map(|u| u.login.clone()),
+            // TODO: retrieve missing values
+            n_branches: None,
+            n_commits: None,
+            n_authors: None,
+            n_languages: None,
+            languages: None,
         }
     }
 }

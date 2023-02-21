@@ -1,6 +1,8 @@
-mod forks;
+mod extensions;
 
 use crate::error::{Error, ErrorKind};
+use crate::git::github::extensions::ForksExt;
+use crate::git::GitRepository;
 use chrono::NaiveDateTime;
 use log::{debug, error};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
@@ -8,29 +10,6 @@ use octocrab::Page;
 use reqwest::Url;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-
-impl From<&OctoRepo> for GitRepository {
-    fn from(octo_repo: &OctoRepo) -> Self {
-        GitRepository {
-            id: octo_repo.id,
-            name: octo_repo.name.clone(),
-            location: RepoLocation::Server(octo_repo.clone_url.as_ref().unwrap().to_string()),
-            main_language: octo_repo.language.as_ref().map(|v| v.to_string()),
-            n_stars: octo_repo.stargazers_count,
-            creation_date: octo_repo.created_at,
-            last_updated: octo_repo.updated_at,
-            last_pushed: octo_repo.pushed_at,
-            n_forks: octo_repo.forks_count,
-            owner: octo_repo.owner.as_ref().map(|u| u.login.clone()),
-            // TODO: retrieve missing values
-            n_branches: None,
-            n_commits: None,
-            n_authors: None,
-            n_languages: None,
-            languages: None,
-        }
-    }
-}
 
 // TODO: Document
 pub struct ForkNetwork {
@@ -206,7 +185,8 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
     };
 
     // Retrieve the first page with forks
-    let api_result: Result<Page<OctoRepo>, octocrab::Error> = forks_api(url).await;
+    let api_result: Result<Page<OctoRepo>, octocrab::Error> =
+        octocrab::instance().list_forks(url).await;
     let page = match api_result {
         Ok(page) => page,
         Err(error) => {
@@ -223,18 +203,6 @@ async fn get_page<T: serde::de::DeserializeOwned>(
     url: &Option<Url>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
     octocrab::instance().get_page::<T>(url).await
-}
-
-use crate::git::GitRepository;
-use crate::RepoLocation;
-use forks::ForksExt;
-
-async fn forks_api(forks_url_for_repo: Url) -> Result<Page<OctoRepo>, octocrab::Error> {
-    octocrab::instance()
-        .forks()
-        .list(forks_url_for_repo)
-        .send()
-        .await
 }
 
 pub async fn repos_created_in_time_range(
