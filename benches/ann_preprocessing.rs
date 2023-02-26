@@ -1,6 +1,6 @@
 use bit_vec::BitVec;
 use cherry_harvest::git::IdeaPatch;
-use cherry_harvest::search::methods::lsh::preprocessing::{
+use cherry_harvest::search::methods::traditional_lsh::preprocessing::{
     preprocess_commits, shingle_diff, MinHash, ShingledText, Vocabulary,
 };
 use cherry_harvest::{collect_commits, git, Commit, Diff, RepoLocation};

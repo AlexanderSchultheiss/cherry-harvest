@@ -271,7 +271,7 @@ impl MinHash {
 #[cfg(test)]
 mod tests {
     use crate::git::IdeaPatch;
-    use crate::search::methods::lsh::preprocessing::{
+    use crate::search::methods::traditional_lsh::preprocessing::{
         preprocess_texts, shingle_diff, MinHash, ShingledText, Signature, Vocabulary,
     };
     use crate::Diff;

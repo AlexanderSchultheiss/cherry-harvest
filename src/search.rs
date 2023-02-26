@@ -6,8 +6,8 @@ use std::collections::HashSet;
 pub mod methods;
 
 pub use methods::exact_diff::ExactDiffMatch;
-pub use methods::lsh::TraditionalLSH;
 pub use methods::message_scan::MessageScan;
+pub use methods::traditional_lsh::TraditionalLSH;
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CherryAndTarget {

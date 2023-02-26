@@ -1,7 +1,7 @@
 mod compare;
 pub mod preprocessing;
 
-use crate::search::methods::lsh::preprocessing::{preprocess_commits, Signature};
+use crate::search::methods::traditional_lsh::preprocessing::{preprocess_commits, Signature};
 use crate::{CherryAndTarget, Commit, SearchMethod, SearchResult};
 use firestorm::profile_method;
 use log::{debug, info};
@@ -225,7 +225,7 @@ impl IdPair {
 
 #[cfg(test)]
 mod tests {
-    use crate::search::methods::lsh::{split_signature, Band};
+    use crate::search::methods::traditional_lsh::{split_signature, Band};
     use std::iter::zip;
 
     #[test]

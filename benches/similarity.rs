@@ -1,4 +1,4 @@
-use cherry_harvest::search::methods::lsh::DiffSimilarity;
+use cherry_harvest::search::methods::traditional_lsh::DiffSimilarity;
 use cherry_harvest::{collect_commits, git, Commit, RepoLocation};
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::path::PathBuf;
