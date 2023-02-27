@@ -35,6 +35,10 @@ rust-bert = "0.20.0"
 criterion = "0.4.0"
 criterion-macro = "0.4.0"
 
+[features]
+default = ["faiss"]
+faiss = []
+
 [[bench]]
 name = "ann_preprocessing"
 harness = false

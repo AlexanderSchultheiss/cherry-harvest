@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate log;
-
 use cherry_harvest::sampling::{GitHubSampler, SampleRange};
+#[cfg(feature = "faiss")]
+use cherry_harvest::search::methods::random_projections_lsh::RandomProjectionsLSH;
 use cherry_harvest::{ExactDiffMatch, MessageScan, SearchMethod, TraditionalLSH};
 use chrono::NaiveDate;
 use log::LevelFilter;
@@ -15,7 +16,7 @@ fn init() {
         .filter_level(LevelFilter::Debug)
         .try_init();
 
-    let token = fs::read_to_string(".authentication").map(|s| match s.is_empty() {
+    let token = fs::read_to_string(".authentication").map(|s| match !s.is_empty() {
         true => Some(s),
         false => None,
     });
@@ -57,8 +58,15 @@ fn main() {
 
     let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
-    let lsh_search = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
-    let methods = vec![message_based, exact_diff, lsh_search];
+    let lsh_traditional = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
+    let methods = vec![message_based, exact_diff, lsh_traditional];
+
+    #[cfg(feature = "faiss")]
+    let lsh_random = Box::new(RandomProjectionsLSH::new(15, 16, 0.7)) as Box<dyn SearchMethod>;
+    #[cfg(feature = "faiss")]
+    let mut methods = methods;
+    #[cfg(feature = "faiss")]
+    methods.push(lsh_random);
 
     sampler.take(sample_runs).for_each(|sample| {
         info!("sampled {} networks", sample.networks().len());

@@ -1,6 +1,7 @@
 extern crate core;
 
 use cherry_harvest::git::GitRepository;
+#[cfg(feature = "faiss")]
 use cherry_harvest::search::methods::random_projections_lsh::RandomProjectionsLSH;
 use cherry_harvest::{ExactDiffMatch, SearchMethod, TraditionalLSH};
 use log::{debug, info, LevelFilter};
@@ -21,12 +22,11 @@ fn init() -> Instant {
 }
 
 #[test]
-#[ignore]
 fn traditional_lsh_finds_exact() {
     let start = init();
     let print = false;
     let repo = GitRepository::from(cherry_harvest::RepoLocation::Filesystem(PathBuf::from(
-        Path::new("/home/alex/data/busybox/"),
+        Path::new("/home/alex/data/cherries-one/"),
     )));
     // let repo = cherry_harvest::RepoLocation::Server("https://github.com/VariantSync/DiffDetective");
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
@@ -73,7 +73,7 @@ fn traditional_lsh_finds_exact() {
 }
 
 #[test]
-#[ignore]
+#[cfg(feature = "faiss")]
 fn random_projections_lsh_finds_exact() {
     let start = init();
     let print = false;
@@ -82,7 +82,7 @@ fn random_projections_lsh_finds_exact() {
     )));
     // let repo = cherry_harvest::RepoLocation::Server("https://github.com/VariantSync/DiffDetective");
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
-    let lsh_search = Box::new(RandomProjectionsLSH::new()) as Box<dyn SearchMethod>;
+    let lsh_search = Box::new(RandomProjectionsLSH::new(20, 24, 0.7)) as Box<dyn SearchMethod>;
     let methods = vec![exact_diff, lsh_search];
     let results = cherry_harvest::search_with_multiple(&[&repo], &methods);
 
@@ -125,12 +125,13 @@ fn random_projections_lsh_finds_exact() {
 }
 
 #[test]
+#[cfg(feature = "faiss")]
 fn faiss_test() {
     use faiss::{index_factory, Index, MetricType};
     let my_data = [1., 2., 3.];
     let my_query = [1., 2., 3.];
 
-    let mut index = index_factory(64, "Flat", MetricType::L2).unwrap();
+    let mut index = index_factory(3, "Flat", MetricType::L2).unwrap();
     index.add(&my_data).unwrap();
 
     let result = index.search(&my_query, 5).unwrap();
@@ -140,12 +141,12 @@ fn faiss_test() {
         .zip(result.distances.iter())
         .enumerate()
     {
-        println!("#{}: {} (D={})", i + 1, *l, *d);
+        info!("#{}: {} (D={})", i + 1, *l, *d);
     }
-    println!("done");
 }
 
 #[test]
+#[cfg(feature = "faiss")]
 fn bert_test() {
     let model = SentenceEmbeddingsBuilder::remote(SentenceEmbeddingsModelType::AllMiniLmL12V2)
         .create_model()
@@ -155,6 +156,6 @@ fn bert_test() {
 
     let output = model.encode(&sentences);
     let output = output.unwrap();
-    println!("{:?}", output);
-    println!("L1:{}\nL2:{}", output[0].len(), output[1].len());
+    info!("{:?}", output);
+    info!("L1:{}\nL2:{}", output[0].len(), output[1].len());
 }

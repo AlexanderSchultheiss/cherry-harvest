@@ -1,6 +1,6 @@
 use crate::git::github::{repos_created_in_time_range, ForkNetwork};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
-use log::{debug, warn};
+use log::{debug, error, warn};
 use octocrab::models::RepositoryId;
 use rand::rngs::ThreadRng;
 use rand::Rng;
@@ -116,7 +116,8 @@ impl Iterator for GitHubSampler {
                         next = Some(repos);
                     }
                 }
-                Err(_) => {
+                Err(error) => {
+                    error!("{error}");
                     todo!()
                 }
                 Ok(None) => next = None,

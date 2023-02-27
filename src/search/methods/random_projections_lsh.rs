@@ -1,29 +1,37 @@
-use crate::git::{Commit, Diff};
-use crate::search::methods::traditional_lsh::preprocessing::preprocess_commits;
+use crate::git::Commit;
 use crate::search::methods::traditional_lsh::DiffSimilarity;
 use crate::{CherryAndTarget, SearchMethod, SearchResult};
-use faiss::{Index, LshIndex};
-use firestorm::{profile_fn, profile_method};
-use log::{debug, info};
+use faiss::{ConcurrentIndex, Index, LshIndex};
+use firestorm::profile_method;
+use log::info;
 use rust_bert::pipelines::sentence_embeddings::{
     SentenceEmbeddingsBuilder, SentenceEmbeddingsModelType,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::time::Instant;
 
 pub const NAME: &str = "RandomProjectionsLSH";
 
 #[derive(Default)]
-pub struct RandomProjectionsLSH();
+pub struct RandomProjectionsLSH {
+    n_neighbors: usize,
+    n_bits: u32,
+    threshold: f64,
+}
 
 impl RandomProjectionsLSH {
-    pub fn new() -> Self {
-        Self()
+    pub fn new(n_neighbors: usize, n_bits: u32, threshold: f64) -> Self {
+        Self {
+            n_neighbors,
+            n_bits,
+            threshold,
+        }
     }
 }
 
 impl SearchMethod for RandomProjectionsLSH {
     fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+        profile_method!("Faiss_search");
         info!("searching with random projections");
         let start = Instant::now();
         let model = SentenceEmbeddingsBuilder::remote(SentenceEmbeddingsModelType::AllMiniLmL12V2)
@@ -38,9 +46,8 @@ impl SearchMethod for RandomProjectionsLSH {
 
         // Do one time expensive preprocessing.
         let start = Instant::now();
-        use faiss::{index_factory, Index, MetricType};
-        let dim = diffs[0].len();
-        let mut index = LshIndex::new(dim as u32, 24).unwrap();
+        let dim = embeddings[0].len();
+        let mut index = LshIndex::new(dim as u32, self.n_bits).unwrap();
         for emb in &embeddings {
             index.add(emb).unwrap();
         }
@@ -48,27 +55,22 @@ impl SearchMethod for RandomProjectionsLSH {
         info!("finished table building in {:?}", start.elapsed());
 
         // Query in sublinear time.
-        let n_neighbors = 10;
         let mut cherries: HashSet<SearchResult> = HashSet::new();
-        debug!("embeddings_size: {}", embeddings.len());
         for (i, embedding) in embeddings.iter().enumerate() {
-            let result = index.search(embedding, n_neighbors).unwrap();
+            let result = index.search(embedding, self.n_neighbors).unwrap();
             let mut similarity_comparator = DiffSimilarity::new();
-            // println!("query: {}", commits.get(0).unwrap().message());
             for neighbor_id in result.labels {
-                let neighbor_id = neighbor_id.get().unwrap() as usize;
-                debug!(
-                    "result {neighbor_id}: {}",
-                    commits.get(neighbor_id).unwrap().message()
-                );
+                let neighbor_id = match neighbor_id.get() {
+                    None => continue,
+                    Some(id) => id as usize,
+                };
                 let commit_a = &commits[i];
                 let commit_b = &commits[neighbor_id];
                 if commit_a.id() == commit_b.id() {
                     continue;
                 }
-                if similarity_comparator.change_similarity(commit_a, commit_b) > 0.75 {
+                if similarity_comparator.change_similarity(commit_a, commit_b) > self.threshold {
                     let cherry_and_target = CherryAndTarget::construct(commit_a, commit_b);
-                    debug!("CaT: {cherry_and_target:?}");
                     cherries.insert(SearchResult {
                         search_method: self.name().to_string(),
                         cherry_and_target,
