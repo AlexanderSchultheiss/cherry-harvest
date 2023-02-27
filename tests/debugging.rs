@@ -1,7 +1,7 @@
 extern crate core;
 
 use cherry_harvest::git::GitRepository;
-// use cherry_harvest::search::methods::random_projections_lsh::RandomProjectionsLSH;
+use cherry_harvest::search::methods::random_projections_lsh::RandomProjectionsLSH;
 use cherry_harvest::{ExactDiffMatch, SearchMethod, TraditionalLSH};
 use log::{debug, info, LevelFilter};
 use rust_bert::pipelines::sentence_embeddings::{
@@ -78,7 +78,7 @@ fn random_projections_lsh_finds_exact() {
     let start = init();
     let print = false;
     let repo = GitRepository::from(cherry_harvest::RepoLocation::Filesystem(PathBuf::from(
-        Path::new("/home/alex/data/busybox/"),
+        Path::new("/home/alex/data/cherries-one/"),
     )));
     // let repo = cherry_harvest::RepoLocation::Server("https://github.com/VariantSync/DiffDetective");
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
@@ -142,6 +142,7 @@ fn faiss_test() {
     {
         println!("#{}: {} (D={})", i + 1, *l, *d);
     }
+    println!("done");
 }
 
 #[test]
