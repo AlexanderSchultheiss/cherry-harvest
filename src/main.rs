@@ -62,7 +62,7 @@ fn main() {
     let methods = vec![message_based, exact_diff, lsh_traditional];
 
     #[cfg(feature = "faiss")]
-    let lsh_random = Box::new(RandomProjectionsLSH::new(15, 16, 0.7)) as Box<dyn SearchMethod>;
+    let lsh_random = Box::new(RandomProjectionsLSH::new(35, 24, 0.7)) as Box<dyn SearchMethod>;
     #[cfg(feature = "faiss")]
     let mut methods = methods;
     #[cfg(feature = "faiss")]
