@@ -1,10 +1,9 @@
 use cherry_harvest::{collect_commits, git, RepoLocation};
 use criterion::{criterion_group, criterion_main, Criterion};
-use std::path::PathBuf;
 
-const DATASET: &str = "/home/alex/data/software-sync";
+const DATASET: &str = "https://github.com/AlexanderSchultheiss/cherries-one.git";
 fn repo_location() -> RepoLocation {
-    RepoLocation::Filesystem(PathBuf::from(DATASET))
+    RepoLocation::Server(DATASET.to_string())
 }
 
 pub fn commit_loading(c: &mut Criterion) {

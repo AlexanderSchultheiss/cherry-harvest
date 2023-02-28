@@ -1,10 +1,9 @@
 use cherry_harvest::git::GitRepository;
 use cherry_harvest::{ExactDiffMatch, RepoLocation, TraditionalLSH};
 use log::{info, LevelFilter};
-use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-const DATASET: &str = "/home/alex/data/VEVOS_Simulation/";
+const DATASET: &str = "https://github.com/AlexanderSchultheiss/VEVOS_Simulation.git";
 
 /// Initializes the logger and load the ground truth.
 fn init() -> Instant {
@@ -16,11 +15,10 @@ fn init() -> Instant {
 }
 
 fn repo() -> GitRepository {
-    GitRepository::from(RepoLocation::Filesystem(PathBuf::from(Path::new(DATASET))))
+    GitRepository::from(RepoLocation::Server(DATASET.to_string()))
 }
 
 #[test]
-#[ignore]
 fn message_based() {
     let start = init();
 
@@ -38,7 +36,6 @@ fn message_based() {
 }
 
 #[test]
-#[ignore]
 fn exact_match() {
     let start = init();
     let call = || {
@@ -54,7 +51,6 @@ fn exact_match() {
 }
 
 #[test]
-#[ignore]
 fn traditional_lsh_similarity_search() {
     let start = init();
 

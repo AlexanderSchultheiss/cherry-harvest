@@ -6,7 +6,6 @@ use cherry_harvest::search::methods::lsh::preprocessing::{
 use cherry_harvest::{collect_commits, git, Commit, Diff, RepoLocation};
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::random;
-use std::path::PathBuf;
 
 pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
     c.bench_function("shingle_arity_3", |b| {
@@ -19,9 +18,9 @@ pub fn shingle_arity_3_benchmark(c: &mut Criterion) {
     });
 }
 
-const DATASET: &str = "/home/alex/data/VEVOS_Simulation";
+const DATASET: &str = "https://github.com/VariantSync/VEVOS_Simulation.git";
 fn repo_location() -> RepoLocation {
-    RepoLocation::Filesystem(PathBuf::from(DATASET))
+    RepoLocation::Server(DATASET.to_string())
 }
 
 pub fn vocabulary_building(c: &mut Criterion) {
