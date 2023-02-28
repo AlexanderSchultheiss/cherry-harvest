@@ -1,4 +1,4 @@
-use crate::setup::github::{repos_created_in_time_range, ForkNetwork};
+use crate::git::github::{repos_created_in_time_range, ForkNetwork};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use log::{debug, warn};
 use octocrab::models::RepositoryId;
@@ -146,7 +146,7 @@ impl Iterator for GitHubSampler {
 
 #[cfg(test)]
 mod tests {
-    use crate::setup::sampling::{GitHubSampler, SampleRange};
+    use crate::sampling::{GitHubSampler, SampleRange};
     use chrono::NaiveDate;
     use log::LevelFilter;
 

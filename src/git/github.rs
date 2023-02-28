@@ -1,6 +1,8 @@
-mod forks;
+mod extensions;
 
 use crate::error::{Error, ErrorKind};
+use crate::git::github::extensions::ForksExt;
+use crate::git::GitRepository;
 use chrono::NaiveDateTime;
 use log::{debug, error};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
@@ -9,30 +11,14 @@ use reqwest::Url;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-impl From<&OctoRepo> for GitRepository {
-    fn from(octo_repo: &OctoRepo) -> Self {
-        GitRepository {
-            id: octo_repo.id,
-            name: octo_repo.name.clone(),
-            location: RepoLocation::Server(octo_repo.clone_url.as_ref().unwrap().to_string()),
-            main_language: octo_repo.language.as_ref().map(|v| v.to_string()),
-            n_stars: octo_repo.stargazers_count,
-            creation_date: octo_repo.created_at,
-            last_updated: octo_repo.updated_at,
-            last_pushed: octo_repo.pushed_at,
-            n_forks: octo_repo.forks_count,
-            owner: octo_repo.owner.as_ref().map(|u| u.login.clone()),
-            // TODO: retrieve missing values
-            n_branches: None,
-            n_commits: None,
-            n_authors: None,
-            n_languages: None,
-            languages: None,
-        }
-    }
-}
-
-// TODO: Document
+/// A ForkNetwork comprises repositories that are connected through parent-child relationships
+/// depending on whether one repo has been forked from the other. The network has the following
+/// properties:
+/// * Each network has a source repository
+/// * The source repository has no parent and can be deemed the original repository (i.e., the first one)
+/// * Each repository may at most have one parent and may have an arbitrary number of children
+/// * A network is a connected, directed, and acyclic graph.
+/// * A network consists of at least one repository: the source repository
 pub struct ForkNetwork {
     repositories: HashMap<RepositoryId, GitRepository>,
     // The id of the repository at the root of the network
@@ -48,6 +34,10 @@ pub struct ForkNetwork {
 impl ForkNetwork {
     // TODO: test
     // TODO: Refactor to improve readability
+    /// Build a new ForkNetwork for the given repository by searching GitHub for all its forks.
+    ///
+    /// * seed: A repository on GitHub
+    /// * max_forks: The maximum number of forks in the network that should be retrieved (if desired)
     pub fn build_from(seed: OctoRepo, max_forks: Option<usize>) -> Self {
         debug!("building fork network for {}:{}", seed.name, seed.id);
         let source_id;
@@ -137,14 +127,17 @@ impl ForkNetwork {
         }
     }
 
+    /// Returns the ids of all repositories in the network in arbitrary order
     pub fn repository_ids(&self) -> Vec<RepositoryId> {
         self.repositories.keys().copied().collect()
     }
 
+    /// Returns all references to all repositories in the network in arbitrary order
     pub fn repositories(&self) -> Vec<&GitRepository> {
         self.repositories.values().collect()
     }
 
+    /// Returns the references to the forks of the given repository in arbitrary order
     pub fn forks(&self, repo: &GitRepository) -> Option<Vec<&GitRepository>> {
         match self.forks.get(&repo.id) {
             None => None,
@@ -155,10 +148,12 @@ impl ForkNetwork {
         }
     }
 
+    /// Returns the number of repositories in the network.
     pub fn len(&self) -> usize {
         self.repositories.len()
     }
 
+    /// Returns a reference to the source repository.
     pub fn source(&self) -> &GitRepository {
         self.repositories.get(&self.source_id).unwrap()
     }
@@ -194,6 +189,9 @@ impl Display for ForkNetwork {
     }
 }
 
+/// Retrieves the forks for the given repository. This function collects forks until all forks have
+/// been retrieved or until the specified maximum number of forks has been retrieved, if one has been
+/// provided.
 async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Option<Vec<OctoRepo>> {
     match octo_repo.forks_count {
         None => return None,
@@ -206,7 +204,8 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
     };
 
     // Retrieve the first page with forks
-    let api_result: Result<Page<OctoRepo>, octocrab::Error> = forks_api(url).await;
+    let api_result: Result<Page<OctoRepo>, octocrab::Error> =
+        octocrab::instance().list_forks(url).await;
     let page = match api_result {
         Ok(page) => page,
         Err(error) => {
@@ -219,26 +218,14 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
     collect_repos_from_pages(page, max_forks).await
 }
 
-async fn get_page<T: serde::de::DeserializeOwned>(
-    url: &Option<Url>,
-) -> Result<Option<Page<T>>, octocrab::Error> {
-    octocrab::instance().get_page::<T>(url).await
-}
-
-use crate::git::GitRepository;
-use crate::RepoLocation;
-use forks::ForksExt;
-
-async fn forks_api(forks_url_for_repo: Url) -> Result<Page<OctoRepo>, octocrab::Error> {
-    octocrab::instance()
-        .forks()
-        .list(forks_url_for_repo)
-        .send()
-        .await
-}
-
+/// Retrieves repositories that were created in the given time range until `max_repos` have been
+/// retrieved.
+///
+/// In the case of this function, the `max_repos` parameter is _not_ optional, because
+/// trying to retrieve too many repositories will quickly result in a request block by GitHub.
+/// Thus, the number of repositories should be chosen with care.
 pub async fn repos_created_in_time_range(
-    n_repos: usize,
+    max_repos: usize,
     start: NaiveDateTime,
     end: NaiveDateTime,
 ) -> Result<Option<Vec<OctoRepo>>, Error> {
@@ -256,19 +243,21 @@ pub async fn repos_created_in_time_range(
         Err(error) => return Err(Error::new(ErrorKind::GitHub(error))),
     };
 
-    Ok(collect_repos_from_pages(page, Some(n_repos)).await)
+    Ok(collect_repos_from_pages(page, Some(max_repos)).await)
 }
 
+/// Collects repositories by iterating over all pages until `max_repos` repositories have been
+/// collected.
 async fn collect_repos_from_pages(
     start_page: Page<OctoRepo>,
-    n_repos: Option<usize>,
+    max_repos: Option<usize>,
 ) -> Option<Vec<OctoRepo>> {
     let mut page = start_page;
     let mut repos: Vec<OctoRepo> = vec![];
     'breakable: loop {
         // Collect repos in current page
         for repo in &page {
-            if Some(repos.len()) == n_repos {
+            if Some(repos.len()) == max_repos {
                 break 'breakable;
             }
             repos.push(repo.clone());
@@ -285,6 +274,7 @@ async fn collect_repos_from_pages(
     }
 }
 
+/// Retrieves the next page for the given page
 async fn next_page<T: serde::de::DeserializeOwned>(page: &Page<T>) -> Option<Page<T>> {
     match get_page::<T>(&page.next).await {
         Ok(Some(p)) => Some(p),
@@ -299,6 +289,13 @@ async fn next_page<T: serde::de::DeserializeOwned>(page: &Page<T>) -> Option<Pag
     }
 }
 
+/// Retrieves the page found at the given URL, if any is present.
+async fn get_page<T: serde::de::DeserializeOwned>(
+    url: &Option<Url>,
+) -> Result<Option<Page<T>>, octocrab::Error> {
+    octocrab::instance().get_page::<T>(url).await
+}
+
 pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab::Error> {
     octocrab::instance()
         .search()
@@ -306,6 +303,3 @@ pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab
         .send()
         .await
 }
-
-#[cfg(test)]
-mod tests {}

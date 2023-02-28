@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 pub mod error;
 pub mod git;
+pub mod sampling;
 pub mod search;
-pub mod setup;
 
 pub use error::Error;
 pub use git::Commit;
