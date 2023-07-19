@@ -44,6 +44,12 @@ fn init() {
 // TODO: Set up all tests to not require local repositories
 // TODO: External configuration file
 // TODO: Reduce type overhead: the lib is working with three different commit types and three different repository types
+//
+// Just read an interesting SCAM paper that has some nice ideas
+// TODO: Check whether we can consider the hashes of blobs instead of hashes of commits. Can we
+// focus on blobs overall?
+// TODO: Have a look at world of code: Does it comprise information that we can use? Does it
+// provide advantages over GitHub?
 
 fn main() {
     init();
