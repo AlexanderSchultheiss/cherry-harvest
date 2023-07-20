@@ -50,6 +50,10 @@ fn init() {
 // focus on blobs overall?
 // TODO: Have a look at world of code: Does it comprise information that we can use? Does it
 // provide advantages over GitHub?
+// TODO: WoC maps each Git repository to a central repository using the community detection
+// algorithm [1]
+// [1]: Mockus et al.: A complete set of related git repositories identified via community
+// detection approaches based on shared commits
 
 fn main() {
     init();
