@@ -47,11 +47,13 @@ impl SearchMethod for MessageScan {
                         // we have to increase the end_index by the number of bytes that were cut off through slicing
                         let end_index = end_index + index;
                         let cherry_id = String::from(&c.message()[index..end_index]);
-                        return Some(SearchResult::new(
-                            String::from(NAME),
-                            // Pair of Source-Target
-                            CherryAndTarget::new(commit_map.get(cherry_id.as_str()).unwrap(), c),
-                        ));
+                        if let Some(cherry) = commit_map.get(cherry_id.as_str()) {
+                            return Some(SearchResult::new(
+                                String::from(NAME),
+                                // Pair of Source-Target
+                                CherryAndTarget::new(cherry, c),
+                            ));
+                        }
                     }
                 }
                 None
