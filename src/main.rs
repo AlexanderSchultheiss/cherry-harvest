@@ -15,13 +15,14 @@ fn init() {
         .filter_level(LevelFilter::Debug)
         .try_init();
 
-    let token = fs::read_to_string(".authentication").map(|s| match s.is_empty() {
-        true => Some(s),
+    let token = fs::read_to_string(".github-api-token").map(|s| match !s.is_empty() {
+        true => Some(s.trim().to_owned()),
         false => None,
     });
 
     // Static initialization with a token
     if let Ok(Some(token)) = token {
+        info!("found GitHub API token {}", token);
         if let Err(error) =
             octocrab::initialise(octocrab::Octocrab::builder().personal_token(token))
         {
@@ -59,16 +60,14 @@ fn main() {
     init();
     info!("starting up");
     let range = SampleRange::new(
-        NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+        NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),
+        NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
     );
-    let sampler = GitHubSampler::new(range, 1, Some(5));
+    let sampler = GitHubSampler::new(range, 500, Some(5));
     let sample_runs = 1;
 
     let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
-    let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
-    let lsh_search = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
-    let methods = vec![message_based, exact_diff, lsh_search];
+    let methods = vec![message_based];
 
     sampler.take(sample_runs).for_each(|sample| {
         info!("sampled {} networks", sample.networks().len());
@@ -89,9 +88,11 @@ fn main() {
             }
 
             // TODO: improve results storage
-            let results = serde_yaml::to_string(&results).unwrap();
-            let path = format!("output/{}.yaml", network.source().name);
-            fs::write(path, results).unwrap();
+            if !results.is_empty() {
+                let results = serde_yaml::to_string(&results).unwrap();
+                let path = format!("output/{}.yaml", network.source().name);
+                fs::write(path, results).unwrap();
+            }
         }
     });
 }
