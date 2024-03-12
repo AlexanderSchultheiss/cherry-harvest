@@ -4,10 +4,10 @@ use crate::error::{Error, ErrorKind};
 use crate::git::github::extensions::ForksExt;
 use crate::git::GitRepository;
 use chrono::NaiveDateTime;
+use http::Uri;
 use log::{debug, error};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
-use reqwest::Url;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -263,7 +263,7 @@ async fn collect_repos_from_pages(
             repos.push(repo.clone());
         }
         // Get the next page
-        match next_page(&page).await {
+        match next_page(&page.next).await {
             None => break 'breakable,
             Some(p) => page = p,
         };
@@ -275,8 +275,8 @@ async fn collect_repos_from_pages(
 }
 
 /// Retrieves the next page for the given page
-async fn next_page<T: serde::de::DeserializeOwned>(page: &Page<T>) -> Option<Page<T>> {
-    match get_page::<T>(&page.next).await {
+async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Option<Page<T>> {
+    match get_page::<T>(page).await {
         Ok(Some(p)) => Some(p),
         Ok(None) => {
             // No more pages left
@@ -291,7 +291,7 @@ async fn next_page<T: serde::de::DeserializeOwned>(page: &Page<T>) -> Option<Pag
 
 /// Retrieves the page found at the given URL, if any is present.
 async fn get_page<T: serde::de::DeserializeOwned>(
-    url: &Option<Url>,
+    url: &Option<Uri>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
     octocrab::instance().get_page::<T>(url).await
 }

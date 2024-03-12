@@ -23,11 +23,14 @@ fn init() {
     // Static initialization with a token
     if let Ok(Some(token)) = token {
         info!("found GitHub API token {}", token);
-        if let Err(error) =
-            octocrab::initialise(octocrab::Octocrab::builder().personal_token(token))
-        {
-            error!("problem while initializing octocrab: {error}");
-            exit(1);
+        match octocrab::Octocrab::builder().personal_token(token).build() {
+            Ok(o) => {
+                octocrab::initialise(o);
+            }
+            Err(e) => {
+                error!("problem while initializing octocrab: {e}");
+                exit(1);
+            }
         }
     }
 }
