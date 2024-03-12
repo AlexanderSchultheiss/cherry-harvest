@@ -153,6 +153,10 @@ impl ForkNetwork {
         self.repositories.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns a reference to the source repository.
     pub fn source(&self) -> &GitRepository {
         self.repositories.get(&self.source_id).unwrap()
@@ -195,7 +199,7 @@ impl Display for ForkNetwork {
 async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Option<Vec<OctoRepo>> {
     match octo_repo.forks_count {
         None => return None,
-        Some(num) if num == 0 => return None,
+        Some(0) => return None,
         Some(num) => debug!("discovered {num} forks"),
     }
     let url = match &octo_repo.forks_url {

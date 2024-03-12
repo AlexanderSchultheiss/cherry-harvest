@@ -53,7 +53,7 @@ pub(crate) use firestorm::{profile_fn, profile_section};
 /// ```
 pub fn search_with_multiple(
     repos: &[&GitRepository],
-    methods: &Vec<Box<dyn SearchMethod>>,
+    methods: &[Box<dyn SearchMethod>],
 ) -> Vec<SearchResult> {
     let repo_locations: Vec<&RepoLocation> = repos.iter().map(|r| &r.location).collect();
     profile_fn!(search_with_multiple);
@@ -147,5 +147,5 @@ pub fn search_with<T: SearchMethod + 'static>(
     method: T,
 ) -> Vec<SearchResult> {
     profile_fn!(search_with);
-    search_with_multiple(repos, &vec![Box::new(method)])
+    search_with_multiple(repos, &[Box::new(method)])
 }

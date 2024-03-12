@@ -2,7 +2,7 @@
 extern crate log;
 
 use cherry_harvest::sampling::{GitHubSampler, SampleRange};
-use cherry_harvest::{ExactDiffMatch, MessageScan, SearchMethod, TraditionalLSH};
+use cherry_harvest::{MessageScan, SearchMethod};
 use chrono::NaiveDate;
 use log::LevelFilter;
 use std::collections::HashMap;

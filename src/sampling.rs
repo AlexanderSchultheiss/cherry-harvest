@@ -56,15 +56,15 @@ pub struct GitHubSampler {
 impl GitHubSampler {
     pub fn new(sample_range: SampleRange, sample_size: usize, max_forks: Option<usize>) -> Self {
         debug!("created new GitHubSampler for the time range {sample_range:#?} and sample size {sample_size}");
-        let sampler = Self {
+
+        Self {
             sample_range,
             previously_sampled: HashSet::new(),
             sample_size,
             max_forks,
             random: rand::thread_rng(),
             runtime: Runtime::new().unwrap(),
-        };
-        sampler
+        }
     }
 }
 

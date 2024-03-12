@@ -247,8 +247,13 @@ impl<'a> HashableG2Commit<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use git2::Oid;
+
+    use crate::{
+        git::{clone_or_load, util::commit_diff},
+        LoadedRepository::{LocalRepo, RemoteRepo},
+        RepoLocation,
+    };
 
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();

@@ -50,7 +50,7 @@ impl SearchMethod for ExactDiffMatch {
                     None
                 }
             })
-            .flat_map(build_all_possible_result_pairs)
+            .flat_map(|commit_vec| build_all_possible_result_pairs(commit_vec))
             .collect();
         debug!("found {} results in {:?}", results.len(), start.elapsed());
         results
@@ -61,7 +61,7 @@ impl SearchMethod for ExactDiffMatch {
     }
 }
 
-fn build_all_possible_result_pairs(commits: &Vec<&Commit>) -> Vec<SearchResult> {
+fn build_all_possible_result_pairs(commits: &[&Commit]) -> Vec<SearchResult> {
     profile_fn!(build_all_possible_result_pairs);
     let mut results = vec![];
     // consider all possible commit pairs in the vector of commits associated with the current diff

@@ -309,7 +309,7 @@ mod tests {
 
         let ones_in_intersection = one_hot_first
             .into_iter()
-            .zip(one_hot_second.into_iter())
+            .zip(one_hot_second)
             .map(|(first, second)| first & second)
             .filter(|v| *v)
             .count();
