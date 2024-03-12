@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::process::exit;
 
-fn init() {
+async fn init() {
     let _ = env_logger::builder()
         .is_test(true)
         .filter_level(LevelFilter::Debug)
@@ -66,7 +66,8 @@ fn init() {
 // detection approaches based on shared commits
 
 fn main() {
-    init();
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    runtime.block_on(init());
     info!("starting up");
     let range = SampleRange::new(
         NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),
