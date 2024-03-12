@@ -1,9 +1,12 @@
 #[macro_use]
 extern crate log;
 
-use cherry_harvest::sampling::{GitHubSampler, SampleRange};
+use cherry_harvest::git::github::ForkNetwork;
+use cherry_harvest::sampling::fully_random::FullyRandomSampler;
+use cherry_harvest::sampling::SampleRange;
 use cherry_harvest::{MessageScan, SearchMethod};
 use chrono::NaiveDate;
+use fallible_iterator::FallibleIterator;
 use log::LevelFilter;
 use std::collections::HashMap;
 use std::fs;
@@ -25,6 +28,7 @@ fn init() {
         info!("found GitHub API token {}", token);
         match octocrab::Octocrab::builder().personal_token(token).build() {
             Ok(o) => {
+                debug!("initializing octocrab with token");
                 octocrab::initialise(o);
             }
             Err(e) => {
@@ -48,6 +52,8 @@ fn init() {
 // TODO: Set up all tests to not require local repositories
 // TODO: External configuration file
 // TODO: Reduce type overhead: the lib is working with three different commit types and three different repository types
+// TODO: Decent CLI
+// TODO: Allow analysis of specific repositories
 //
 // Just read an interesting SCAM paper that has some nice ideas
 // TODO: Check whether we can consider the hashes of blobs instead of hashes of commits. Can we
@@ -66,16 +72,20 @@ fn main() {
         NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),
         NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
     );
-    let sampler = GitHubSampler::new(range, 500, Some(5));
-    let sample_runs = 1;
+    let sampler = FullyRandomSampler::new(range);
+    let sample_size = 10;
 
     let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
     let methods = vec![message_based];
 
-    sampler.take(sample_runs).for_each(|sample| {
-        info!("sampled {} networks", sample.networks().len());
-        for (id, network) in sample.networks().iter().enumerate() {
-            info!("sampled {} repositories in network {id}", network.len());
+    sampler
+        .iterator()
+        .take(sample_size)
+        .filter(|r| r.is_ok())
+        .map(|r| r.unwrap())
+        .for_each(|repo| {
+            let network = ForkNetwork::build_from(repo, Some(5));
+            info!("sampled {} repositories in network", network.len());
 
             let results = cherry_harvest::search_with_multiple(&network.repositories(), &methods);
             info!("found a total of {} results", results.len());
@@ -96,6 +106,5 @@ fn main() {
                 let path = format!("output/{}.yaml", network.source().name);
                 fs::write(path, results).unwrap();
             }
-        }
-    });
+        });
 }

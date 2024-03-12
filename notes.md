@@ -158,3 +158,12 @@ ngrammatic's internal search heuristic is actually slower than brute force, beca
 - Perhaps we should explicitly look for reverted commits?
   - our similarity approach would find reverted commits and classify them as cherry-pick, that is not what we intend
   - It could also be interesting to see, how often a commit was reverted, and then repeated again
+
+# GitHub sampling 
+The samplers should be concerned with sampling random Git repositories. ForkNetworks can then later be constructed from samples. 
+This would have the benefit that we can sample a lot of repos once and then process them again and again. 
+Also, we should offer the possibility to save a sample to file and load a sample from file.
+
+Samplers should support retrieving a sample with a desired size and sampling repos on demand.
+
+

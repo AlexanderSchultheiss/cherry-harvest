@@ -24,6 +24,7 @@ chrono = "0.4.23"
 serde_json = "1.0.93"
 async-trait = "0.1.64"
 http = "1.1.0"
+fallible-iterator = {version = "0.3.0", features = ["std"]}
 
 [dev-dependencies]
 criterion = "0.5.1"

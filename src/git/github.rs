@@ -222,17 +222,11 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
     collect_repos_from_pages(page, max_forks).await
 }
 
-/// Retrieves repositories that were created in the given time range until `max_repos` have been
-/// retrieved.
-///
-/// In the case of this function, the `max_repos` parameter is _not_ optional, because
-/// trying to retrieve too many repositories will quickly result in a request block by GitHub.
-/// Thus, the number of repositories should be chosen with care.
+/// Retrieve a single repository that was created in the given time range,
 pub async fn repos_created_in_time_range(
-    max_repos: usize,
     start: NaiveDateTime,
     end: NaiveDateTime,
-) -> Result<Option<Vec<OctoRepo>>, Error> {
+) -> Result<Option<OctoRepo>, Error> {
     let time_format = "%Y-%m-%dT%H:%M:%S+00:00";
     let query = format!(
         "created:{}..{}",
@@ -247,7 +241,12 @@ pub async fn repos_created_in_time_range(
         Err(error) => return Err(Error::new(ErrorKind::GitHub(error))),
     };
 
-    Ok(collect_repos_from_pages(page, Some(max_repos)).await)
+    let repos = collect_repos_from_pages(page, Some(1))
+        .await
+        .map(|mut v| v.pop())
+        .flatten();
+
+    Ok(repos)
 }
 
 /// Collects repositories by iterating over all pages until `max_repos` repositories have been
