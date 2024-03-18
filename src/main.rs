@@ -82,8 +82,7 @@ fn main() {
     sampler
         .iterator()
         .take(sample_size)
-        .filter(|r| r.is_ok())
-        .map(|r| r.unwrap())
+        .flatten()
         .for_each(|repo| {
             let network = ForkNetwork::build_from(repo, Some(5));
             info!("sampled {} repositories in network", network.len());

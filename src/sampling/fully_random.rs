@@ -67,13 +67,13 @@ impl FallibleIterator for FullyRandomSampler {
             // To sample randomly, we add a random number of seconds to the start date
             let seconds_in_range = self.sample_range.num_seconds();
             let random_num_seconds =
-                Duration::seconds(self.random.gen_range(0..(seconds_in_range + 1)));
+                Duration::try_seconds(self.random.gen_range(0..(seconds_in_range + 1))).unwrap();
             let random_start = self.sample_range.start + random_num_seconds;
             debug!(
                 "random datetime: {}",
                 random_start.format("%Y-%m-%d %H:%M:%S").to_string()
             );
-            let one_hour = Duration::hours(1);
+            let one_hour = Duration::try_hours(1).unwrap();
             let end = random_start + one_hour;
 
             let random_repo = self
