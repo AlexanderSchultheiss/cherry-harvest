@@ -48,6 +48,18 @@ impl Sample {
     pub fn repos(&self) -> &[Repository] {
         &self.0
     }
+
+    pub fn into_repos(self) -> Vec<Repository> {
+        self.0
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 /// A trait for defining GitHub samplers using different sampling strategies.
