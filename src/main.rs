@@ -3,7 +3,8 @@ extern crate log;
 
 use cherry_harvest::git::github::ForkNetwork;
 use cherry_harvest::sampling::fully_random::FullyRandomSampler;
-use cherry_harvest::sampling::SampleRange;
+use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
+use cherry_harvest::sampling::{GitHubSampler, SampleRange};
 use cherry_harvest::{MessageScan, SearchMethod};
 use chrono::NaiveDate;
 use fallible_iterator::FallibleIterator;
@@ -15,7 +16,7 @@ use std::process::exit;
 async fn init() {
     let _ = env_logger::builder()
         .is_test(true)
-        .filter_level(LevelFilter::Debug)
+        .filter_level(LevelFilter::Info)
         .try_init();
 
     let token = fs::read_to_string(".github-api-token").map(|s| match !s.is_empty() {
@@ -69,42 +70,66 @@ fn main() {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.block_on(init());
     info!("starting up");
-    let range = SampleRange::new(
-        NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-    );
-    let sampler = FullyRandomSampler::new(range);
+    //    let range = SampleRange::new(
+    //        NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),
+    //        NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+    //    );
+    let languages = vec![
+        "Python".to_string(),
+        "JavaScript".to_string(),
+        "Go".to_string(),
+        "C++".to_string(),
+        "Java".to_string(),
+        "TypeScript".to_string(),
+        "C".to_string(),
+        "C#".to_string(),
+        "PHP".to_string(),
+        "Rust".to_string(),
+    ]
+    .into_iter()
+    .map(ProgrammingLanguage::new)
+    .collect();
+
+    let mut sampler = MostStarsSampler::new(languages);
     let sample_size = 10;
 
     let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
     let methods = vec![message_based];
 
-    sampler
-        .iterator()
-        .take(sample_size)
-        .flatten()
-        .for_each(|repo| {
-            let network = ForkNetwork::build_from(repo, Some(5));
-            info!("sampled {} repositories in network", network.len());
+    let sample = sampler.sample(sample_size).unwrap();
+    info!("Sampled {} repositories", sample.len());
 
-            let results = cherry_harvest::search_with_multiple(&network.repositories(), &methods);
-            info!("found a total of {} results", results.len());
+    sample.into_repos().into_iter().for_each(|repo| {
+        let repo_name = repo.name.clone();
+        let network = ForkNetwork::build_from(repo, Some(0));
+        info!(
+            "sampled {} repositories in network of {}",
+            network.len(),
+            &repo_name
+        );
 
-            let mut result_map = HashMap::new();
-            results.iter().for_each(|r| {
-                let method = r.search_method();
-                let entry = result_map.entry(method).or_insert(vec![]);
-                entry.push(r);
-            });
-            for (key, val) in result_map {
-                info!("{key}: {}", val.len());
-            }
+        let results = cherry_harvest::search_with_multiple(&network.repositories(), &methods);
+        info!(
+            "found a total of {} results for {}",
+            results.len(),
+            repo_name
+        );
 
-            // TODO: improve results storage
-            if !results.is_empty() {
-                let results = serde_yaml::to_string(&results).unwrap();
-                let path = format!("output/{}.yaml", network.source().name);
-                fs::write(path, results).unwrap();
-            }
+        let mut result_map = HashMap::new();
+        results.iter().for_each(|r| {
+            let method = r.search_method();
+            let entry = result_map.entry(method).or_insert(vec![]);
+            entry.push(r);
         });
+        for (key, val) in result_map {
+            info!("{key}: {}", val.len());
+        }
+
+        // TODO: improve results storage
+        if !results.is_empty() {
+            let results = serde_yaml::to_string(&results).unwrap();
+            let path = format!("output/{}.yaml", network.source().name);
+            fs::write(path, results).unwrap();
+        }
+    });
 }
