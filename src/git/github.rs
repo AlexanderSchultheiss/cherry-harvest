@@ -251,7 +251,7 @@ pub async fn repos_created_in_time_range(
 
 /// Collects repositories by iterating over all pages until `max_repos` repositories have been
 /// collected.
-async fn collect_repos_from_pages(
+pub async fn collect_repos_from_pages(
     start_page: Page<OctoRepo>,
     max_repos: Option<usize>,
 ) -> Option<Vec<OctoRepo>> {
@@ -278,7 +278,8 @@ async fn collect_repos_from_pages(
 }
 
 /// Retrieves the next page for the given page
-async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Option<Page<T>> {
+/// TODO: check logic of this function; something appears to be wrong here
+pub async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Option<Page<T>> {
     match get_page::<T>(page).await {
         Ok(Some(p)) => Some(p),
         Ok(None) => {
@@ -293,7 +294,7 @@ async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Option
 }
 
 /// Retrieves the page found at the given URL, if any is present.
-async fn get_page<T: serde::de::DeserializeOwned>(
+pub async fn get_page<T: serde::de::DeserializeOwned>(
     url: &Option<Uri>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
     octocrab::instance().get_page::<T>(url).await

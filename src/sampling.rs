@@ -41,6 +41,7 @@ impl SampleRange {
     }
 }
 
+#[derive(Debug)]
 pub struct Sample(Vec<Repository>);
 
 impl Sample {
@@ -48,10 +49,6 @@ impl Sample {
         &self.0
     }
 }
-
-/// The name of a programming language. Values should match the names of languages on GitHub.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProgrammingLanguage(String);
 
 /// A trait for defining GitHub samplers using different sampling strategies.
 pub trait GitHubSampler: FallibleIterator<Item = Repository, Error = Error> {
