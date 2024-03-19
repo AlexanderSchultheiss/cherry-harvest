@@ -37,6 +37,8 @@ async fn init() {
     }
 }
 
+// TODO: Track which repository a certain commit identified as cherry or pick comes from;
+// currently, we only track the seed repo of a ForkNetwork
 // TODO: Update error handling to no longer panic on possible errors (address unwrap and panic)
 // TODO: Update error handling so that errors are represented in the saved results
 // TODO: Trace commits to all repositories and branches in which they appear in (required for analysis)
