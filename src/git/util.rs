@@ -26,7 +26,7 @@ pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, E
 
 fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Error> {
     profile_fn!(load_local_repo);
-    debug!("loading repo from {}", path_name);
+    info!("loading repo from {}", path_name);
     match G2Repository::open(path) {
         Ok(repo) => {
             debug!("loaded {} successfully", path_name);
@@ -44,7 +44,7 @@ fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Err
 
 fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
     profile_fn!(clone_remote_repo);
-    debug!("started cloning of {}", url);
+    info!("started cloning of {}", url);
     // In case of repositories hosted online
     // Create a new temporary directory into which the repo can be cloned
     let temp_dir = TempDir::new().unwrap();
@@ -189,8 +189,7 @@ fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<Comm
             if count % 10_000 == 0 {
                 info!(
                     "processed {} commits for head {}...[still running]",
-                    processed_ids.len(),
-                    commit_id
+                    count, commit_id
                 );
             }
             if !processed_ids.contains(&parent.id()) {
@@ -205,6 +204,11 @@ fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<Comm
         // in the next iteration, we consider all collected grandparents
         parents = grandparents;
     }
+    info!(
+        "collected {} unique commits for head {}...[done]",
+        processed_ids.len(),
+        commit_id
+    );
     commits
 }
 
