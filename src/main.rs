@@ -2,7 +2,6 @@
 extern crate log;
 
 use cherry_harvest::git::github::ForkNetwork;
-use cherry_harvest::sampling::fully_random::FullyRandomSampler;
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
 use cherry_harvest::sampling::{GitHubSampler, SampleRange};
 use cherry_harvest::{MessageScan, SearchMethod};

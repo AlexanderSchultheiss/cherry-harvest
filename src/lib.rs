@@ -2,7 +2,6 @@ pub use crate::git::collect_commits;
 use log::{error, info};
 use std::collections::HashMap;
 
-mod debug;
 pub mod error;
 pub mod git;
 pub mod sampling;
