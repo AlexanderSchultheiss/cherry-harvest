@@ -18,6 +18,7 @@ pub struct CherryAndTarget {
 #[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitMetadata {
     id: String,
+    parent_ids: Vec<String>,
     message: String,
     author: String,
     committer: String,
@@ -40,12 +41,17 @@ impl CommitMetadata {
     pub fn time(&self) -> &str {
         &self.time
     }
+
+    pub fn parent_ids(&self) -> &[String] {
+        &self.parent_ids
+    }
 }
 
 impl<'r, 'c> From<&Commit<'r, 'c>> for CommitMetadata {
     fn from(commit: &Commit) -> Self {
         Self {
             id: commit.id().to_string(),
+            parent_ids: commit.parent_ids().iter().map(|p| p.to_string()).collect(),
             message: commit.message().map_or(String::new(), |m| m.to_string()),
             author: commit.author().to_string(),
             committer: commit.committer().to_string(),
@@ -185,6 +191,7 @@ mod tests {
     fn same_result_same_hash() {
         let create_a = || CommitMetadata {
             id: "aaa".to_string(),
+            parent_ids: vec![],
             message: "aaa".to_string(),
             author: "aaa".to_string(),
             committer: "aaa".to_string(),
@@ -192,6 +199,7 @@ mod tests {
         };
         let create_b = || CommitMetadata {
             id: "aba".to_string(),
+            parent_ids: vec![],
             message: "aba".to_string(),
             author: "aba".to_string(),
             committer: "aba".to_string(),

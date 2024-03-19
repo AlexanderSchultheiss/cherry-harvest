@@ -26,6 +26,8 @@ use crate::git::util::commit_diff;
 pub struct Commit<'repo: 'com, 'com> {
     commit_id: Oid,
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    parent_ids: Vec<Oid>,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     repository: &'repo G2Repository,
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
     commit: G2Commit<'com>,
@@ -37,6 +39,7 @@ impl<'com, 'repo> Commit<'com, 'repo> {
     fn new(repository: &'repo G2Repository, commit: G2Commit<'com>) -> Commit<'repo, 'com> {
         Self {
             commit_id: commit.id(),
+            parent_ids: commit.parent_ids().collect(),
             repository,
             commit,
             diff: None,
@@ -74,6 +77,10 @@ impl<'com, 'repo> Commit<'com, 'repo> {
             self.diff = Some(commit_diff(self.repository, &self.commit).unwrap());
         }
         self.diff()
+    }
+
+    pub fn parent_ids(&self) -> &[Oid] {
+        &self.parent_ids
     }
 }
 

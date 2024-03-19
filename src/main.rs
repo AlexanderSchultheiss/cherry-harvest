@@ -5,8 +5,6 @@ use cherry_harvest::git::github::ForkNetwork;
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
 use cherry_harvest::sampling::{GitHubSampler, SampleRange};
 use cherry_harvest::{MessageScan, SearchMethod};
-use chrono::NaiveDate;
-use fallible_iterator::FallibleIterator;
 use log::LevelFilter;
 use std::collections::HashMap;
 use std::fs;
@@ -95,6 +93,7 @@ fn main() {
     let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
     let methods = vec![message_based];
 
+    info!("Starting repo sampling");
     let sample = sampler.sample(sample_size).unwrap();
     info!("Sampled {} repositories", sample.len());
 
@@ -102,7 +101,7 @@ fn main() {
         let repo_name = repo.name.clone();
         let network = ForkNetwork::build_from(repo, Some(0));
         info!(
-            "sampled {} repositories in network of {}",
+            "{} repositories in network of {}",
             network.len(),
             &repo_name
         );
