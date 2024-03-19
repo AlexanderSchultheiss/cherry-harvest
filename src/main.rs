@@ -99,18 +99,19 @@ fn main() {
 
     sample.into_repos().into_iter().for_each(|repo| {
         let repo_name = repo.name.clone();
+        let repo_full_name = repo.full_name.clone();
         let network = ForkNetwork::build_from(repo, Some(0));
         info!(
             "{} repositories in network of {}",
             network.len(),
-            &repo_name
+            repo_full_name.as_ref().unwrap_or(&repo_name)
         );
 
         let results = cherry_harvest::search_with_multiple(&network.repositories(), &methods);
         info!(
             "found a total of {} results for {}",
             results.len(),
-            repo_name
+            repo_full_name.as_ref().unwrap_or(&repo_name)
         );
 
         let mut result_map = HashMap::new();
@@ -125,7 +126,7 @@ fn main() {
 
         // TODO: improve results storage
         if !results.is_empty() {
-            let results = serde_yaml::to_string(&results).unwrap();
+            let results = serde_yaml::to_string(&(&repo_full_name, &results)).unwrap();
             let path = format!("output/{}.yaml", network.source().name);
             fs::write(path, results).unwrap();
         }
