@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use derivative::Derivative;
 use firestorm::{profile_fn, profile_method, profile_section};
 use git2::{Commit as G2Commit, Oid, Repository as G2Repository, Signature};
-use git2::{Diff as G2Diff, DiffFormat, Repository as G2Repo, Time};
+use git2::{Diff as G2Diff, DiffFormat, Time};
 use octocrab::models::Repository as OctoRepo;
 use octocrab::models::RepositoryId;
 use std::cmp::Ordering;
@@ -81,6 +81,10 @@ impl<'com, 'repo> Commit<'com, 'repo> {
 
     pub fn parent_ids(&self) -> &[Oid] {
         &self.parent_ids
+    }
+
+    pub fn repository(&self) -> &G2Repository {
+        self.repository
     }
 }
 
@@ -237,11 +241,11 @@ impl Display for RepoLocation {
 pub enum LoadedRepository {
     LocalRepo {
         path: String,
-        repository: G2Repo,
+        repository: G2Repository,
     },
     RemoteRepo {
         url: String,
-        repository: G2Repo,
+        repository: G2Repository,
         directory: TempDir,
     },
 }
