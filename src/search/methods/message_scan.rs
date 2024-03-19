@@ -48,9 +48,9 @@ impl SearchMethod for MessageScan {
                     if let Some(end_index) = message[index..].find(')') {
                         // we have to increase the end_index by the number of bytes that were cut off through slicing
                         let end_index = end_index + index;
-                        if let Some(cherry) =
-                            commit_map.get(&Oid::from_str(&message[index..end_index]).unwrap())
-                        {
+                        let cherry_id = Oid::from_str(&message[index..end_index]);
+
+                        if let Some(cherry) = cherry_id.ok().and_then(|id| commit_map.get(&id)) {
                             return Some(SearchResult::new(
                                 String::from(NAME),
                                 // Pair of Source-Target
