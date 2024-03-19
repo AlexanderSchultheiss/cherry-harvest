@@ -181,7 +181,7 @@ impl TraditionalLSH {
 }
 
 impl SearchMethod for TraditionalLSH {
-    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+    fn search(&self, commits: &mut [Commit]) -> HashSet<SearchResult> {
         let start = Instant::now();
         info!("initialized traditional LSH approach");
         profile_method!(search_lsh);

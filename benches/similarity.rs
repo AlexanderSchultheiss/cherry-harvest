@@ -8,9 +8,15 @@ fn repo_location() -> RepoLocation {
 }
 
 pub fn diff_similarity(c: &mut Criterion) {
-    let repository = git::clone_or_load(&repo_location()).unwrap();
-    let commits = collect_commits(&[repository]);
-    let commits: Vec<Commit> = commits.into_iter().collect();
+    let repository = [git::clone_or_load(&repo_location()).unwrap()];
+    let commits = collect_commits(&repository);
+    let commits: Vec<Commit> = commits
+        .into_iter()
+        .map(|mut c| {
+            c.calculate_diff();
+            c
+        })
+        .collect();
     let mut comparator = DiffSimilarity::new();
     c.bench_function("diff_similarity", |b| {
         b.iter(|| {

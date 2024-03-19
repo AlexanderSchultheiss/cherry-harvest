@@ -2,6 +2,7 @@ pub use crate::git::collect_commits;
 use log::{error, info};
 use std::collections::HashMap;
 
+mod debug;
 pub mod error;
 pub mod git;
 pub mod sampling;
@@ -78,21 +79,23 @@ pub fn search_with_multiple(
     let mut commits = collect_commits(&loaded_repos);
     // Some commits have empty textual diffs (e.g., only changes to file modifiers)
     // We cannot consider these as cherry-picks, because no text == no information
-    info!("filtering commits with empty textual diffs");
-    commits
-        .retain(|commit| !commit.diff().diff_text().is_empty() && !commit.diff().hunks.is_empty());
+    // TODO: Migrate to better location
+    // info!("filtering commits with empty textual diffs");
+    // commits.retain(|commit| {
+    //     !commit.calculate_diff().diff_text().is_empty() && !commit.calculate_diff().hunks.is_empty()
+    // });
     info!(
         "searching among {} unique commits from {} repositories",
         commits.len(),
         repos.len()
     );
-    // Reassign to remove mutability and to convert to vector
-    let commits = commits.into_iter().collect::<Vec<Commit>>();
+    // Reassign to convert to vector
+    let mut commits = commits.into_iter().collect::<Vec<Commit>>();
     {
         profile_section!(map_results);
         let results = methods
             .iter()
-            .flat_map(|m| m.search(&commits))
+            .flat_map(|m| m.search(&mut commits))
             .collect::<Vec<SearchResult>>();
 
         info!(

@@ -42,11 +42,11 @@ impl CommitMetadata {
     }
 }
 
-impl From<&Commit> for CommitMetadata {
+impl<'r, 'c> From<&Commit<'r, 'c>> for CommitMetadata {
     fn from(commit: &Commit) -> Self {
         Self {
             id: commit.id().to_string(),
-            message: commit.message().to_string(),
+            message: commit.message().map_or(String::new(), |m| m.to_string()),
             author: commit.author().to_string(),
             committer: commit.committer().to_string(),
             time: format!("{:?}", commit.time()),
@@ -133,18 +133,19 @@ impl SearchResult {
 /// Example of a naive search search that finds cherry picks only based on the equality of
 /// commit messages.
 /// ```
+///  
+/// use cherry_harvest::{CherryAndTarget, Commit, SearchMethod, SearchResult};
 /// use std::collections::HashSet;
-/// use cherry_harvest::{CherryAndTarget, SearchMethod, SearchResult};
 ///
 /// struct NaiveSearch();
 ///
 /// const NAME: &str = "NaiveSearch";
 ///
 /// impl SearchMethod for NaiveSearch {
-///     fn search(&self, commits: &[cherry_harvest::Commit]) -> HashSet<SearchResult> {
+///     fn search(&self, commits: &mut [Commit]) -> HashSet<SearchResult> {
 ///         let mut results: HashSet<SearchResult> = HashSet::new();
-///         for commit_a in commits {
-///             for commit_b in commits {
+///         for commit_a in commits.iter() {
+///             for commit_b in commits.iter() {
 ///                 // Guard against matching the same commit
 ///                 if commit_a.id() == commit_b.id() {
 ///                     continue;
@@ -156,7 +157,7 @@ impl SearchResult {
 ///                     results.insert(SearchResult::new(String::from(NAME), cherry_pick));
 ///                 }
 ///             }
-///         }   
+///         }
 ///         results
 ///     }
 ///
@@ -164,34 +165,10 @@ impl SearchResult {
 ///         "NAIVE_SEARCH"
 ///     }
 /// }
-///
-/// fn main() {
-///     use git2::Time;
-///     use cherry_harvest::{Commit, Diff};
-///     let commit_a = Commit::new("012ABC324".to_string(),
-///                                     "Hello World!".to_string(),
-///                                     Diff::empty(),
-///                                     "Alice".to_string(),
-///                                     "Alice".to_string(),
-///                                     Time::new(0, 0));
-///     let commit_b = Commit::new("883242A".to_string(),
-///                                     "Hello World!".to_string(),
-///                                     Diff::empty(),
-///                                     "Alice".to_string(),
-///                                     "Bob".to_string(),
-///                                     Time::new(1, 0));
-///     let commits = vec![commit_a, commit_b];
-///     let results = NaiveSearch().search(&commits);
-///     assert_eq!(results.len(), 1);
-///     results.iter().map(|r| r.commit_pair()).for_each(|p| {
-///         assert_eq!(p.cherry().id(), commits[0].id());
-///         assert_eq!(p.target().id(), commits[1].id());
-///     })
-/// }
 /// ```
 pub trait SearchMethod {
     /// Searches for all cherry picks in the given slice of commits.
-    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult>;
+    fn search(&self, commits: &mut [Commit]) -> HashSet<SearchResult>;
 
     /// The search's name that is to be stored with each SearchResult
     /// TODO: Find a better approach to handling the association of results and search methods

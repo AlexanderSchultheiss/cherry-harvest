@@ -1,6 +1,7 @@
 use crate::error::{Error, ErrorKind};
 use crate::git::LoadedRepository::{LocalRepo, RemoteRepo};
-use crate::git::{Commit, Diff, LoadedRepository, RepoLocation};
+use crate::git::{Diff, LoadedRepository, RepoLocation};
+use crate::Commit;
 use firestorm::profile_fn;
 use git2::{Branch, BranchType, Commit as G2Commit, Oid, Repository as G2Repository};
 use log::{debug, error, info};
@@ -72,7 +73,7 @@ pub fn collect_commits(repositories: &[LoadedRepository]) -> HashSet<Commit> {
     profile_fn!(collect_commits);
     // track commits and the repositories in which they appear. Repos are identified by their path,
     // because G2Repository does not implement Hash etc.
-    let mut commits: HashMap<HashableG2Commit, &G2Repository> = HashMap::new();
+    let mut commits: HashMap<Commit, &G2Repository> = HashMap::new();
 
     // Collect the raw commits of each repo
     for (i, loaded_repository) in repositories.iter().enumerate() {
@@ -100,14 +101,14 @@ pub fn collect_commits(repositories: &[LoadedRepository]) -> HashSet<Commit> {
     }
     info!("found {} unique commits", commits.len());
     info!("converting all commits to internal representation with a diff");
-    let mut converted_commits = HashSet::with_capacity(commits.len());
-    for (i, (hashable_commit, associated_repo)) in commits.into_iter().enumerate() {
+    let mut unique_commits = HashSet::with_capacity(commits.len());
+    for (i, (hashable_commit, _)) in commits.into_iter().enumerate() {
         if i > 0 && i % 5000 == 0 {
             info!("converted {i} commits...");
         }
-        converted_commits.insert(convert_commit(associated_repo, hashable_commit.commit));
+        unique_commits.insert(hashable_commit);
     }
-    converted_commits
+    unique_commits
 }
 
 /// Determines the diff of the given commit (i.e., the changes that were applied by this commit.
@@ -116,7 +117,7 @@ pub fn collect_commits(repositories: &[LoadedRepository]) -> HashSet<Commit> {
 /// Returns a GitDiff error, if git2 returns an error during diffing.
 ///
 /// // TODO: This requires way too much time!
-fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff, Error> {
+pub fn commit_diff(repository: &G2Repository, commit: &G2Commit) -> Result<Diff, Error> {
     profile_fn!(commit_diff);
     repository
         .diff_tree_to_tree(
@@ -168,16 +169,16 @@ fn retrieve_regular_branch_heads(branch: Branch) -> Option<G2Commit> {
 ///
 /// If the repo has the commit history A->B->C->D, where A is the oldest commit,
 /// calling *history_for_commit(repo, C)* will return *vec![C, B, A]*.
-fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<HashableG2Commit> {
+fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<Commit> {
     profile_fn!(history_for_commit);
     let mut processed_ids = HashSet::new();
     debug!("started collecting the history of {}", commit_id);
-    let mut commits = HashSet::<HashableG2Commit>::new();
+    let mut commits = HashSet::<Commit>::new();
     let start_commit = repository.find_commit(commit_id).unwrap();
     processed_ids.insert(start_commit.id());
 
     let mut parents = start_commit.parents().collect::<Vec<G2Commit>>();
-    commits.insert(HashableG2Commit::new(start_commit));
+    commits.insert(Commit::new(repository, start_commit));
 
     let mut count: u64 = 0;
     while !parents.is_empty() {
@@ -197,7 +198,7 @@ fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<Hash
                 processed_ids.insert(parent.id());
                 // we only consider non-merge commits
                 if parent.parent_count() < 2 {
-                    commits.insert(HashableG2Commit::new(parent));
+                    commits.insert(Commit::new(repository, parent));
                 }
             }
         }
@@ -205,44 +206,6 @@ fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<Hash
         parents = grandparents;
     }
     commits
-}
-
-fn convert_commit(repository: &G2Repository, commit: G2Commit) -> Commit {
-    profile_fn!(convert_commit);
-    Commit {
-        id: commit.id().to_string(),
-        message: {
-            match commit.message() {
-                None => "",
-                Some(v) => v,
-            }
-        }
-        .to_string(),
-        diff: commit_diff(repository, &commit).unwrap(),
-        author: commit.author().to_string(),
-        committer: commit.committer().to_string(),
-        time: commit.time(),
-    }
-}
-
-use derivative::Derivative;
-
-/// All relevant data for a commit.
-#[derive(Debug, Clone, Derivative)]
-#[derivative(PartialEq, Eq, Hash)]
-struct HashableG2Commit<'a> {
-    commit_id: Oid,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    commit: G2Commit<'a>,
-}
-
-impl<'a> HashableG2Commit<'a> {
-    fn new(commit: G2Commit<'a>) -> HashableG2Commit<'a> {
-        Self {
-            commit_id: commit.id(),
-            commit,
-        }
-    }
 }
 
 #[cfg(test)]

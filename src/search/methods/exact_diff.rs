@@ -28,14 +28,14 @@ pub const NAME: &str = "ExactDiffMatch";
 pub struct ExactDiffMatch();
 
 impl SearchMethod for ExactDiffMatch {
-    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+    fn search(&self, commits: &mut [Commit]) -> HashSet<SearchResult> {
         profile_method!(search);
         let start = Instant::now();
         // map all commits to a hash of their diff
         let mut commit_map: HashMap<Diff, Vec<&Commit>> = HashMap::new();
-        commits.iter().for_each(|commit| {
+        commits.iter_mut().for_each(|commit| {
             commit_map
-                .entry(commit.diff().clone())
+                .entry(commit.calculate_diff().clone())
                 .or_default()
                 .push(commit);
         });

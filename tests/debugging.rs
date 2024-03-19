@@ -1,7 +1,7 @@
 extern crate core;
 
 use cherry_harvest::git::GitRepository;
-use cherry_harvest::{ExactDiffMatch, MessageScan, SearchMethod, TraditionalLSH};
+use cherry_harvest::{ExactDiffMatch, SearchMethod, TraditionalLSH};
 use log::{debug, info, LevelFilter};
 use std::collections::HashSet;
 use std::time::Instant;

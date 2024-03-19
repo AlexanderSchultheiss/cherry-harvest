@@ -1,6 +1,7 @@
 use crate::git::LineType;
 use crate::{Commit, Diff};
-use firestorm::{profile_fn, profile_method, profile_section};
+use firestorm::{profile_fn, profile_method};
+use git2::Oid;
 use std::collections::{HashMap, HashSet};
 
 pub type Similarity = f64;
@@ -20,7 +21,7 @@ struct UncountedLine<'a> {
 
 #[derive(Default)]
 pub struct DiffSimilarity<'a> {
-    counted_lines: HashMap<&'a str, HashSet<CountedLine<'a>>>,
+    counted_lines: HashMap<Oid, HashSet<CountedLine<'a>>>,
 }
 
 impl<'a> DiffSimilarity<'a> {
@@ -39,37 +40,36 @@ impl<'a> DiffSimilarity<'a> {
     /// how often this line has been observed.
     pub fn change_similarity(&mut self, commit_a: &'a Commit, commit_b: &'a Commit) -> Similarity {
         profile_method!(change_similarity);
-        {
-            profile_section!(check_and_insert);
-            if !self.counted_lines.contains_key(commit_a.id()) {
-                self.counted_lines
-                    .insert(commit_a.id(), Self::counted_lines(commit_a.diff()));
-            }
-            if !self.counted_lines.contains_key(commit_b.id()) {
-                self.counted_lines
-                    .insert(commit_b.id(), Self::counted_lines(commit_b.diff()));
-            }
+        if !self.counted_lines.contains_key(&commit_a.id()) {
+            self.counted_lines
+                .insert(commit_a.id(), Self::counted_lines(commit_a.diff()));
+        }
+        if !self.counted_lines.contains_key(&commit_b.id()) {
+            self.counted_lines
+                .insert(commit_b.id(), Self::counted_lines(commit_b.diff()));
         }
 
-        {
-            profile_section!(get_and_calculate);
-            let diff_lines_a = self.counted_lines.get(commit_a.id()).unwrap();
-            let diff_lines_b = self.counted_lines.get(commit_b.id()).unwrap();
-            let changes_a = Self::extract_changes(diff_lines_a);
-            let changes_b = Self::extract_changes(diff_lines_b);
+        let diff_lines_a = self.counted_lines.get(&commit_a.id()).unwrap();
+        let diff_lines_b = self.counted_lines.get(&commit_b.id()).unwrap();
+        Self::diff_similarity(diff_lines_a, diff_lines_b)
+    }
 
-            {
-                profile_section!(intersection_and_similarity);
-                let intersection_size_changes = changes_a.intersection(&changes_b).count() as f64;
-                let union_size_changes = changes_a.union(&changes_b).count() as f64;
-                let intersection_size_diff = diff_lines_a.intersection(diff_lines_b).count() as f64;
-                let union_size_diff = diff_lines_a.union(diff_lines_b).count() as f64;
+    fn diff_similarity(
+        diff_lines_a: &HashSet<CountedLine>,
+        diff_lines_b: &HashSet<CountedLine>,
+    ) -> Similarity {
+        profile_method!(diff_similarity);
+        let changes_a = Self::extract_changes(diff_lines_a);
+        let changes_b = Self::extract_changes(diff_lines_b);
 
-                let jaccard_changes = intersection_size_changes / union_size_changes;
-                let jaccard_diff = intersection_size_diff / union_size_diff;
-                (jaccard_changes + jaccard_diff) / 2.0
-            }
-        }
+        let intersection_size_changes = changes_a.intersection(&changes_b).count() as f64;
+        let union_size_changes = changes_a.union(&changes_b).count() as f64;
+        let intersection_size_diff = diff_lines_a.intersection(diff_lines_b).count() as f64;
+        let union_size_diff = diff_lines_a.union(diff_lines_b).count() as f64;
+
+        let jaccard_changes = intersection_size_changes / union_size_changes;
+        let jaccard_diff = intersection_size_diff / union_size_diff;
+        (jaccard_changes + jaccard_diff) / 2.0
     }
 
     fn counted_lines(diff: &Diff) -> HashSet<CountedLine> {
@@ -121,8 +121,7 @@ impl<'a> DiffSimilarity<'a> {
 mod tests {
     use crate::git::IdeaPatch;
     use crate::search::methods::lsh::compare::DiffSimilarity;
-    use crate::{Commit, Diff};
-    use git2::Time;
+    use crate::Diff;
     use log::{debug, LevelFilter};
 
     fn init() {
@@ -132,124 +131,89 @@ mod tests {
             .try_init();
     }
 
-    fn cherry_a() -> Commit {
-        Commit::new(
-            "cherry_a".to_string(),
-            "Some message".to_string(),
-            Diff::from(IdeaPatch(CHERRY_A.to_string())),
-            "author".to_string(),
-            "commiter".to_string(),
-            Time::new(0, 0),
-        )
+    fn cherry_a() -> Diff {
+        Diff::from(IdeaPatch(CHERRY_A.to_string()))
     }
 
-    fn cherry_b() -> Commit {
-        Commit::new(
-            "cherry_b".to_string(),
-            "Some message".to_string(),
-            Diff::from(IdeaPatch(CHERRY_B.to_string())),
-            "author".to_string(),
-            "commiter".to_string(),
-            Time::new(0, 0),
-        )
+    fn cherry_b() -> Diff {
+        Diff::from(IdeaPatch(CHERRY_B.to_string()))
     }
 
-    fn pick_a() -> Commit {
-        Commit::new(
-            "pick_a".to_string(),
-            "Some message".to_string(),
-            Diff::from(IdeaPatch(PICK_A.to_string())),
-            "author".to_string(),
-            "commiter".to_string(),
-            Time::new(0, 0),
-        )
+    fn pick_a() -> Diff {
+        Diff::from(IdeaPatch(PICK_A.to_string()))
     }
 
-    fn pick_b() -> Commit {
-        Commit::new(
-            "pick_b".to_string(),
-            "Some message".to_string(),
-            Diff::from(IdeaPatch(PICK_B.to_string())),
-            "author".to_string(),
-            "commiter".to_string(),
-            Time::new(0, 0),
-        )
+    fn pick_b() -> Diff {
+        Diff::from(IdeaPatch(PICK_B.to_string()))
     }
 
-    fn isolated_a() -> Commit {
-        Commit::new(
-            "isolated_a".to_string(),
-            "Some message".to_string(),
-            Diff::from(IdeaPatch(ISOLATED_COMMIT_A.to_string())),
-            "author".to_string(),
-            "commiter".to_string(),
-            Time::new(0, 0),
-        )
+    fn isolated_a() -> Diff {
+        Diff::from(IdeaPatch(ISOLATED_COMMIT_A.to_string()))
     }
 
-    fn isolated_b() -> Commit {
-        Commit::new(
-            "isolated_b".to_string(),
-            "Some message".to_string(),
-            Diff::from(IdeaPatch(ISOLATED_COMMIT_B.to_string())),
-            "author".to_string(),
-            "commiter".to_string(),
-            Time::new(0, 0),
-        )
+    fn isolated_b() -> Diff {
+        Diff::from(IdeaPatch(ISOLATED_COMMIT_B.to_string()))
     }
 
     #[test]
     fn debug_diff_parsing() {
         init();
-        debug!("{}", cherry_a().diff());
-        debug!("{}", cherry_b().diff());
-        debug!("{}", pick_a().diff());
-        debug!("{}", pick_b().diff());
-        debug!("{}", isolated_a().diff());
-        debug!("{}", isolated_b().diff());
+        debug!("{}", cherry_a());
+        debug!("{}", cherry_b());
+        debug!("{}", pick_a());
+        debug!("{}", pick_b());
+        debug!("{}", isolated_a());
+        debug!("{}", isolated_b());
     }
 
     #[test]
     fn exact_diff_max_similar() {
         init();
         const TARGET_SIMILARITY: f64 = 0.99999;
-        let mut comparator = DiffSimilarity::new();
-        let cherry_a = cherry_a();
-        let cherry_b = cherry_b();
-        let pick_a = pick_a();
-        let pick_b = pick_b();
-        let isolated_a = isolated_a();
-        let isolated_b = isolated_b();
-        assert!(comparator.change_similarity(&cherry_a, &cherry_a) > TARGET_SIMILARITY);
-        assert!(comparator.change_similarity(&cherry_b, &cherry_b) > TARGET_SIMILARITY);
-        assert!(comparator.change_similarity(&pick_a, &pick_a) > TARGET_SIMILARITY);
-        assert!(comparator.change_similarity(&pick_b, &pick_b) > TARGET_SIMILARITY);
-        assert!(comparator.change_similarity(&isolated_a, &isolated_a) > TARGET_SIMILARITY);
-        assert!(comparator.change_similarity(&isolated_b, &isolated_b) > TARGET_SIMILARITY);
+        let (c_a, c_b, p_a, p_b, i_a, i_b) = (
+            cherry_a(),
+            cherry_b(),
+            pick_a(),
+            pick_b(),
+            isolated_a(),
+            isolated_b(),
+        );
+        let cherry_a = DiffSimilarity::counted_lines(&c_a);
+        let cherry_b = DiffSimilarity::counted_lines(&c_b);
+        let pick_a = DiffSimilarity::counted_lines(&p_a);
+        let pick_b = DiffSimilarity::counted_lines(&p_b);
+        let isolated_a = DiffSimilarity::counted_lines(&i_a);
+        let isolated_b = DiffSimilarity::counted_lines(&i_b);
+        assert!(DiffSimilarity::diff_similarity(&cherry_a, &cherry_a) > TARGET_SIMILARITY);
+        assert!(DiffSimilarity::diff_similarity(&cherry_b, &cherry_b) > TARGET_SIMILARITY);
+        assert!(DiffSimilarity::diff_similarity(&pick_a, &pick_a) > TARGET_SIMILARITY);
+        assert!(DiffSimilarity::diff_similarity(&pick_b, &pick_b) > TARGET_SIMILARITY);
+        assert!(DiffSimilarity::diff_similarity(&isolated_a, &isolated_a) > TARGET_SIMILARITY);
+        assert!(DiffSimilarity::diff_similarity(&isolated_b, &isolated_b) > TARGET_SIMILARITY);
     }
 
     #[test]
     fn cherry_and_pick_similar() {
         init();
         const TARGET_SIMILARITY: f64 = 0.5;
-        let cherry_a = cherry_a();
-        let pick_a = pick_a();
-        let cherry_b = cherry_b();
-        let pick_b = pick_b();
-        let mut comparator = DiffSimilarity::new();
+        let (c_a, c_b, p_a, p_b) = (cherry_a(), cherry_b(), pick_a(), pick_b());
+        let cherry_a = DiffSimilarity::counted_lines(&c_a);
+        let cherry_b = DiffSimilarity::counted_lines(&c_b);
+        let pick_a = DiffSimilarity::counted_lines(&p_a);
+        let pick_b = DiffSimilarity::counted_lines(&p_b);
 
         // assert high similarity
-        assert!(comparator.change_similarity(&cherry_a, &pick_a) > TARGET_SIMILARITY);
-        assert!(comparator.change_similarity(&cherry_b, &pick_b) > TARGET_SIMILARITY);
+        assert!(DiffSimilarity::diff_similarity(&cherry_a, &pick_a) > TARGET_SIMILARITY);
+        assert!(DiffSimilarity::diff_similarity(&cherry_b, &pick_b) > TARGET_SIMILARITY);
 
         // assert order invariance
         assert_eq!(
-            comparator.change_similarity(&cherry_a, &pick_a),
-            comparator.change_similarity(&pick_a, &cherry_a)
+            DiffSimilarity::diff_similarity(&cherry_a, &pick_a),
+            DiffSimilarity::diff_similarity(&pick_a, &cherry_a)
         );
         assert_eq!(
-            comparator.change_similarity(&cherry_b, &pick_b),
-            comparator.change_similarity(&pick_b, &cherry_b)
+            DiffSimilarity::diff_similarity(&cherry_b, &pick_b),
+            DiffSimilarity::diff_similarity(&pick_b, &cherry_b)
         );
     }
 
@@ -257,13 +221,18 @@ mod tests {
     fn non_cherries_not_similar() {
         init();
         const TARGET_SIMILARITY: f64 = 0.5;
-        let mut comparator = DiffSimilarity::new();
 
-        let diffs = vec![cherry_a(), pick_b(), isolated_a(), isolated_b()];
+        let (c_a, p_b, i_a, i_b) = (cherry_a(), pick_b(), isolated_a(), isolated_b());
+        let diffs = vec![
+            DiffSimilarity::counted_lines(&c_a),
+            DiffSimilarity::counted_lines(&p_b),
+            DiffSimilarity::counted_lines(&i_a),
+            DiffSimilarity::counted_lines(&i_b),
+        ];
 
         for (id, first) in diffs.iter().enumerate() {
             for second in &diffs[(id + 1)..] {
-                assert!(comparator.change_similarity(first, second) < TARGET_SIMILARITY);
+                assert!(DiffSimilarity::diff_similarity(first, second) < TARGET_SIMILARITY);
             }
         }
     }
