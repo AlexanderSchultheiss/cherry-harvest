@@ -243,8 +243,7 @@ pub async fn repos_created_in_time_range(
 
     let repos = collect_repos_from_pages(page, Some(1))
         .await
-        .map(|mut v| v.pop())
-        .flatten();
+        .and_then(|mut v| v.pop());
 
     Ok(repos)
 }

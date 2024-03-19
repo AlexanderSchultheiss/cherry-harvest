@@ -42,7 +42,7 @@ impl SearchMethod for MessageScan {
         let results: HashSet<SearchResult> = commits
             .iter()
             .filter_map(|c| {
-                if let Some(index) = c.message().map(|m| m.find(search_str)).flatten() {
+                if let Some(index) = c.message().and_then(|m| m.find(search_str)) {
                     let index = index + search_str.len();
                     let message = c.message().unwrap();
                     if let Some(end_index) = message[index..].find(')') {

@@ -40,14 +40,12 @@ impl<'a> DiffSimilarity<'a> {
     /// how often this line has been observed.
     pub fn change_similarity(&mut self, commit_a: &'a Commit, commit_b: &'a Commit) -> Similarity {
         profile_method!(change_similarity);
-        if !self.counted_lines.contains_key(&commit_a.id()) {
-            self.counted_lines
-                .insert(commit_a.id(), Self::counted_lines(commit_a.diff()));
-        }
-        if !self.counted_lines.contains_key(&commit_b.id()) {
-            self.counted_lines
-                .insert(commit_b.id(), Self::counted_lines(commit_b.diff()));
-        }
+        self.counted_lines
+            .entry(commit_a.id())
+            .or_insert_with(|| Self::counted_lines(commit_a.diff()));
+        self.counted_lines
+            .entry(commit_b.id())
+            .or_insert_with(|| Self::counted_lines(commit_b.diff()));
 
         let diff_lines_a = self.counted_lines.get(&commit_a.id()).unwrap();
         let diff_lines_b = self.counted_lines.get(&commit_b.id()).unwrap();
@@ -223,7 +221,7 @@ mod tests {
         const TARGET_SIMILARITY: f64 = 0.5;
 
         let (c_a, p_b, i_a, i_b) = (cherry_a(), pick_b(), isolated_a(), isolated_b());
-        let diffs = vec![
+        let diffs = [
             DiffSimilarity::counted_lines(&c_a),
             DiffSimilarity::counted_lines(&p_b),
             DiffSimilarity::counted_lines(&i_a),

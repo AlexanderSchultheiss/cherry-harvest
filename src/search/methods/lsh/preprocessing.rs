@@ -44,10 +44,7 @@ pub fn preprocess_commits(
     shingles_into_signatures(shingle_commits(commits, arity), signature_size)
 }
 
-pub fn encode_commits_f64<'v, 'r, 'c>(
-    commits: &'v mut [Commit<'r, 'c>],
-    arity: usize,
-) -> Vec<Vec<f64>> {
+pub fn encode_commits_f64(commits: &mut [Commit<'_, '_>], arity: usize) -> Vec<Vec<f64>> {
     profile_fn!(preprocess_commits);
     let shingled_commits = shingle_commits(commits, arity);
     let vocabulary = Vocabulary::build(&shingled_commits);
@@ -57,10 +54,7 @@ pub fn encode_commits_f64<'v, 'r, 'c>(
         .collect()
 }
 
-pub fn encode_commits_u32<'v, 'r, 'c>(
-    commits: &'v mut [Commit<'r, 'c>],
-    arity: usize,
-) -> Vec<Vec<u32>> {
+pub fn encode_commits_u32(commits: &mut [Commit<'_, '_>], arity: usize) -> Vec<Vec<u32>> {
     profile_fn!(preprocess_commits);
     let shingled_commits = shingle_commits(commits, arity);
     let vocabulary = Vocabulary::build(&shingled_commits);
