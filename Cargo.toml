@@ -6,26 +6,28 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-git2 = "0.16.1"
+git2 = "0.18.2"
 rand = "0.8.5"
-temp-dir = "0.1.11"
-env_logger = "0.10.0"
-log = "0.4.17"
+temp-dir = "0.1.12"
+env_logger = "0.11.3"
+log = "0.4.21"
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9.14"
+serde_yaml = "0.9.32"
 derivative = "2.2.0"
 firestorm = { version= "0.5.1", features=["enable_system_time"] }
 bit-vec = "0.6.3"
-octocrab = {version = "0.18.1", features = ["stream"]}
-tokio = {version = "1.25.0", features = ["full"] }
-futures-util = "0.3.26"
-reqwest = "0.11.14"
-chrono = "0.4.23"
-serde_json = "1.0.93"
-async-trait = "0.1.64"
+octocrab = {version = "0.35.0", features = ["stream"]}
+tokio = {version = "1.36.0", features = ["full"] }
+futures-util = "0.3.30"
+reqwest = "0.11.25"
+chrono = "0.4.35"
+serde_json = "1.0.114"
+async-trait = "0.1.77"
+http = "1.1.0"
+fallible-iterator = {version = "0.3.0", features = ["std"]}
 
 [dev-dependencies]
-criterion = "0.4.0"
+criterion = "0.5.1"
 criterion-macro = "0.4.0"
 
 [[bench]]

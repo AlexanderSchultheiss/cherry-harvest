@@ -2,6 +2,7 @@ use crate::git::Commit;
 use crate::search::SearchMethod;
 use crate::{CherryAndTarget, SearchResult};
 use firestorm::profile_method;
+use git2::Oid;
 use log::debug;
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
@@ -29,7 +30,7 @@ pub struct MessageScan();
 const NAME: &str = "MessageScan";
 
 impl SearchMethod for MessageScan {
-    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+    fn search(&self, commits: &mut [Commit]) -> HashSet<SearchResult> {
         profile_method!(search);
         let start = Instant::now();
         let mut commit_map = HashMap::with_capacity(commits.len());
@@ -41,17 +42,21 @@ impl SearchMethod for MessageScan {
         let results: HashSet<SearchResult> = commits
             .iter()
             .filter_map(|c| {
-                if let Some(index) = c.message().find(search_str) {
+                if let Some(index) = c.message().and_then(|m| m.find(search_str)) {
                     let index = index + search_str.len();
-                    if let Some(end_index) = c.message()[index..].find(')') {
+                    let message = c.message().unwrap();
+                    if let Some(end_index) = message[index..].find(')') {
                         // we have to increase the end_index by the number of bytes that were cut off through slicing
                         let end_index = end_index + index;
-                        let cherry_id = String::from(&c.message()[index..end_index]);
-                        return Some(SearchResult::new(
-                            String::from(NAME),
-                            // Pair of Source-Target
-                            CherryAndTarget::new(commit_map.get(cherry_id.as_str()).unwrap(), c),
-                        ));
+                        let cherry_id = Oid::from_str(&message[index..end_index]);
+
+                        if let Some(cherry) = cherry_id.ok().and_then(|id| commit_map.get(&id)) {
+                            return Some(SearchResult::new(
+                                String::from(NAME),
+                                // Pair of Source-Target
+                                CherryAndTarget::new(cherry, c),
+                            ));
+                        }
                     }
                 }
                 None

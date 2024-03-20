@@ -24,10 +24,10 @@ pub fn shingle_text(diff: &str, arity: usize) -> ShingledText {
     ShingledText::new(diff, arity)
 }
 
-fn shingle_commits(commits: &[Commit], arity: usize) -> Vec<ShingledText> {
+fn shingle_commits<'a>(commits: &'a mut [Commit], arity: usize) -> Vec<ShingledText<'a>> {
     commits
-        .iter()
-        .map(|c| shingle_diff(c.diff(), arity))
+        .iter_mut()
+        .map(|c| shingle_diff(c.calculate_diff(), arity))
         .collect()
 }
 
@@ -36,17 +36,15 @@ fn shingle_texts<'a>(texts: &[&'a str], arity: usize) -> Vec<ShingledText<'a>> {
 }
 
 pub fn preprocess_commits(
-    commits: &[Commit],
+    commits: &mut [Commit],
     arity: usize,
     signature_size: usize,
 ) -> Vec<Signature> {
     profile_fn!(preprocess_commits);
-    let shingled_commits = shingle_commits(commits, arity);
-
-    shingles_into_signatures(shingled_commits, signature_size)
+    shingles_into_signatures(shingle_commits(commits, arity), signature_size)
 }
 
-pub fn encode_commits_f64(commits: &[Commit], arity: usize) -> Vec<Vec<f64>> {
+pub fn encode_commits_f64(commits: &mut [Commit<'_, '_>], arity: usize) -> Vec<Vec<f64>> {
     profile_fn!(preprocess_commits);
     let shingled_commits = shingle_commits(commits, arity);
     let vocabulary = Vocabulary::build(&shingled_commits);
@@ -56,7 +54,7 @@ pub fn encode_commits_f64(commits: &[Commit], arity: usize) -> Vec<Vec<f64>> {
         .collect()
 }
 
-pub fn encode_commits_u32(commits: &[Commit], arity: usize) -> Vec<Vec<u32>> {
+pub fn encode_commits_u32(commits: &mut [Commit<'_, '_>], arity: usize) -> Vec<Vec<u32>> {
     profile_fn!(preprocess_commits);
     let shingled_commits = shingle_commits(commits, arity);
     let vocabulary = Vocabulary::build(&shingled_commits);
@@ -309,7 +307,7 @@ mod tests {
 
         let ones_in_intersection = one_hot_first
             .into_iter()
-            .zip(one_hot_second.into_iter())
+            .zip(one_hot_second)
             .map(|(first, second)| first & second)
             .filter(|v| *v)
             .count();

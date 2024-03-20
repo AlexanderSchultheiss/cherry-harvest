@@ -4,10 +4,10 @@ use crate::error::{Error, ErrorKind};
 use crate::git::github::extensions::ForksExt;
 use crate::git::GitRepository;
 use chrono::NaiveDateTime;
+use http::Uri;
 use log::{debug, error};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
-use reqwest::Url;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -153,6 +153,10 @@ impl ForkNetwork {
         self.repositories.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns a reference to the source repository.
     pub fn source(&self) -> &GitRepository {
         self.repositories.get(&self.source_id).unwrap()
@@ -195,7 +199,7 @@ impl Display for ForkNetwork {
 async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Option<Vec<OctoRepo>> {
     match octo_repo.forks_count {
         None => return None,
-        Some(num) if num == 0 => return None,
+        Some(0) => return None,
         Some(num) => debug!("discovered {num} forks"),
     }
     let url = match &octo_repo.forks_url {
@@ -218,17 +222,11 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
     collect_repos_from_pages(page, max_forks).await
 }
 
-/// Retrieves repositories that were created in the given time range until `max_repos` have been
-/// retrieved.
-///
-/// In the case of this function, the `max_repos` parameter is _not_ optional, because
-/// trying to retrieve too many repositories will quickly result in a request block by GitHub.
-/// Thus, the number of repositories should be chosen with care.
+/// Retrieve a single repository that was created in the given time range,
 pub async fn repos_created_in_time_range(
-    max_repos: usize,
     start: NaiveDateTime,
     end: NaiveDateTime,
-) -> Result<Option<Vec<OctoRepo>>, Error> {
+) -> Result<Option<OctoRepo>, Error> {
     let time_format = "%Y-%m-%dT%H:%M:%S+00:00";
     let query = format!(
         "created:{}..{}",
@@ -243,12 +241,16 @@ pub async fn repos_created_in_time_range(
         Err(error) => return Err(Error::new(ErrorKind::GitHub(error))),
     };
 
-    Ok(collect_repos_from_pages(page, Some(max_repos)).await)
+    let repos = collect_repos_from_pages(page, Some(1))
+        .await
+        .and_then(|mut v| v.pop());
+
+    Ok(repos)
 }
 
 /// Collects repositories by iterating over all pages until `max_repos` repositories have been
 /// collected.
-async fn collect_repos_from_pages(
+pub async fn collect_repos_from_pages(
     start_page: Page<OctoRepo>,
     max_repos: Option<usize>,
 ) -> Option<Vec<OctoRepo>> {
@@ -263,7 +265,7 @@ async fn collect_repos_from_pages(
             repos.push(repo.clone());
         }
         // Get the next page
-        match next_page(&page).await {
+        match next_page(&page.next).await {
             None => break 'breakable,
             Some(p) => page = p,
         };
@@ -275,8 +277,9 @@ async fn collect_repos_from_pages(
 }
 
 /// Retrieves the next page for the given page
-async fn next_page<T: serde::de::DeserializeOwned>(page: &Page<T>) -> Option<Page<T>> {
-    match get_page::<T>(&page.next).await {
+/// TODO: check logic of this function; something appears to be wrong here
+pub async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Option<Page<T>> {
+    match get_page::<T>(page).await {
         Ok(Some(p)) => Some(p),
         Ok(None) => {
             // No more pages left
@@ -290,8 +293,8 @@ async fn next_page<T: serde::de::DeserializeOwned>(page: &Page<T>) -> Option<Pag
 }
 
 /// Retrieves the page found at the given URL, if any is present.
-async fn get_page<T: serde::de::DeserializeOwned>(
-    url: &Option<Url>,
+pub async fn get_page<T: serde::de::DeserializeOwned>(
+    url: &Option<Uri>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
     octocrab::instance().get_page::<T>(url).await
 }

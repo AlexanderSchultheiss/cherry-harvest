@@ -4,7 +4,8 @@ mod util;
 use chrono::{DateTime, Utc};
 use derivative::Derivative;
 use firestorm::{profile_fn, profile_method, profile_section};
-use git2::{Diff as G2Diff, DiffFormat, Repository as G2Repo, Time};
+use git2::{Commit as G2Commit, Oid, Repository as G2Repository, Signature};
+use git2::{Diff as G2Diff, DiffFormat, Time};
 use octocrab::models::Repository as OctoRepo;
 use octocrab::models::RepositoryId;
 use std::cmp::Ordering;
@@ -16,6 +17,76 @@ use temp_dir::TempDir;
 
 pub use util::clone_or_load;
 pub use util::collect_commits;
+
+use crate::git::util::commit_diff;
+
+/// All relevant data for a commit.
+#[derive(Clone, Derivative)]
+#[derivative(PartialEq, Eq, Hash)]
+pub struct Commit<'repo: 'com, 'com> {
+    commit_id: Oid,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    parent_ids: Vec<Oid>,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    repository: &'repo G2Repository,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    commit: G2Commit<'com>,
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    diff: Option<Diff>,
+}
+
+impl<'com, 'repo> Commit<'com, 'repo> {
+    fn new(repository: &'repo G2Repository, commit: G2Commit<'com>) -> Commit<'repo, 'com> {
+        Self {
+            commit_id: commit.id(),
+            parent_ids: commit.parent_ids().collect(),
+            repository,
+            commit,
+            diff: None,
+        }
+    }
+
+    pub fn id(&self) -> Oid {
+        self.commit.id()
+    }
+
+    pub fn message(&self) -> Option<&str> {
+        self.commit.message()
+    }
+
+    pub fn author(&self) -> Signature {
+        self.commit.author()
+    }
+
+    pub fn committer(&self) -> Signature {
+        self.commit.committer()
+    }
+
+    pub fn time(&self) -> Time {
+        self.commit.time()
+    }
+
+    pub fn diff(&self) -> &Diff {
+        self.diff
+            .as_ref()
+            .expect("no diff; it must first be calculcated")
+    }
+
+    pub fn calculate_diff(&mut self) -> &Diff {
+        if self.diff.is_none() {
+            self.diff = Some(commit_diff(self.repository, &self.commit).unwrap());
+        }
+        self.diff()
+    }
+
+    pub fn parent_ids(&self) -> &[Oid] {
+        &self.parent_ids
+    }
+
+    pub fn repository(&self) -> &G2Repository {
+        self.repository
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct GitRepository {
@@ -170,11 +241,11 @@ impl Display for RepoLocation {
 pub enum LoadedRepository {
     LocalRepo {
         path: String,
-        repository: G2Repo,
+        repository: G2Repository,
     },
     RemoteRepo {
         url: String,
-        repository: G2Repo,
+        repository: G2Repository,
         directory: TempDir,
     },
 }
@@ -566,73 +637,5 @@ impl From<IdeaPatch> for Diff {
             diff_text: Diff::build_diff_text(&hunks),
             hunks,
         }
-    }
-}
-
-/// All relevant data for a commit.
-#[derive(Debug, Clone, Derivative)]
-#[derivative(PartialEq, Eq, Hash)]
-pub struct Commit {
-    id: String,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    message: String,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    diff: Diff,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    author: String,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    committer: String,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    time: Time,
-}
-
-impl Commit {
-    /// Initializes a CommitData instance with the given values
-    pub fn new(
-        id: String,
-        message: String,
-        diff: Diff,
-        author: String,
-        committer: String,
-        time: Time,
-    ) -> Self {
-        Commit {
-            id,
-            message,
-            diff,
-            author,
-            committer,
-            time,
-        }
-    }
-
-    /// The commit hash, aka. revision number
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    /// The commit message
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-
-    /// The diff of the commit to its first parent
-    pub fn diff(&self) -> &Diff {
-        &self.diff
-    }
-
-    /// The author of the commit
-    pub fn author(&self) -> &str {
-        &self.author
-    }
-
-    /// The committer of the commit
-    pub fn committer(&self) -> &str {
-        &self.committer
-    }
-
-    /// The timestamp of the commit
-    pub fn time(&self) -> Time {
-        self.time
     }
 }

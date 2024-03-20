@@ -24,8 +24,14 @@ fn repo_location() -> RepoLocation {
 }
 
 pub fn vocabulary_building(c: &mut Criterion) {
-    let repository = git::clone_or_load(&repo_location()).unwrap();
-    let commits = collect_commits(&[repository]);
+    let repository = [git::clone_or_load(&repo_location()).unwrap()];
+    let commits: Vec<Commit> = collect_commits(&repository)
+        .into_iter()
+        .map(|mut c| {
+            c.calculate_diff();
+            c
+        })
+        .collect();
     let shingled_diffs: Vec<ShingledText> =
         commits.iter().map(|c| shingle_diff(c.diff(), 3)).collect();
     c.bench_function("build_shingle_vocab", |b| {
@@ -53,12 +59,12 @@ pub fn minhash(c: &mut Criterion) {
 }
 
 pub fn commit_preprocessing(c: &mut Criterion) {
-    let repository = git::clone_or_load(&repo_location()).unwrap();
-    let commits = collect_commits(&[repository]);
-    let commits: Vec<Commit> = commits.into_iter().collect();
+    let repository = [git::clone_or_load(&repo_location()).unwrap()];
+    let commits = collect_commits(&repository);
+    let mut commits: Vec<Commit> = commits.into_iter().collect();
     c.bench_function("preprocess_commits", |b| {
         b.iter(|| {
-            preprocess_commits(&commits, 3, 32);
+            preprocess_commits(&mut commits, 3, 32);
         })
     });
 }

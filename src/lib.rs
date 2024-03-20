@@ -22,6 +22,8 @@ pub use search::TraditionalLSH;
 use crate::git::{GitRepository, LoadedRepository};
 pub(crate) use firestorm::{profile_fn, profile_section};
 
+pub type Result<T> = std::result::Result<T, Error>;
+
 /// Searches for cherry picks with all given search methods.
 ///
 /// # Examples
@@ -53,7 +55,7 @@ pub(crate) use firestorm::{profile_fn, profile_section};
 /// ```
 pub fn search_with_multiple(
     repos: &[&GitRepository],
-    methods: &Vec<Box<dyn SearchMethod>>,
+    methods: &[Box<dyn SearchMethod>],
 ) -> Vec<SearchResult> {
     let repo_locations: Vec<&RepoLocation> = repos.iter().map(|r| &r.location).collect();
     profile_fn!(search_with_multiple);
@@ -76,21 +78,23 @@ pub fn search_with_multiple(
     let mut commits = collect_commits(&loaded_repos);
     // Some commits have empty textual diffs (e.g., only changes to file modifiers)
     // We cannot consider these as cherry-picks, because no text == no information
-    info!("filtering commits with empty textual diffs");
-    commits
-        .retain(|commit| !commit.diff().diff_text().is_empty() && !commit.diff().hunks.is_empty());
+    // TODO: Migrate to better location
+    // info!("filtering commits with empty textual diffs");
+    // commits.retain(|commit| {
+    //     !commit.calculate_diff().diff_text().is_empty() && !commit.calculate_diff().hunks.is_empty()
+    // });
     info!(
         "searching among {} unique commits from {} repositories",
         commits.len(),
         repos.len()
     );
-    // Reassign to remove mutability and to convert to vector
-    let commits = commits.into_iter().collect::<Vec<Commit>>();
+    // Reassign to convert to vector
+    let mut commits = commits.into_iter().collect::<Vec<Commit>>();
     {
         profile_section!(map_results);
         let results = methods
             .iter()
-            .flat_map(|m| m.search(&commits))
+            .flat_map(|m| m.search(&mut commits))
             .collect::<Vec<SearchResult>>();
 
         info!(
@@ -147,5 +151,5 @@ pub fn search_with<T: SearchMethod + 'static>(
     method: T,
 ) -> Vec<SearchResult> {
     profile_fn!(search_with);
-    search_with_multiple(repos, &vec![Box::new(method)])
+    search_with_multiple(repos, &[Box::new(method)])
 }

@@ -65,3 +65,41 @@ fn traditional_lsh_finds_exact() {
     }
     info!("test finished in {:?}", start.elapsed())
 }
+
+#[test]
+fn tmp_debug() {
+    let start = init();
+    let repo = GitRepository::from(cherry_harvest::RepoLocation::Server(
+        "https://github.com/VariantSync/DiffDetective.git".to_string(),
+    ));
+    let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
+    let lsh_search = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
+    let methods = vec![exact_diff];
+    let results = cherry_harvest::search_with_multiple(&[&repo], &methods);
+
+    let mut exact_results = HashSet::new();
+    let mut lsh_results = HashSet::new();
+    results.iter().for_each(|r| match r.search_method() {
+        "ExactDiffMatch" => {
+            exact_results.insert(r.commit_pair());
+        }
+        "TraditionalLSH" => {
+            lsh_results.insert(r.commit_pair());
+        }
+        _ => panic!("unexpected search method among results."),
+    });
+
+    println!("EXACT:");
+    for r in &exact_results {
+        println!(
+            "{}-{} : {}-{}",
+            r.cherry().id(),
+            r.cherry().committer(),
+            r.target().id(),
+            r.target().committer()
+        );
+    }
+    println!("+++++++++++++");
+    println!("+++++++++++++");
+    info!("test finished in {:?}", start.elapsed())
+}

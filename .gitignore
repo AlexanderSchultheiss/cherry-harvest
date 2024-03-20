@@ -45,4 +45,4 @@ Cargo.lock
 /flames/
 
 /output/
-/.authentication
+/.github-api-token

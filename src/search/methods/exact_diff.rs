@@ -28,14 +28,14 @@ pub const NAME: &str = "ExactDiffMatch";
 pub struct ExactDiffMatch();
 
 impl SearchMethod for ExactDiffMatch {
-    fn search(&self, commits: &[Commit]) -> HashSet<SearchResult> {
+    fn search(&self, commits: &mut [Commit]) -> HashSet<SearchResult> {
         profile_method!(search);
         let start = Instant::now();
         // map all commits to a hash of their diff
         let mut commit_map: HashMap<Diff, Vec<&Commit>> = HashMap::new();
-        commits.iter().for_each(|commit| {
+        commits.iter_mut().for_each(|commit| {
             commit_map
-                .entry(commit.diff().clone())
+                .entry(commit.calculate_diff().clone())
                 .or_default()
                 .push(commit);
         });
@@ -50,7 +50,7 @@ impl SearchMethod for ExactDiffMatch {
                     None
                 }
             })
-            .flat_map(build_all_possible_result_pairs)
+            .flat_map(|commit_vec| build_all_possible_result_pairs(commit_vec))
             .collect();
         debug!("found {} results in {:?}", results.len(), start.elapsed());
         results
@@ -61,7 +61,7 @@ impl SearchMethod for ExactDiffMatch {
     }
 }
 
-fn build_all_possible_result_pairs(commits: &Vec<&Commit>) -> Vec<SearchResult> {
+fn build_all_possible_result_pairs(commits: &[&Commit]) -> Vec<SearchResult> {
     profile_fn!(build_all_possible_result_pairs);
     let mut results = vec![];
     // consider all possible commit pairs in the vector of commits associated with the current diff
