@@ -115,7 +115,7 @@ impl ForkNetwork {
         // Convert all repos
         let repository_map = repository_map
             .into_iter()
-            .map(|(k, v)| (k, GitRepository::from(&v)))
+            .map(|(k, v)| (k, GitRepository::from(v)))
             .collect();
 
         Self {
@@ -178,7 +178,11 @@ impl Display for ForkNetwork {
                 "{}- {}: {}/{}",
                 format_text,
                 start.id,
-                start.owner.as_ref().unwrap(),
+                start
+                    .octorepo
+                    .as_ref()
+                    .map(|o| &o.owner.as_ref().unwrap().login)
+                    .unwrap(),
                 start.name
             )?;
             if let Some(children) = network.forks(start) {
