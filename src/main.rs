@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use cherry_harvest::git::github::{check_rate_limit, ForkNetwork};
+use cherry_harvest::git::github::{check_search_limit, ForkNetwork};
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
 use cherry_harvest::sampling::GitHubSampler;
 use cherry_harvest::{load_repo_sample, save_repo_sample, MessageScan, SearchMethod};
@@ -70,7 +70,6 @@ fn main() {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.block_on(init());
 
-    runtime.block_on(check_rate_limit()).unwrap();
     info!("starting up");
     //    let range = SampleRange::new(
     //        NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),

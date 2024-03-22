@@ -3,14 +3,15 @@ mod extensions;
 use crate::error::{Error, ErrorKind};
 use crate::git::github::extensions::ForksExt;
 use crate::git::GitRepository;
-use chrono::{FixedOffset, NaiveDateTime, TimeZone};
+use chrono::NaiveDateTime;
 use http::Uri;
 use log::{debug, error, info};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use std::process::exit;
+use std::time::Duration;
+use tokio::time;
 
 /// A ForkNetwork comprises repositories that are connected through parent-child relationships
 /// depending on whether one repo has been forked from the other. The network has the following
@@ -225,7 +226,7 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
 
     // Retrieve the first page with forks
     info!("retrieve_forks");
-    check_rate_limit().await.unwrap();
+    check_search_limit().await.unwrap();
     let api_result: Result<Page<OctoRepo>, octocrab::Error> =
         octocrab::instance().list_forks(url).await;
     let page = match api_result {
@@ -315,13 +316,12 @@ pub async fn get_page<T: serde::de::DeserializeOwned>(
     url: &Option<Uri>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
     info!("get_page");
-    check_rate_limit().await.unwrap();
     octocrab::instance().get_page::<T>(url).await
 }
 
 pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab::Error> {
     info!("search_repositories");
-    check_rate_limit().await.unwrap();
+    check_search_limit().await.unwrap();
     octocrab::instance()
         .search()
         .repositories(query)
@@ -329,16 +329,17 @@ pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab
         .await
 }
 
-pub async fn check_rate_limit() -> Result<(), octocrab::Error> {
+pub async fn check_search_limit() -> Result<(), octocrab::Error> {
     let limit = octocrab::instance().ratelimit().get().await?;
-    info!("GitHub API rate limit: {}", limit.rate.limit);
-    info!("GitHub API rate used: {}", limit.rate.used);
-    info!("GitHub API rate remaining: {}", limit.rate.remaining);
-    let time = chrono::DateTime::from_timestamp(limit.rate.reset as i64, 0).unwrap();
-    info!("rate limit reset: {}", time);
-    if limit.rate.remaining < 10 {
-        info!("rate limit too low; please try again later");
-        exit(2);
+    let search_limit = limit.resources.search;
+    info!(
+        "GitHub API search rate remaining: {}",
+        search_limit.remaining
+    );
+    if search_limit.remaining < 2 {
+        info!("rate limit too low; waiting for reset");
+        // The search API is the limiting factor. It resets every minute.
+        time::sleep(Duration::from_secs(60)).await;
     }
     Ok(())
 }
