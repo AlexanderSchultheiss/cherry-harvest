@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use cherry_harvest::git::github::ForkNetwork;
+use cherry_harvest::git::github::{check_rate_limit, ForkNetwork};
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
 use cherry_harvest::sampling::GitHubSampler;
 use cherry_harvest::{load_repo_sample, save_repo_sample, MessageScan, SearchMethod};
@@ -27,7 +27,7 @@ async fn init() {
         info!("found GitHub API token {}", token);
         match octocrab::Octocrab::builder().personal_token(token).build() {
             Ok(o) => {
-                debug!("initializing octocrab with token");
+                info!("initializing octocrab with token");
                 octocrab::initialise(o);
             }
             Err(e) => {
@@ -69,6 +69,8 @@ async fn init() {
 fn main() {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.block_on(init());
+
+    runtime.block_on(check_rate_limit()).unwrap();
     info!("starting up");
     //    let range = SampleRange::new(
     //        NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),
@@ -91,7 +93,9 @@ fn main() {
     .collect();
 
     let mut sampler = MostStarsSampler::new(languages);
-    let sample_size = 10;
+    // Number of repos per language
+    let sample_size = 250;
+    let max_forks = 0;
 
     let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
     let methods = vec![message_based];
@@ -114,7 +118,13 @@ fn main() {
     sample.into_repos().into_iter().for_each(|repo| {
         let repo_name = repo.name.clone();
         let repo_full_name = repo.full_name.clone();
-        let network = ForkNetwork::build_from(repo, Some(0));
+
+        let network = if max_forks == 0 {
+            ForkNetwork::single(repo)
+        } else {
+            runtime.block_on(ForkNetwork::build_from(repo, Some(max_forks)))
+        };
+
         info!(
             "{} repositories in network of {}",
             network.len(),
