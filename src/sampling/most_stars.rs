@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 use std::rc::Rc;
+use std::time::Duration;
 
-use crate::git::github::{self, check_rate_limit};
+use crate::git::github::{self, check_search_limit};
 use crate::Result;
 use fallible_iterator::FallibleIterator;
 use log::{debug, error, info};
@@ -10,6 +11,7 @@ use octocrab::Page;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 use tokio::runtime::Runtime;
+use tokio::time;
 
 use crate::{git::github::collect_repos_from_pages, sampling::Sample, Error};
 
@@ -54,7 +56,6 @@ impl MostStarsSampler {
         language: ProgrammingLanguage,
         sample_size: usize,
     ) -> Result<Sample> {
-        check_rate_limit().await.unwrap();
         info!("sampling for {}", language.0);
         let query = format!("language:{}", language.0);
 
@@ -116,6 +117,10 @@ impl MostStarsSampler {
         }
         let sample = Sample(sample.0.into_iter().take(sample_size).collect());
         info!("sampled {} repos for {}", sample.len(), language.0);
+        let seconds = 60;
+        info!("sleeping for {seconds} seconds to reduce API stress...");
+        time::sleep(Duration::from_secs(seconds)).await;
+        info!("continuing");
         Ok(sample)
     }
 
@@ -124,13 +129,13 @@ impl MostStarsSampler {
         sample_size: usize,
         query: &str,
     ) -> std::result::Result<Page<Repository>, octocrab::Error> {
-        check_rate_limit().await.unwrap();
+        check_search_limit().await.unwrap();
         // GitHub allows up to 100 results per page
         let results_per_page = usize::max(sample_size, 100) as u8 /*safe cast*/;
         let sort = "stars";
         let order = "desc";
         info!("run_fresh_query");
-        check_rate_limit().await.unwrap();
+        check_search_limit().await.unwrap();
         octocrab::instance()
             .search()
             .repositories(query)
