@@ -180,18 +180,10 @@ fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<Comm
     let mut parents = start_commit.parents().collect::<Vec<G2Commit>>();
     commits.insert(Commit::new(repository, start_commit));
 
-    let mut count: u64 = 0;
     while !parents.is_empty() {
         let mut grandparents = vec![];
         // for each parent, add it to the vector of collected commits and collect all grandparents
         for parent in parents {
-            count += 1;
-            if count % 10_000 == 0 {
-                info!(
-                    "processed {} commits for head {}...[still running]",
-                    count, commit_id
-                );
-            }
             if !processed_ids.contains(&parent.id()) {
                 grandparents.extend(parent.parents());
                 processed_ids.insert(parent.id());
@@ -205,7 +197,7 @@ fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<Comm
         parents = grandparents;
     }
     info!(
-        "collected {} unique commits for head {}...[done]",
+        "collected {} unique commits for head {}",
         processed_ids.len(),
         commit_id
     );
