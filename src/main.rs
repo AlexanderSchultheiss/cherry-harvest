@@ -141,7 +141,8 @@ fn main() {
         // TODO: improve results storage
         if !results.is_empty() {
             let results = serde_yaml::to_string(&(&repo_full_name, &results)).unwrap();
-            let results_file = results_folder.join(Path::new(&network.source().name));
+            let results_file =
+                results_folder.join(Path::new(&format!("{}.yaml", &network.source().name)));
             fs::write(results_file, results).unwrap();
         }
     });
