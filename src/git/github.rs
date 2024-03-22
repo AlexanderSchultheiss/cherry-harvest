@@ -3,13 +3,14 @@ mod extensions;
 use crate::error::{Error, ErrorKind};
 use crate::git::github::extensions::ForksExt;
 use crate::git::GitRepository;
-use chrono::NaiveDateTime;
+use chrono::{FixedOffset, NaiveDateTime, TimeZone};
 use http::Uri;
-use log::{debug, error};
+use log::{debug, error, info};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::process::exit;
 
 /// A ForkNetwork comprises repositories that are connected through parent-child relationships
 /// depending on whether one repo has been forked from the other. The network has the following
@@ -32,13 +33,27 @@ pub struct ForkNetwork {
 }
 
 impl ForkNetwork {
+    /// Build a ForkNetwork that only contains the given repository.
+    pub fn single(repo: OctoRepo) -> Self {
+        let source_id = repo.id;
+        let mut repositories = HashMap::new();
+        repositories.insert(source_id, GitRepository::from(repo));
+        Self {
+            repositories,
+            source_id,
+            parents: HashMap::new(),
+            forks: HashMap::new(),
+            max_forks: Some(1),
+        }
+    }
+
     // TODO: test
     // TODO: Refactor to improve readability
     /// Build a new ForkNetwork for the given repository by searching GitHub for all its forks.
     ///
     /// * seed: A repository on GitHub
     /// * max_forks: The maximum number of forks in the network that should be retrieved (if desired)
-    pub fn build_from(seed: OctoRepo, max_forks: Option<usize>) -> Self {
+    pub async fn build_from(seed: OctoRepo, max_forks: Option<usize>) -> Self {
         debug!("building fork network for {}:{}", seed.name, seed.id);
         let source_id;
         let mut repository_map = HashMap::new();
@@ -60,10 +75,8 @@ impl ForkNetwork {
 
         let source = repository_map.get(&source_id).unwrap();
 
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-
         let mut forks_retrieved = 0;
-        let mut forks = runtime.block_on(retrieve_forks(source, max_forks));
+        let mut forks = retrieve_forks(source, max_forks).await;
         if let Some(repos) = forks.as_ref() {
             // Map the source to its children
             let children_ids: Vec<RepositoryId> = repos.iter().map(|c| c.id).collect();
@@ -83,10 +96,9 @@ impl ForkNetwork {
             for fork in repos {
                 let fork_id = fork.id;
                 // Handle all forks of the fork (i.e., the forks children)
-                if let Some(mut children) = runtime.block_on(retrieve_forks(
-                    fork,
-                    max_forks.map(|mf| mf - forks_retrieved),
-                )) {
+                if let Some(mut children) =
+                    retrieve_forks(fork, max_forks.map(|mf| mf - forks_retrieved)).await
+                {
                     let children_ids: Vec<RepositoryId> = children.iter().map(|c| c.id).collect();
                     forks_retrieved += children_ids.len();
                     debug!("fork {fork_id} has {} forks of its own", children.len());
@@ -212,6 +224,8 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
     };
 
     // Retrieve the first page with forks
+    info!("retrieve_forks");
+    check_rate_limit().await.unwrap();
     let api_result: Result<Page<OctoRepo>, octocrab::Error> =
         octocrab::instance().list_forks(url).await;
     let page = match api_result {
@@ -300,13 +314,31 @@ pub async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Op
 pub async fn get_page<T: serde::de::DeserializeOwned>(
     url: &Option<Uri>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
+    info!("get_page");
+    check_rate_limit().await.unwrap();
     octocrab::instance().get_page::<T>(url).await
 }
 
 pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab::Error> {
+    info!("search_repositories");
+    check_rate_limit().await.unwrap();
     octocrab::instance()
         .search()
         .repositories(query)
         .send()
         .await
+}
+
+pub async fn check_rate_limit() -> Result<(), octocrab::Error> {
+    let limit = octocrab::instance().ratelimit().get().await?;
+    info!("GitHub API rate limit: {}", limit.rate.limit);
+    info!("GitHub API rate used: {}", limit.rate.used);
+    info!("GitHub API rate remaining: {}", limit.rate.remaining);
+    let time = chrono::DateTime::from_timestamp(limit.rate.reset as i64, 0).unwrap();
+    info!("rate limit reset: {}", time);
+    if limit.rate.remaining < 10 {
+        info!("rate limit too low; please try again later");
+        exit(2);
+    }
+    Ok(())
 }
