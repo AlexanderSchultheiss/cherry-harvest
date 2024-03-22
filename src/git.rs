@@ -92,6 +92,7 @@ impl<'com, 'repo> Commit<'com, 'repo> {
 pub struct GitRepository {
     pub id: RepositoryId,
     pub name: String,
+    pub full_name: Option<String>,
     pub location: RepoLocation,
     pub owner: Option<String>,
     pub n_branches: Option<u32>,
@@ -112,6 +113,7 @@ impl GitRepository {
         Self {
             id: RepositoryId(id),
             name,
+            full_name: None,
             location,
             owner: None,
             n_branches: None,
@@ -134,6 +136,7 @@ impl From<&OctoRepo> for GitRepository {
         GitRepository {
             id: octo_repo.id,
             name: octo_repo.name.clone(),
+            full_name: octo_repo.full_name.clone(),
             location: RepoLocation::Server(octo_repo.clone_url.as_ref().unwrap().to_string()),
             main_language: octo_repo.language.as_ref().map(|v| v.to_string()),
             n_stars: octo_repo.stargazers_count,
@@ -167,6 +170,7 @@ impl From<RepoLocation> for GitRepository {
         Self {
             id,
             name,
+            full_name: None,
             location,
             owner: None,
             n_branches: None,

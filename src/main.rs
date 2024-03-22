@@ -3,11 +3,12 @@ extern crate log;
 
 use cherry_harvest::git::github::ForkNetwork;
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
-use cherry_harvest::sampling::{GitHubSampler, SampleRange};
-use cherry_harvest::{MessageScan, SearchMethod};
+use cherry_harvest::sampling::GitHubSampler;
+use cherry_harvest::{load_repo_sample, save_repo_sample, MessageScan, SearchMethod};
 use log::LevelFilter;
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use std::process::exit;
 
 async fn init() {
@@ -96,9 +97,20 @@ fn main() {
     let methods = vec![message_based];
 
     info!("Starting repo sampling");
-    let sample = sampler.sample(sample_size).unwrap();
-    info!("Sampled {} repositories", sample.len());
+    let sample_file = Path::new("output/sample.yaml");
+    let sample = if Path::exists(sample_file) {
+        let sample = load_repo_sample(sample_file).unwrap();
+        info!("Loaded sample with {} repositories", sample.len());
+        sample
+    } else {
+        let sample = sampler.sample(sample_size).unwrap();
+        info!("Sampled {} repositories", sample.len());
+        save_repo_sample(sample_file, &sample).unwrap();
+        sample
+    };
 
+    let results_folder = Path::new("output/results/");
+    fs::create_dir_all(results_folder).unwrap();
     sample.into_repos().into_iter().for_each(|repo| {
         let repo_name = repo.name.clone();
         let repo_full_name = repo.full_name.clone();
@@ -129,8 +141,8 @@ fn main() {
         // TODO: improve results storage
         if !results.is_empty() {
             let results = serde_yaml::to_string(&(&repo_full_name, &results)).unwrap();
-            let path = format!("output/{}.yaml", network.source().name);
-            fs::write(path, results).unwrap();
+            let results_file = results_folder.join(Path::new(&network.source().name));
+            fs::write(results_file, results).unwrap();
         }
     });
 }

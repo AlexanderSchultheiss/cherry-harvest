@@ -1,6 +1,9 @@
 pub use crate::git::collect_commits;
 use log::{error, info};
+use sampling::Sample;
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 
 pub mod error;
 pub mod git;
@@ -152,4 +155,15 @@ pub fn search_with<T: SearchMethod + 'static>(
 ) -> Vec<SearchResult> {
     profile_fn!(search_with);
     search_with_multiple(repos, &[Box::new(method)])
+}
+
+pub fn save_repo_sample<P: AsRef<Path>>(path: P, sample: &Sample) -> Result<()> {
+    let sample = serde_yaml::to_string(&sample)?;
+    fs::write(path, sample)?;
+    Ok(())
+}
+
+pub fn load_repo_sample<P: AsRef<Path>>(path: P) -> Result<Sample> {
+    let file = fs::File::open(path)?;
+    Ok(serde_yaml::from_reader(file)?)
 }
