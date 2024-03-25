@@ -118,7 +118,6 @@ impl SearchResult {
         &self.search_method
     }
 
-    // TODO: Have references to not break connection?
     /// The commit pair of this cherry pick. Commits are identified by their id.
     pub fn commit_pair(&self) -> &CherryAndTarget {
         &self.cherry_and_target

@@ -44,15 +44,12 @@ async fn init() {
 // TODO: Update error handling so that errors are represented in the saved results
 // TODO: Trace commits to all repositories and branches in which they appear in (required for analysis)
 // TODO: More filter options for GitHub sampling (e.g., number of commits, number of forks)
-// TODO: Create GitHub user for cherry-harvest and sign into octocrab for more requests/minute
-// TODO: Control request rate to GitHub to prevent limit reached errors
 // TODO: Try to improve performance of ANN similarity search by using FAISS
 // TODO: Set up Docker
 // TODO: Set up GitHub repos as fork network with known cherry-picks to validate functionality
 // TODO: Plot abbreviated history with cherry-picks as graph (only show relevant events) (svg export)?
 // TODO: Set up all tests to not require local repositories
 // TODO: External configuration file
-// TODO: Reduce type overhead: the lib is working with three different commit types and three different repository types
 // TODO: Decent CLI
 // TODO: Allow analysis of specific repositories
 //
