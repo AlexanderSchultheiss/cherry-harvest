@@ -224,7 +224,7 @@ impl GitHubCooldown {
     const GLOBAL_COOLDOWN: i64 = 60;
 
     // max requests per GLOBAL_COOLDOWN
-    const MAX_REQUESTS: usize = 10;
+    const MAX_REQUESTS: usize = 15;
 
     fn instance() -> Arc<Mutex<GitHubCooldown>> {
         STATIC_INSTANCE.load().clone()
@@ -277,13 +277,15 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
 
     // Retrieve the first page with forks
     debug!("retrieve_forks");
-    GitHubCooldown::instance()
-        .lock()
-        .await
-        .wait_for_global_cooldown()
-        .await;
+    let gh = GitHubCooldown::instance();
+    // Lock the global cooldown tracker until the request completed
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
+
     let api_result: Result<Page<OctoRepo>, octocrab::Error> =
         octocrab::instance().list_forks(url).await;
+    // drop the lock after the request
+    drop(gh_lock);
     let page = match api_result {
         Ok(page) => page,
         Err(error) => {
@@ -356,12 +358,10 @@ pub async fn search_query(
     order: &str,
     results_per_page: u8,
 ) -> Result<Page<OctoRepo>, octocrab::Error> {
-    GitHubCooldown::instance()
-        .lock()
-        .await
-        .wait_for_global_cooldown()
-        .await;
-
+    // Lock the global cooldown tracker until the request completed
+    let gh = GitHubCooldown::instance();
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
     octocrab::instance()
         .search()
         .repositories(query)
@@ -394,23 +394,20 @@ pub async fn get_page<T: serde::de::DeserializeOwned>(
     url: &Option<Uri>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
     debug!("get_page");
-    GitHubCooldown::instance()
-        .lock()
-        .await
-        .wait_for_global_cooldown()
-        .await;
+    // Lock the global cooldown tracker until the request completed
+    let gh = GitHubCooldown::instance();
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
 
     octocrab::instance().get_page::<T>(url).await
 }
 
 pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab::Error> {
     debug!("search_repositories");
-    //    self.check_search_limit().await.unwrap();
-    GitHubCooldown::instance()
-        .lock()
-        .await
-        .wait_for_global_cooldown()
-        .await;
+    // Lock the global cooldown tracker until the request completed
+    let gh = GitHubCooldown::instance();
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
 
     octocrab::instance()
         .search()
