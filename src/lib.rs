@@ -2,7 +2,10 @@ pub use crate::git::collect_commits;
 use log::{error, info};
 use sampling::Sample;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 use std::path::Path;
 
 pub mod error;
@@ -168,4 +171,42 @@ pub fn save_repo_sample<P: AsRef<Path>>(path: P, sample: &Sample) -> Result<()> 
 pub fn load_repo_sample<P: AsRef<Path>>(path: P) -> Result<Sample> {
     let file = fs::File::open(path)?;
     Ok(serde_yaml::from_reader(file)?)
+}
+
+pub type RepoName = String;
+
+pub struct HarvestTracker {
+    save_file: File,
+    repos: HashSet<RepoName>,
+}
+
+impl HarvestTracker {
+    pub fn load_harvest_tracker<P: AsRef<Path>>(path: P) -> Result<HarvestTracker> {
+        if Path::exists(path.as_ref()) {
+            let file = File::open(&path)?;
+            let repos = serde_yaml::from_reader(&file)?;
+            Ok(HarvestTracker {
+                save_file: file,
+                repos,
+            })
+        } else {
+            let file = File::create_new(path)?;
+            let repos = HashSet::new();
+            Ok(HarvestTracker {
+                save_file: file,
+                repos,
+            })
+        }
+    }
+
+    pub fn contains(&self, repo: &RepoName) -> bool {
+        self.repos.contains(repo)
+    }
+
+    pub fn add(&mut self, repo: RepoName) -> Result<()> {
+        let repo = format!("- {repo}\n");
+        self.save_file.write_all(repo.as_bytes())?;
+        self.repos.insert(repo);
+        Ok(())
+    }
 }
