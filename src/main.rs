@@ -4,7 +4,9 @@ extern crate log;
 use cherry_harvest::git::github::ForkNetwork;
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
 use cherry_harvest::sampling::GitHubSampler;
-use cherry_harvest::{load_repo_sample, save_repo_sample, MessageScan, SearchMethod};
+use cherry_harvest::{
+    load_repo_sample, save_repo_sample, HarvestTracker, MessageScan, SearchMethod,
+};
 use log::LevelFilter;
 use std::collections::HashMap;
 use std::fs;
@@ -109,9 +111,17 @@ fn main() {
         sample
     };
 
+    let harvested_file = Path::new("output/harvested.yaml");
+    let mut harvest_tracker = HarvestTracker::load_harvest_tracker(harvested_file).unwrap();
+
     let results_folder = Path::new("output/results/");
     fs::create_dir_all(results_folder).unwrap();
     sample.into_repos().into_iter().for_each(|repo| {
+        if harvest_tracker.contains(&repo.name) {
+            // Only process repos that have not been harvested yet
+            return;
+        }
+
         let repo_name = repo.name.clone();
         let repo_full_name = repo.full_name.clone();
 
@@ -151,5 +161,7 @@ fn main() {
                 results_folder.join(Path::new(&format!("{}.yaml", &network.source().name)));
             fs::write(results_file, results).unwrap();
         }
+
+        harvest_tracker.add(repo_name).unwrap();
     });
 }
