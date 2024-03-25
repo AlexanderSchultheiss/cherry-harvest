@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::rc::Rc;
-use std::time::Duration;
 
 use crate::git::github;
 use crate::Result;
@@ -11,7 +10,6 @@ use octocrab::Page;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 use tokio::runtime::Runtime;
-use tokio::time;
 
 use crate::{sampling::Sample, Error};
 

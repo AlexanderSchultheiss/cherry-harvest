@@ -196,7 +196,7 @@ fn history_for_commit(repository: &G2Repository, commit_id: Oid) -> HashSet<Comm
         // in the next iteration, we consider all collected grandparents
         parents = grandparents;
     }
-    info!(
+    debug!(
         "collected {} unique commits for head {}",
         processed_ids.len(),
         commit_id

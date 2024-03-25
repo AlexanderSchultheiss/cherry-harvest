@@ -3,7 +3,7 @@ mod extensions;
 use crate::error::{Error, ErrorKind};
 use crate::git::github::extensions::ForksExt;
 use crate::git::GitRepository;
-use chrono::{offset, DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use http::Uri;
 use log::{debug, error, info};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
@@ -276,7 +276,7 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
     };
 
     // Retrieve the first page with forks
-    info!("retrieve_forks");
+    debug!("retrieve_forks");
     GitHubCooldown::instance()
         .lock()
         .await
@@ -393,7 +393,7 @@ pub async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Op
 pub async fn get_page<T: serde::de::DeserializeOwned>(
     url: &Option<Uri>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
-    info!("get_page");
+    debug!("get_page");
     GitHubCooldown::instance()
         .lock()
         .await
@@ -404,7 +404,7 @@ pub async fn get_page<T: serde::de::DeserializeOwned>(
 }
 
 pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab::Error> {
-    info!("search_repositories");
+    debug!("search_repositories");
     //    self.check_search_limit().await.unwrap();
     GitHubCooldown::instance()
         .lock()
