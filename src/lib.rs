@@ -182,21 +182,13 @@ pub struct HarvestTracker {
 
 impl HarvestTracker {
     pub fn load_harvest_tracker<P: AsRef<Path>>(path: P) -> Result<HarvestTracker> {
-        if Path::exists(path.as_ref()) {
+        let (repos, save_file) = if Path::exists(path.as_ref()) {
             let file = File::open(&path)?;
-            let repos = serde_yaml::from_reader(&file)?;
-            Ok(HarvestTracker {
-                save_file: file,
-                repos,
-            })
+            (serde_yaml::from_reader(&file)?, file)
         } else {
-            let file = File::create_new(path)?;
-            let repos = HashSet::new();
-            Ok(HarvestTracker {
-                save_file: file,
-                repos,
-            })
-        }
+            (HashSet::new(), File::create_new(path)?)
+        };
+        Ok(HarvestTracker { save_file, repos })
     }
 
     pub fn contains(&self, repo: &RepoName) -> bool {

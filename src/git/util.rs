@@ -6,6 +6,7 @@ use firestorm::profile_fn;
 use git2::{Branch, BranchType, Commit as G2Commit, Oid, Repository as G2Repository};
 use log::{debug, error, info};
 use std::collections::{HashMap, HashSet};
+use std::env::temp_dir;
 use std::path::Path;
 use temp_dir::TempDir;
 
@@ -44,10 +45,15 @@ fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Err
 
 fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
     profile_fn!(clone_remote_repo);
-    info!("started cloning of {}", url);
     // In case of repositories hosted online
     // Create a new temporary directory into which the repo can be cloned
     let temp_dir = TempDir::new().unwrap();
+
+    info!(
+        "start cloning of {} into {}",
+        url,
+        temp_dir.path().to_str().unwrap()
+    );
 
     // Clone the repository
     let repo = match G2Repository::clone(url, temp_dir.path()) {

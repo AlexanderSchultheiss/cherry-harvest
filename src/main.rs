@@ -119,6 +119,7 @@ fn main() {
     sample.into_repos().into_iter().for_each(|repo| {
         if harvest_tracker.contains(&repo.name) {
             // Only process repos that have not been harvested yet
+            info!("already harvested {}. [skip]", repo.name);
             return;
         }
 
