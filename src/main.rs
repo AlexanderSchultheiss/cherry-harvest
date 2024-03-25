@@ -4,7 +4,9 @@ extern crate log;
 use cherry_harvest::git::github::ForkNetwork;
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
 use cherry_harvest::sampling::GitHubSampler;
-use cherry_harvest::{load_repo_sample, save_repo_sample, MessageScan, SearchMethod};
+use cherry_harvest::{
+    load_repo_sample, save_repo_sample, HarvestTracker, MessageScan, SearchMethod,
+};
 use log::LevelFilter;
 use std::collections::HashMap;
 use std::fs;
@@ -44,15 +46,12 @@ async fn init() {
 // TODO: Update error handling so that errors are represented in the saved results
 // TODO: Trace commits to all repositories and branches in which they appear in (required for analysis)
 // TODO: More filter options for GitHub sampling (e.g., number of commits, number of forks)
-// TODO: Create GitHub user for cherry-harvest and sign into octocrab for more requests/minute
-// TODO: Control request rate to GitHub to prevent limit reached errors
 // TODO: Try to improve performance of ANN similarity search by using FAISS
 // TODO: Set up Docker
 // TODO: Set up GitHub repos as fork network with known cherry-picks to validate functionality
 // TODO: Plot abbreviated history with cherry-picks as graph (only show relevant events) (svg export)?
 // TODO: Set up all tests to not require local repositories
 // TODO: External configuration file
-// TODO: Reduce type overhead: the lib is working with three different commit types and three different repository types
 // TODO: Decent CLI
 // TODO: Allow analysis of specific repositories
 //
@@ -112,9 +111,19 @@ fn main() {
         sample
     };
 
+    let harvested_file = Path::new("output/harvested.yaml");
+    let mut harvest_tracker = HarvestTracker::load_harvest_tracker(harvested_file).unwrap();
+
     let results_folder = Path::new("output/results/");
     fs::create_dir_all(results_folder).unwrap();
     sample.into_repos().into_iter().for_each(|repo| {
+        if harvest_tracker.contains(&repo.name) {
+            // Only process repos that have not been harvested yet
+            info!("already harvested {}. [skip]", repo.name);
+            return;
+        }
+        info!("harvesting {}", repo.name);
+
         let repo_name = repo.name.clone();
         let repo_full_name = repo.full_name.clone();
 
@@ -131,21 +140,6 @@ fn main() {
         );
 
         let results = cherry_harvest::search_with_multiple(&network.repositories(), &methods);
-        info!(
-            "found a total of {} results for {}",
-            results.len(),
-            repo_full_name.as_ref().unwrap_or(&repo_name)
-        );
-
-        let mut result_map = HashMap::new();
-        results.iter().for_each(|r| {
-            let method = r.search_method();
-            let entry = result_map.entry(method).or_insert(vec![]);
-            entry.push(r);
-        });
-        for (key, val) in result_map {
-            info!("{key}: {}", val.len());
-        }
 
         // TODO: improve results storage
         if !results.is_empty() {
@@ -154,5 +148,7 @@ fn main() {
                 results_folder.join(Path::new(&format!("{}.yaml", &network.source().name)));
             fs::write(results_file, results).unwrap();
         }
+
+        harvest_tracker.add(repo_name).unwrap();
     });
 }

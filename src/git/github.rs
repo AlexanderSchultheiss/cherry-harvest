@@ -374,7 +374,6 @@ pub async fn search_query(
 }
 
 /// Retrieves the next page for the given page
-/// TODO: check logic of this function; something appears to be wrong here
 pub async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Option<Page<T>> {
     match get_page::<T>(page).await {
         Ok(Some(p)) => Some(p),
