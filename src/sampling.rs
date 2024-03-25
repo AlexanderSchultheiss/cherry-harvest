@@ -9,11 +9,6 @@ use octocrab::models::Repository;
 use serde::Deserialize;
 use serde::Serialize;
 
-// TODO: On-demand lazy sampling
-// TODO: Retrieval of full sample
-// TODO: Separate sampling of GitHub repos and ForkNetwork retrieval
-// TODO: Serialization and Deserialization of samples
-
 #[derive(Debug, Eq, PartialEq)]
 pub struct SampleRange {
     start: NaiveDateTime,
