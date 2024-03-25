@@ -8,10 +8,11 @@ use cherry_harvest::{
     load_repo_sample, save_repo_sample, HarvestTracker, MessageScan, SearchMethod,
 };
 use log::LevelFilter;
-use std::collections::HashMap;
+use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 use std::process::exit;
+use std::sync::{Arc, Mutex};
 
 async fn init() {
     let _ = env_logger::builder()
@@ -95,9 +96,6 @@ fn main() {
     let sample_size = 250;
     let max_forks = 0;
 
-    let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
-    let methods = vec![message_based];
-
     info!("Starting repo sampling");
     let sample_file = Path::new("output/sample.yaml");
     let sample = if Path::exists(sample_file) {
@@ -112,17 +110,21 @@ fn main() {
     };
 
     let harvested_file = Path::new("output/harvested.yaml");
-    let mut harvest_tracker = HarvestTracker::load_harvest_tracker(harvested_file).unwrap();
+    let harvest_tracker = Arc::new(Mutex::new(
+        HarvestTracker::load_harvest_tracker(harvested_file).unwrap(),
+    ));
 
     let results_folder = Path::new("output/results/");
     fs::create_dir_all(results_folder).unwrap();
-    sample.into_repos().into_iter().for_each(|repo| {
-        if harvest_tracker.contains(&repo.name) {
+    sample.into_repos().into_par_iter().for_each(|repo| {
+        if harvest_tracker.lock().unwrap().contains(&repo.name) {
             // Only process repos that have not been harvested yet
             info!("already harvested {}. [skip]", repo.name);
             return;
         }
         info!("harvesting {}", repo.name);
+        let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
+        let methods = vec![message_based];
 
         let repo_name = repo.name.clone();
         let repo_full_name = repo.full_name.clone();
@@ -149,6 +151,6 @@ fn main() {
             fs::write(results_file, results).unwrap();
         }
 
-        harvest_tracker.add(repo_name).unwrap();
+        harvest_tracker.lock().unwrap().add(repo_name).unwrap();
     });
 }
