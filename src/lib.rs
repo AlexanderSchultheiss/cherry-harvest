@@ -27,6 +27,8 @@ pub(crate) use firestorm::{profile_fn, profile_section};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+// TODO: Check out GitHub torrent for science
+
 /// Searches for cherry picks with all given search methods.
 ///
 /// # Examples

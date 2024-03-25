@@ -7,7 +7,7 @@ use octocrab::models::{Repository, RepositoryId};
 use rand::{rngs::ThreadRng, Rng};
 use tokio::runtime::Runtime;
 
-use crate::{git::github::repos_created_in_time_range, Result};
+use crate::{git::github, Result};
 
 use super::{GitHubSampler, Sample, SampleRange};
 
@@ -78,7 +78,7 @@ impl FallibleIterator for FullyRandomSampler {
 
             let random_repo = self
                 .runtime
-                .block_on(repos_created_in_time_range(random_start, end));
+                .block_on(github::repos_created_in_time_range(random_start, end));
 
             next = random_repo.map(|op| {
                 if let Some(repo) = op {
