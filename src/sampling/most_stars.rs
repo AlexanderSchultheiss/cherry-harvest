@@ -111,7 +111,7 @@ impl MostStarsSampler {
                 }
                 None => return Ok(sample),
             }
-            info!("current sample size: {}", sample.len());
+            debug!("current sample size: {}", sample.len());
         }
         let sample = Sample(sample.0.into_iter().take(sample_size).collect());
         info!("sampled {} repos for {}", sample.len(), language.0);
@@ -127,7 +127,7 @@ impl MostStarsSampler {
         let results_per_page = usize::max(sample_size, 100) as u8 /*safe cast*/;
         let sort = "stars";
         let order = "desc";
-        info!("run_fresh_query");
+        debug!("run_fresh_query");
         github::search_query(query, sort, order, results_per_page).await
     }
 }
