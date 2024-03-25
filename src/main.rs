@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use cherry_harvest::git::github::{check_search_limit, ForkNetwork};
+use cherry_harvest::git::github::ForkNetwork;
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
 use cherry_harvest::sampling::GitHubSampler;
 use cherry_harvest::{load_repo_sample, save_repo_sample, MessageScan, SearchMethod};
