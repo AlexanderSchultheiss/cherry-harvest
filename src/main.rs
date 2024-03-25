@@ -3,11 +3,12 @@ extern crate log;
 
 use cherry_harvest::git::github::ForkNetwork;
 use cherry_harvest::sampling::most_stars::{MostStarsSampler, ProgrammingLanguage};
-use cherry_harvest::sampling::{GitHubSampler, SampleRange};
-use cherry_harvest::{MessageScan, SearchMethod};
+use cherry_harvest::sampling::GitHubSampler;
+use cherry_harvest::{load_repo_sample, save_repo_sample, MessageScan, SearchMethod};
 use log::LevelFilter;
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use std::process::exit;
 
 async fn init() {
@@ -26,7 +27,7 @@ async fn init() {
         info!("found GitHub API token {}", token);
         match octocrab::Octocrab::builder().personal_token(token).build() {
             Ok(o) => {
-                debug!("initializing octocrab with token");
+                info!("initializing octocrab with token");
                 octocrab::initialise(o);
             }
             Err(e) => {
@@ -68,6 +69,7 @@ async fn init() {
 fn main() {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.block_on(init());
+
     info!("starting up");
     //    let range = SampleRange::new(
     //        NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),
@@ -90,19 +92,38 @@ fn main() {
     .collect();
 
     let mut sampler = MostStarsSampler::new(languages);
-    let sample_size = 10;
+    // Number of repos per language
+    let sample_size = 250;
+    let max_forks = 0;
 
     let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
     let methods = vec![message_based];
 
     info!("Starting repo sampling");
-    let sample = sampler.sample(sample_size).unwrap();
-    info!("Sampled {} repositories", sample.len());
+    let sample_file = Path::new("output/sample.yaml");
+    let sample = if Path::exists(sample_file) {
+        let sample = load_repo_sample(sample_file).unwrap();
+        info!("Loaded sample with {} repositories", sample.len());
+        sample
+    } else {
+        let sample = sampler.sample(sample_size).unwrap();
+        info!("Sampled {} repositories", sample.len());
+        save_repo_sample(sample_file, &sample).unwrap();
+        sample
+    };
 
+    let results_folder = Path::new("output/results/");
+    fs::create_dir_all(results_folder).unwrap();
     sample.into_repos().into_iter().for_each(|repo| {
         let repo_name = repo.name.clone();
         let repo_full_name = repo.full_name.clone();
-        let network = ForkNetwork::build_from(repo, Some(0));
+
+        let network = if max_forks == 0 {
+            ForkNetwork::single(repo)
+        } else {
+            runtime.block_on(ForkNetwork::build_from(repo, Some(max_forks)))
+        };
+
         info!(
             "{} repositories in network of {}",
             network.len(),
@@ -129,8 +150,9 @@ fn main() {
         // TODO: improve results storage
         if !results.is_empty() {
             let results = serde_yaml::to_string(&(&repo_full_name, &results)).unwrap();
-            let path = format!("output/{}.yaml", network.source().name);
-            fs::write(path, results).unwrap();
+            let results_file =
+                results_folder.join(Path::new(&format!("{}.yaml", &network.source().name)));
+            fs::write(results_file, results).unwrap();
         }
     });
 }

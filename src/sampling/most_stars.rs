@@ -1,17 +1,17 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use crate::git::github::{self};
+use crate::git::github;
 use crate::Result;
 use fallible_iterator::FallibleIterator;
-use log::{debug, error};
+use log::{debug, error, info};
 use octocrab::models::{Repository, RepositoryId};
 use octocrab::Page;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 use tokio::runtime::Runtime;
 
-use crate::{git::github::collect_repos_from_pages, sampling::Sample, Error};
+use crate::{sampling::Sample, Error};
 
 use super::GitHubSampler;
 
@@ -54,6 +54,7 @@ impl MostStarsSampler {
         language: ProgrammingLanguage,
         sample_size: usize,
     ) -> Result<Sample> {
+        info!("sampling for {}", language.0);
         let query = format!("language:{}", language.0);
 
         // While sample < sample_size
@@ -85,7 +86,7 @@ impl MostStarsSampler {
             match result {
                 Some(page) => {
                     next_page.clone_from(&page.next);
-                    let repos = collect_repos_from_pages(page, Some(sample_size)).await;
+                    let repos = github::collect_repos_from_pages(page, Some(sample_size)).await;
 
                     let mut new: f64 = 0.;
                     let num_repos;
@@ -110,7 +111,10 @@ impl MostStarsSampler {
                 }
                 None => return Ok(sample),
             }
+            debug!("current sample size: {}", sample.len());
         }
+        let sample = Sample(sample.0.into_iter().take(sample_size).collect());
+        info!("sampled {} repos for {}", sample.len(), language.0);
         Ok(sample)
     }
 
@@ -123,15 +127,8 @@ impl MostStarsSampler {
         let results_per_page = usize::max(sample_size, 100) as u8 /*safe cast*/;
         let sort = "stars";
         let order = "desc";
-        octocrab::instance()
-            .search()
-            .repositories(query)
-            .sort(sort)
-            .order(order)
-            .per_page(results_per_page)
-            .page(0u32)
-            .send()
-            .await
+        debug!("run_fresh_query");
+        github::search_query(query, sort, order, results_per_page).await
     }
 }
 

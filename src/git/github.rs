@@ -3,13 +3,18 @@ mod extensions;
 use crate::error::{Error, ErrorKind};
 use crate::git::github::extensions::ForksExt;
 use crate::git::GitRepository;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use http::Uri;
-use log::{debug, error};
+use log::{debug, error, info};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
-use std::collections::HashMap;
+use once_cell::sync::Lazy;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{Display, Formatter};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex;
+use tokio::time;
 
 /// A ForkNetwork comprises repositories that are connected through parent-child relationships
 /// depending on whether one repo has been forked from the other. The network has the following
@@ -32,13 +37,27 @@ pub struct ForkNetwork {
 }
 
 impl ForkNetwork {
+    /// Build a ForkNetwork that only contains the given repository.
+    pub fn single(repo: OctoRepo) -> Self {
+        let source_id = repo.id;
+        let mut repositories = HashMap::new();
+        repositories.insert(source_id, GitRepository::from(repo));
+        Self {
+            repositories,
+            source_id,
+            parents: HashMap::new(),
+            forks: HashMap::new(),
+            max_forks: Some(1),
+        }
+    }
+
     // TODO: test
     // TODO: Refactor to improve readability
     /// Build a new ForkNetwork for the given repository by searching GitHub for all its forks.
     ///
     /// * seed: A repository on GitHub
     /// * max_forks: The maximum number of forks in the network that should be retrieved (if desired)
-    pub fn build_from(seed: OctoRepo, max_forks: Option<usize>) -> Self {
+    pub async fn build_from(seed: OctoRepo, max_forks: Option<usize>) -> Self {
         debug!("building fork network for {}:{}", seed.name, seed.id);
         let source_id;
         let mut repository_map = HashMap::new();
@@ -60,10 +79,8 @@ impl ForkNetwork {
 
         let source = repository_map.get(&source_id).unwrap();
 
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-
         let mut forks_retrieved = 0;
-        let mut forks = runtime.block_on(retrieve_forks(source, max_forks));
+        let mut forks = retrieve_forks(source, max_forks).await;
         if let Some(repos) = forks.as_ref() {
             // Map the source to its children
             let children_ids: Vec<RepositoryId> = repos.iter().map(|c| c.id).collect();
@@ -83,10 +100,9 @@ impl ForkNetwork {
             for fork in repos {
                 let fork_id = fork.id;
                 // Handle all forks of the fork (i.e., the forks children)
-                if let Some(mut children) = runtime.block_on(retrieve_forks(
-                    fork,
-                    max_forks.map(|mf| mf - forks_retrieved),
-                )) {
+                if let Some(mut children) =
+                    retrieve_forks(fork, max_forks.map(|mf| mf - forks_retrieved)).await
+                {
                     let children_ids: Vec<RepositoryId> = children.iter().map(|c| c.id).collect();
                     forks_retrieved += children_ids.len();
                     debug!("fork {fork_id} has {} forks of its own", children.len());
@@ -115,7 +131,7 @@ impl ForkNetwork {
         // Convert all repos
         let repository_map = repository_map
             .into_iter()
-            .map(|(k, v)| (k, GitRepository::from(&v)))
+            .map(|(k, v)| (k, GitRepository::from(v)))
             .collect();
 
         Self {
@@ -178,7 +194,11 @@ impl Display for ForkNetwork {
                 "{}- {}: {}/{}",
                 format_text,
                 start.id,
-                start.owner.as_ref().unwrap(),
+                start
+                    .octorepo
+                    .as_ref()
+                    .map(|o| &o.owner.as_ref().unwrap().login)
+                    .unwrap(),
                 start.name
             )?;
             if let Some(children) = network.forks(start) {
@@ -190,6 +210,54 @@ impl Display for ForkNetwork {
         }
 
         write_children(f, self, source, "")
+    }
+}
+
+#[derive(Default)]
+struct GitHubCooldown(VecDeque<DateTime<Utc>>);
+
+static STATIC_INSTANCE: Lazy<arc_swap::ArcSwap<Mutex<GitHubCooldown>>> =
+    Lazy::new(|| arc_swap::ArcSwap::from_pointee(Mutex::new(GitHubCooldown::default())));
+
+impl GitHubCooldown {
+    // We assume that GitHub has a 60 seconds global cooldown
+    const GLOBAL_COOLDOWN: i64 = 60;
+
+    // max requests per GLOBAL_COOLDOWN
+    const MAX_REQUESTS: usize = 15;
+
+    fn instance() -> Arc<Mutex<GitHubCooldown>> {
+        STATIC_INSTANCE.load().clone()
+    }
+
+    async fn wait_for_global_cooldown(&mut self) {
+        let now = Utc::now();
+        let mut wait_time = None;
+
+        // Remove previous timestamps that have cooled down
+        while let Some(timestamp) = self.0.front() {
+            let seconds_passed = now.signed_duration_since(timestamp).num_seconds();
+            if seconds_passed > GitHubCooldown::GLOBAL_COOLDOWN {
+                // Clean all cooled down timestamps
+                self.0.pop_front();
+                continue;
+            } else {
+                let offset = 5;
+                wait_time =
+                    Some((GitHubCooldown::GLOBAL_COOLDOWN - seconds_passed + offset) as u64);
+                break;
+            }
+        }
+
+        if self.0.len() < GitHubCooldown::MAX_REQUESTS {
+            // No need to wait, if we can do more requests
+        } else if let Some(wait_time) = wait_time {
+            // We have to wait, because we cannot do more requests
+            info!("GitHub requires cooldown. Waiting for {wait_time} seconds");
+            time::sleep(Duration::from_secs(wait_time)).await;
+        }
+        // Add a new timestamp that represents the last call
+        self.0.push_back(Utc::now());
     }
 }
 
@@ -208,8 +276,16 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
     };
 
     // Retrieve the first page with forks
+    debug!("retrieve_forks");
+    let gh = GitHubCooldown::instance();
+    // Lock the global cooldown tracker until the request completed
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
+
     let api_result: Result<Page<OctoRepo>, octocrab::Error> =
         octocrab::instance().list_forks(url).await;
+    // drop the lock after the request
+    drop(gh_lock);
     let page = match api_result {
         Ok(page) => page,
         Err(error) => {
@@ -276,6 +352,27 @@ pub async fn collect_repos_from_pages(
     }
 }
 
+pub async fn search_query(
+    query: &str,
+    sort: &str,
+    order: &str,
+    results_per_page: u8,
+) -> Result<Page<OctoRepo>, octocrab::Error> {
+    // Lock the global cooldown tracker until the request completed
+    let gh = GitHubCooldown::instance();
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
+    octocrab::instance()
+        .search()
+        .repositories(query)
+        .sort(sort)
+        .order(order)
+        .per_page(results_per_page)
+        .page(0u32)
+        .send()
+        .await
+}
+
 /// Retrieves the next page for the given page
 /// TODO: check logic of this function; something appears to be wrong here
 pub async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Option<Page<T>> {
@@ -296,13 +393,40 @@ pub async fn next_page<T: serde::de::DeserializeOwned>(page: &Option<Uri>) -> Op
 pub async fn get_page<T: serde::de::DeserializeOwned>(
     url: &Option<Uri>,
 ) -> Result<Option<Page<T>>, octocrab::Error> {
+    debug!("get_page");
+    // Lock the global cooldown tracker until the request completed
+    let gh = GitHubCooldown::instance();
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
+
     octocrab::instance().get_page::<T>(url).await
 }
 
 pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab::Error> {
+    debug!("search_repositories");
+    // Lock the global cooldown tracker until the request completed
+    let gh = GitHubCooldown::instance();
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
+
     octocrab::instance()
         .search()
         .repositories(query)
         .send()
         .await
 }
+
+// pub async fn check_search_limit(&self) -> Result<(), octocrab::Error> {
+//     let limit = self.octocrab.ratelimit().get().await?;
+//     let search_limit = limit.resources.search;
+//     if search_limit.remaining < 2 {
+//         info!(
+//             "GitHub API search rate remaining: {}",
+//             search_limit.remaining
+//         );
+//         info!("rate limit too low; waiting for reset");
+//         // The search API is the limiting factor. It resets every minute.
+//         time::sleep(Duration::from_secs(60)).await;
+//     }
+//     Ok(())
+// }

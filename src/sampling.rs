@@ -6,6 +6,8 @@ use crate::Error;
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use fallible_iterator::FallibleIterator;
 use octocrab::models::Repository;
+use serde::Deserialize;
+use serde::Serialize;
 
 // TODO: On-demand lazy sampling
 // TODO: Retrieval of full sample
@@ -41,7 +43,7 @@ impl SampleRange {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Sample(Vec<Repository>);
 
 impl Sample {
