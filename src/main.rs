@@ -122,6 +122,7 @@ fn main() {
             info!("already harvested {}. [skip]", repo.name);
             return;
         }
+        info!("harvesting {}", repo.name);
 
         let repo_name = repo.name.clone();
         let repo_full_name = repo.full_name.clone();
@@ -139,21 +140,6 @@ fn main() {
         );
 
         let results = cherry_harvest::search_with_multiple(&network.repositories(), &methods);
-        info!(
-            "found a total of {} results for {}",
-            results.len(),
-            repo_full_name.as_ref().unwrap_or(&repo_name)
-        );
-
-        let mut result_map = HashMap::new();
-        results.iter().for_each(|r| {
-            let method = r.search_method();
-            let entry = result_map.entry(method).or_insert(vec![]);
-            entry.push(r);
-        });
-        for (key, val) in result_map {
-            info!("{key}: {}", val.len());
-        }
 
         // TODO: improve results storage
         if !results.is_empty() {
