@@ -45,6 +45,11 @@ impl SearchMethod for MessageScan {
                 if let Some(index) = c.message().and_then(|m| m.find(search_str)) {
                     let index = index + search_str.len();
                     let message = c.message().unwrap();
+                    // Filter merged pull requests that list the commit message of all merged
+                    // commits and thus may contain the search string
+                    if message.trim_start().starts_with("Merge ") {
+                        return None;
+                    }
                     if let Some(end_index) = message[index..].find(')') {
                         // we have to increase the end_index by the number of bytes that were cut off through slicing
                         let end_index = end_index + index;
