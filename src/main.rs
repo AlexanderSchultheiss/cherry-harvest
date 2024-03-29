@@ -9,6 +9,7 @@ use cherry_harvest::{
 };
 use log::LevelFilter;
 use rayon::prelude::*;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::process::exit;
@@ -97,6 +98,7 @@ fn main() {
     let max_forks = 0;
 
     info!("Starting repo sampling");
+    fs::create_dir_all("output").unwrap();
     let sample_file = Path::new("output/sample.yaml");
     let sample = if Path::exists(sample_file) {
         let sample = load_repo_sample(sample_file).unwrap();
@@ -116,6 +118,9 @@ fn main() {
 
     let results_folder = Path::new("output/results/");
     fs::create_dir_all(results_folder).unwrap();
+    let total_number_of_cherries: Arc<Mutex<HashMap<String, usize>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+    let total_commits = Arc::new(Mutex::new(0));
     sample.into_repos().into_par_iter().for_each(|repo| {
         if harvest_tracker.lock().unwrap().contains(&repo.name) {
             // Only process repos that have not been harvested yet
@@ -141,7 +146,10 @@ fn main() {
             repo_full_name.as_ref().unwrap_or(&repo_name)
         );
 
-        let results = cherry_harvest::search_with_multiple(&network.repositories(), &methods);
+        let (total_commits_count, results) =
+            cherry_harvest::search_with_multiple(&network.repositories(), &methods);
+
+        *total_commits.lock().unwrap() += total_commits_count;
 
         // TODO: improve results storage
         if !results.is_empty() {
@@ -151,6 +159,22 @@ fn main() {
             fs::write(results_file, results).unwrap();
         }
 
+        for result in results {
+            let name = result.search_method().to_string();
+            // Increment the number of results for this search method
+            *total_number_of_cherries
+                .lock()
+                .unwrap()
+                .entry(name)
+                .or_default() += 1;
+        }
+
         harvest_tracker.lock().unwrap().add(repo_name).unwrap();
     });
+
+    let total_commits = total_commits.lock().unwrap();
+    for (name, count) in total_number_of_cherries.lock().unwrap().iter() {
+        info!("found a total of {count} cherry picks using {name}");
+        info!("harvested from a total of {total_commits}");
+    }
 }

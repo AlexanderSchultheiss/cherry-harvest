@@ -64,7 +64,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub fn search_with_multiple(
     repos: &[&GitRepository],
     methods: &[Box<dyn SearchMethod>],
-) -> Vec<SearchResult> {
+) -> (TotalCommitsCount, Vec<SearchResult>) {
     let repo_locations: Vec<&RepoLocation> = repos.iter().map(|r| &r.location).collect();
     profile_fn!(search_with_multiple);
     info!(
@@ -118,9 +118,11 @@ pub fn search_with_multiple(
             }
         );
 
-        results
+        (commits.len(), results)
     }
 }
+
+pub type TotalCommitsCount = usize;
 
 /// Searches for cherry picks with the given search search.
 ///
@@ -157,7 +159,7 @@ pub fn search_with_multiple(
 pub fn search_with<T: SearchMethod + 'static>(
     repos: &[&GitRepository],
     method: T,
-) -> Vec<SearchResult> {
+) -> (TotalCommitsCount, Vec<SearchResult>) {
     profile_fn!(search_with);
     search_with_multiple(repos, &[Box::new(method)])
 }
