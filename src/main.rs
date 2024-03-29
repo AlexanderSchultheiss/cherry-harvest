@@ -153,7 +153,11 @@ fn main() {
 
         // TODO: improve results storage
         if !results.is_empty() {
-            let results = serde_yaml::to_string(&(&repo_full_name, &results)).unwrap();
+            let mut result_map = HashMap::new();
+            result_map.insert("repo_name", repo_full_name.unwrap());
+            result_map.insert("total_number_of_results", results.len().to_string());
+            result_map.insert("total_number_of_commits", total_commits_count.to_string());
+            let results = serde_yaml::to_string(&(&result_map, &results)).unwrap();
             let results_file =
                 results_folder.join(Path::new(&format!("{}.yaml", &network.source().name)));
             fs::write(results_file, results).unwrap();
