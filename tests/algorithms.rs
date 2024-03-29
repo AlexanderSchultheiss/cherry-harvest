@@ -24,7 +24,7 @@ fn message_only() {
     ground_truth.retain_message_scan();
 
     let method = MessageScan::default();
-    let results = cherry_harvest::search_with(
+    let (_, results) = cherry_harvest::search_with(
         &[&GitRepository::from(RepoLocation::Server(
             CHERRIES_ONE.to_string(),
         ))],
@@ -57,7 +57,7 @@ fn diff_exact() {
     ground_truth.retain_exact_diff();
 
     let method = ExactDiffMatch::default();
-    let results = cherry_harvest::search_with(
+    let (_, results) = cherry_harvest::search_with(
         &[&GitRepository::from(RepoLocation::Server(
             CHERRIES_ONE.to_string(),
         ))],
