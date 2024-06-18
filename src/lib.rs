@@ -43,7 +43,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// let method = MessageScan::default();
 /// // link to a test repository
 /// let server = "https://github.com/AlexanderSchultheiss/cherries-one".to_string();
-/// let results = cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], method);
+/// let results = cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], method).1;
 /// assert_eq!(results.len(), 2);
 /// let expected_commits = vec![
 ///     "b7d2e4b330165ae92e4442fb8ccfa067acd62d44",
@@ -136,7 +136,7 @@ pub type TotalCommitsCount = usize;
 /// // link to a test repository
 /// let server = "https://github.com/AlexanderSchultheiss/cherries-one".to_string();
 /// // execute the search for cherry picks
-/// let results = cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], search);
+/// let results = cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], search).1;
 ///
 /// // we expect two cherry picks
 /// assert_eq!(results.len(), 2);
