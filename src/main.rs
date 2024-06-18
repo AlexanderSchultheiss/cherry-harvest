@@ -96,7 +96,7 @@ fn main() {
 
     let mut sampler = MostStarsSampler::new(languages);
     // Number of repos per language
-    let sample_size = 500;
+    let sample_size = 250;
     let max_forks = 0;
 
     info!("Starting repo sampling");

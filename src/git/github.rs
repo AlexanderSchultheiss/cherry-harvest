@@ -224,7 +224,7 @@ impl GitHubCooldown {
     const GLOBAL_COOLDOWN: i64 = 60;
 
     // max requests per GLOBAL_COOLDOWN
-    const MAX_REQUESTS: usize = 15;
+    const MAX_REQUESTS: usize = 10;
 
     fn instance() -> Arc<Mutex<GitHubCooldown>> {
         STATIC_INSTANCE.load().clone()
