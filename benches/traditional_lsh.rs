@@ -10,7 +10,11 @@ fn repo_location() -> RepoLocation {
 
 fn search_call() {
     let search_method = cherry_harvest::TraditionalLSH::new(3, 2048, 2, 0.7);
-    cherry_harvest::search_with(&[&GitRepository::from(repo_location())], search_method);
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    runtime.block_on(cherry_harvest::search_with(
+        &[&GitRepository::from(repo_location())],
+        search_method,
+    ));
 }
 
 fn criterion_benchmark(c: &mut Criterion) {

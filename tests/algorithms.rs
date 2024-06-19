@@ -24,12 +24,13 @@ fn message_only() {
     ground_truth.retain_message_scan();
 
     let method = MessageScan::default();
-    let (_, results) = cherry_harvest::search_with(
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let (_, results) = runtime.block_on(cherry_harvest::search_with(
         &[&GitRepository::from(RepoLocation::Server(
             CHERRIES_ONE.to_string(),
         ))],
         method,
-    );
+    ));
     assert_eq!(results.len(), ground_truth.entries().len());
     let expected_commits = ground_truth
         .entries()
@@ -57,12 +58,13 @@ fn diff_exact() {
     ground_truth.retain_exact_diff();
 
     let method = ExactDiffMatch::default();
-    let (_, results) = cherry_harvest::search_with(
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let (_, results) = runtime.block_on(cherry_harvest::search_with(
         &[&GitRepository::from(RepoLocation::Server(
             CHERRIES_ONE.to_string(),
         ))],
         method,
-    );
+    ));
     assert_eq!(results.len(), ground_truth.entries().len());
     let expected_commits = ground_truth
         .entries()

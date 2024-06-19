@@ -9,7 +9,10 @@ fn repo_location() -> RepoLocation {
 pub fn commit_loading(c: &mut Criterion) {
     c.bench_function("collect_commits", |b| {
         b.iter(|| {
-            let repository = git::clone_or_load(&repo_location()).unwrap();
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            let repository = runtime
+                .block_on(git::clone_or_load(&repo_location()))
+                .unwrap();
             collect_commits(&[repository]);
         })
     });
