@@ -46,7 +46,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// let runtime = tokio::runtime::Runtime::new().unwrap();
 /// let results = runtime.block_on(
 ///     cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], method)
-/// ).1;
+/// ).unwrap().1;
 /// assert_eq!(results.len(), 2);
 /// let expected_commits = vec![
 ///     "b7d2e4b330165ae92e4442fb8ccfa067acd62d44",
@@ -67,7 +67,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub async fn search_with_multiple(
     repos: &[&GitRepository],
     methods: &[Box<dyn SearchMethod>],
-) -> (TotalCommitsCount, Vec<SearchResult>) {
+) -> Result<(TotalCommitsCount, Vec<SearchResult>)> {
     let repo_locations: Vec<&RepoLocation> = repos.iter().map(|r| &r.location).collect();
     profile_fn!(search_with_multiple);
     info!(
@@ -82,6 +82,7 @@ pub async fn search_with_multiple(
             Ok(repo) => loaded_repos.push(repo),
             Err(error) => {
                 error!("was not able to clone or load repository: {error}");
+                return Err(error);
             }
         }
     }
@@ -120,7 +121,7 @@ pub async fn search_with_multiple(
             }
         );
 
-        (commits.len(), results)
+        Ok((commits.len(), results))
     }
 }
 
@@ -141,7 +142,7 @@ pub type TotalCommitsCount = usize;
 /// let runtime = tokio::runtime::Runtime::new().unwrap();
 /// let results = runtime.block_on(
 ///     cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], search)
-/// ).1;
+/// ).unwrap().1;
 ///
 /// // we expect two cherry picks
 /// assert_eq!(results.len(), 2);
@@ -164,7 +165,7 @@ pub type TotalCommitsCount = usize;
 pub async fn search_with<T: SearchMethod + 'static>(
     repos: &[&GitRepository],
     method: T,
-) -> (TotalCommitsCount, Vec<SearchResult>) {
+) -> Result<(TotalCommitsCount, Vec<SearchResult>)> {
     profile_fn!(search_with);
     search_with_multiple(repos, &[Box::new(method)]).await
 }
@@ -183,30 +184,56 @@ pub fn load_repo_sample<P: AsRef<Path>>(path: P) -> Result<Sample> {
 pub type RepoName = String;
 
 pub struct HarvestTracker {
-    save_file: File,
-    repos: HashSet<RepoName>,
+    success_tracking_file: File,
+    error_tracking_file: File,
+    harvested_repos: HashSet<RepoName>,
+    failed_repos: HashSet<RepoName>,
 }
 
 impl HarvestTracker {
-    pub fn load_harvest_tracker<P: AsRef<Path>>(path: P) -> Result<HarvestTracker> {
-        let (repos, save_file) = if Path::exists(path.as_ref()) {
-            let repos = serde_yaml::from_str(&fs::read_to_string(&path)?)?;
-            let file = File::options().append(true).open(&path)?;
+    fn load_repo_list<P: AsRef<Path>>(path_to_file: P) -> Result<(HashSet<RepoName>, File)> {
+        Ok(if Path::exists(path_to_file.as_ref()) {
+            let repos = serde_yaml::from_str(&fs::read_to_string(&path_to_file)?)?;
+            let file = File::options().append(true).open(&path_to_file)?;
             (repos, file)
         } else {
-            (HashSet::new(), File::create_new(path)?)
-        };
-        Ok(HarvestTracker { save_file, repos })
+            (HashSet::new(), File::create_new(path_to_file)?)
+        })
+    }
+
+    pub fn load_harvest_tracker<P: AsRef<Path>>(
+        path_to_success_tracking_file: P,
+        path_to_error_tracking_file: P,
+    ) -> Result<HarvestTracker> {
+        let (harvested_repos, success_tracking_file) =
+            HarvestTracker::load_repo_list(path_to_success_tracking_file)?;
+        let (failed_repos, error_tracking_file) =
+            HarvestTracker::load_repo_list(path_to_error_tracking_file)?;
+
+        Ok(HarvestTracker {
+            success_tracking_file,
+            error_tracking_file,
+            harvested_repos,
+
+            failed_repos,
+        })
     }
 
     pub fn contains(&self, repo: &RepoName) -> bool {
-        self.repos.contains(repo)
+        self.harvested_repos.contains(repo)
     }
 
-    pub fn add(&mut self, repo: RepoName) -> Result<()> {
+    pub fn add_success(&mut self, repo: RepoName) -> Result<()> {
         let repo = format!("- {repo}\n");
-        self.save_file.write_all(repo.as_bytes())?;
-        self.repos.insert(repo);
+        self.success_tracking_file.write_all(repo.as_bytes())?;
+        self.harvested_repos.insert(repo);
+        Ok(())
+    }
+
+    pub fn add_error(&mut self, repo: RepoName) -> Result<()> {
+        let repo = format!("- {repo}\n");
+        self.error_tracking_file.write_all(repo.as_bytes())?;
+        self.failed_repos.insert(repo);
         Ok(())
     }
 }
