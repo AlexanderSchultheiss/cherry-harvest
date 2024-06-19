@@ -50,7 +50,7 @@ async fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepositor
 // We assume that GitHub cloning has a 60 seconds global cooldown
 const GLOBAL_COOLDOWN: i64 = 60;
 // max clones per GLOBAL_COOLDOWN
-const MAX_REQUESTS: usize = 250;
+const MAX_REQUESTS: usize = 25;
 
 static STATIC_COOLDOWN_INSTANCE: Lazy<arc_swap::ArcSwap<Mutex<RequestCooldown>>> =
     Lazy::new(|| {
