@@ -132,6 +132,7 @@ fn main() {
         let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
         let methods = vec![message_based];
 
+        let repo_language = repo.language.clone();
         let repo_name = repo.name.clone();
         let repo_full_name = repo.full_name.clone();
 
@@ -167,6 +168,14 @@ fn main() {
         if !results.is_empty() {
             let mut result_map = HashMap::new();
             result_map.insert("repo_name", repo_full_name.unwrap());
+            match repo_language {
+                Some(lang) => {
+                    result_map.insert("language", lang.to_string());
+                }
+                None => {
+                    result_map.insert("language", "None".to_string());
+                }
+            }
             result_map.insert("total_number_of_results", results.len().to_string());
             result_map.insert("total_number_of_commits", total_commits_count.to_string());
             let results = serde_yaml::to_string(&(&result_map, &results)).unwrap();
