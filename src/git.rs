@@ -1,18 +1,22 @@
 pub mod github;
 mod util;
 
+use chrono::{DateTime, Utc};
 use derivative::Derivative;
 use firestorm::{profile_fn, profile_method, profile_section};
 use git2::{Commit as G2Commit, Oid, Repository as G2Repository, Signature};
 use git2::{Diff as G2Diff, DiffFormat, Time};
+use log::info;
 use octocrab::models::Repository as OctoRepo;
 use octocrab::models::RepositoryId;
 use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
+use std::time::Duration;
 use temp_dir::TempDir;
+use tokio::time;
 
 pub use util::clone_or_load;
 pub use util::collect_commits;
@@ -591,5 +595,57 @@ impl From<IdeaPatch> for Diff {
             diff_text: Diff::build_diff_text(&hunks),
             hunks,
         }
+    }
+}
+
+// We assume that GitHub has a 60 seconds global cooldown
+const DEFAULT_GLOBAL_COOLDOWN: i64 = 60;
+// max requests per GLOBAL_COOLDOWN
+const DEFAULT_MAX_REQUESTS: usize = 10;
+
+struct RequestCooldown {
+    queue: VecDeque<DateTime<Utc>>,
+    global_cooldown: i64,
+    max_requests: usize,
+}
+
+impl Default for RequestCooldown {
+    fn default() -> Self {
+        Self {
+            queue: Default::default(),
+            global_cooldown: DEFAULT_GLOBAL_COOLDOWN,
+            max_requests: DEFAULT_MAX_REQUESTS,
+        }
+    }
+}
+
+impl RequestCooldown {
+    async fn wait_for_global_cooldown(&mut self) {
+        let now = Utc::now();
+        let mut wait_time = None;
+
+        // Remove previous timestamps that have cooled down
+        while let Some(timestamp) = self.queue.front() {
+            let seconds_passed = now.signed_duration_since(timestamp).num_seconds();
+            if seconds_passed > self.global_cooldown {
+                // Clean all cooled down timestamps
+                self.queue.pop_front();
+                continue;
+            } else {
+                let offset = 5;
+                wait_time = Some((self.global_cooldown - seconds_passed + offset) as u64);
+                break;
+            }
+        }
+
+        if self.queue.len() < self.max_requests {
+            // No need to wait, if we can do more requests
+        } else if let Some(wait_time) = wait_time {
+            // We have to wait, because we cannot do more requests
+            info!("GitHub requires cooldown. Waiting for {wait_time} seconds");
+            time::sleep(Duration::from_secs(wait_time)).await;
+        }
+        // Add a new timestamp that represents the last call
+        self.queue.push_back(Utc::now());
     }
 }

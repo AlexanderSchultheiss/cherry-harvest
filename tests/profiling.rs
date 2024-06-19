@@ -25,7 +25,8 @@ fn message_based() {
     let call = || {
         // Last search runtime was 0.0s
         let search_method = cherry_harvest::MessageScan::default();
-        let _ = cherry_harvest::search_with(&[&repo()], search_method);
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let _ = runtime.block_on(cherry_harvest::search_with(&[&repo()], search_method));
     };
 
     if firestorm::enabled() {
@@ -40,7 +41,8 @@ fn exact_match() {
     let start = init();
     let call = || {
         let search_method = ExactDiffMatch::default();
-        let _ = cherry_harvest::search_with(&[&repo()], search_method);
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let _ = runtime.block_on(cherry_harvest::search_with(&[&repo()], search_method));
     };
 
     if firestorm::enabled() {
@@ -56,7 +58,8 @@ fn traditional_lsh_similarity_search() {
 
     let call = || {
         let search_method = TraditionalLSH::new(8, 100, 5, 0.7);
-        let _ = cherry_harvest::search_with(&[&repo()], search_method);
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let _ = runtime.block_on(cherry_harvest::search_with(&[&repo()], search_method));
     };
 
     if firestorm::enabled() {

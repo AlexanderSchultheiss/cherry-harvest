@@ -43,7 +43,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// let method = MessageScan::default();
 /// // link to a test repository
 /// let server = "https://github.com/AlexanderSchultheiss/cherries-one".to_string();
-/// let results = cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], method).1;
+/// let runtime = tokio::runtime::Runtime::new().unwrap();
+/// let results = runtime.block_on(
+///     cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], method)
+/// ).1;
 /// assert_eq!(results.len(), 2);
 /// let expected_commits = vec![
 ///     "b7d2e4b330165ae92e4442fb8ccfa067acd62d44",
@@ -61,7 +64,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///         .for_each(|c| assert!(expected_commits.contains(&c.id())))
 /// }
 /// ```
-pub fn search_with_multiple(
+pub async fn search_with_multiple(
     repos: &[&GitRepository],
     methods: &[Box<dyn SearchMethod>],
 ) -> (TotalCommitsCount, Vec<SearchResult>) {
@@ -73,17 +76,16 @@ pub fn search_with_multiple(
         methods.len()
     );
     // TODO: Collect commits in parallel
-    let loaded_repos: Vec<LoadedRepository> = repo_locations
-        .iter()
-        .filter_map(|repo_location| match git::clone_or_load(repo_location) {
-            Ok(repo) => Some(repo),
+    let mut loaded_repos: Vec<LoadedRepository> = Vec::new();
+    for repo_location in repo_locations.iter() {
+        match git::clone_or_load(repo_location).await {
+            Ok(repo) => loaded_repos.push(repo),
             Err(error) => {
                 error!("was not able to clone or load repository: {error}");
-                None
             }
-        })
-        .collect();
-    let mut commits = collect_commits(&loaded_repos);
+        }
+    }
+    let commits = collect_commits(&loaded_repos);
     // Some commits have empty textual diffs (e.g., only changes to file modifiers)
     // We cannot consider these as cherry-picks, because no text == no information
     // TODO: Migrate to better location
@@ -136,7 +138,10 @@ pub type TotalCommitsCount = usize;
 /// // link to a test repository
 /// let server = "https://github.com/AlexanderSchultheiss/cherries-one".to_string();
 /// // execute the search for cherry picks
-/// let results = cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], search).1;
+/// let runtime = tokio::runtime::Runtime::new().unwrap();
+/// let results = runtime.block_on(
+///     cherry_harvest::search_with(&[&GitRepository::from(RepoLocation::Server(server))], search)
+/// ).1;
 ///
 /// // we expect two cherry picks
 /// assert_eq!(results.len(), 2);
@@ -156,12 +161,12 @@ pub type TotalCommitsCount = usize;
 ///         .for_each(|c| assert!(expected_commits.contains(&c.id())))
 /// }
 /// ```
-pub fn search_with<T: SearchMethod + 'static>(
+pub async fn search_with<T: SearchMethod + 'static>(
     repos: &[&GitRepository],
     method: T,
 ) -> (TotalCommitsCount, Vec<SearchResult>) {
     profile_fn!(search_with);
-    search_with_multiple(repos, &[Box::new(method)])
+    search_with_multiple(repos, &[Box::new(method)]).await
 }
 
 pub fn save_repo_sample<P: AsRef<Path>>(path: P, sample: &Sample) -> Result<()> {

@@ -8,7 +8,10 @@ fn repo_location() -> RepoLocation {
 }
 
 pub fn diff_similarity(c: &mut Criterion) {
-    let repository = [git::clone_or_load(&repo_location()).unwrap()];
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let repository = [runtime
+        .block_on(git::clone_or_load(&repo_location()))
+        .unwrap()];
     let commits = collect_commits(&repository);
     let commits: Vec<Commit> = commits
         .into_iter()

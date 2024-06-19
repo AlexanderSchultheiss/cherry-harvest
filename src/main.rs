@@ -149,8 +149,9 @@ fn main() {
             repo_full_name.as_ref().unwrap_or(&repo_name)
         );
 
-        let (total_commits_count, results) =
-            cherry_harvest::search_with_multiple(&network.repositories(), &methods);
+        let (total_commits_count, results) = runtime.block_on(
+            cherry_harvest::search_with_multiple(&network.repositories(), &methods),
+        );
 
         *total_commits.lock().unwrap() += total_commits_count;
 
