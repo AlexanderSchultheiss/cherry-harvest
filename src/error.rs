@@ -17,7 +17,7 @@ pub enum ErrorKind {
 }
 
 #[derive(Debug)]
-pub struct Error(ErrorKind);
+pub struct Error(pub ErrorKind);
 
 impl Error {
     pub fn new(error_kind: ErrorKind) -> Self {
