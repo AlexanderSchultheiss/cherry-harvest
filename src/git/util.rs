@@ -5,10 +5,14 @@ use crate::Commit;
 use firestorm::profile_fn;
 use git2::{Branch, BranchType, Commit as G2Commit, Oid, Repository as G2Repository};
 use log::{debug, error, info};
+use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
-use std::env::temp_dir;
 use std::path::Path;
+use std::sync::Arc;
 use temp_dir::TempDir;
+use tokio::sync::Mutex;
+
+use super::RequestCooldown;
 
 /// Clones a repository into a temporary directory, or load an existing repository from the filesystem.
 ///
@@ -17,15 +21,15 @@ use temp_dir::TempDir;
 /// repository url and cloning the repository failed.  
 ///
 /// Returns an ErrorKind::RepoLoadError, iff the given string literal was interpreted as path
-pub fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, Error> {
+pub async fn clone_or_load(repo_location: &RepoLocation) -> Result<LoadedRepository, Error> {
     profile_fn!(clone_or_load);
     match repo_location {
-        RepoLocation::Filesystem(path) => load_local_repo(path, repo_location.to_str()),
-        RepoLocation::Server(url) => clone_remote_repo(url),
+        RepoLocation::Filesystem(path) => load_local_repo(path, repo_location.to_str()).await,
+        RepoLocation::Server(url) => clone_remote_repo(url).await,
     }
 }
 
-fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Error> {
+async fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Error> {
     profile_fn!(load_local_repo);
     info!("loading repo from {}", path_name);
     match G2Repository::open(path) {
@@ -43,7 +47,25 @@ fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepository, Err
     }
 }
 
-fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
+// We assume that GitHub cloning has a 60 seconds global cooldown
+const GLOBAL_COOLDOWN: i64 = 60;
+// max clones per GLOBAL_COOLDOWN
+const MAX_REQUESTS: usize = 250;
+
+static STATIC_COOLDOWN_INSTANCE: Lazy<arc_swap::ArcSwap<Mutex<RequestCooldown>>> =
+    Lazy::new(|| {
+        arc_swap::ArcSwap::from_pointee(Mutex::new(RequestCooldown {
+            queue: Default::default(),
+            global_cooldown: GLOBAL_COOLDOWN,
+            max_requests: MAX_REQUESTS,
+        }))
+    });
+
+fn cooldown_instance() -> Arc<Mutex<RequestCooldown>> {
+    STATIC_COOLDOWN_INSTANCE.load().clone()
+}
+
+async fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
     profile_fn!(clone_remote_repo);
     // In case of repositories hosted online
     // Create a new temporary directory into which the repo can be cloned
@@ -55,6 +77,10 @@ fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
         temp_dir.path().to_str().unwrap()
     );
 
+    let gh = cooldown_instance();
+    let mut gh_lock = gh.lock().await;
+    gh_lock.wait_for_global_cooldown().await;
+    drop(gh_lock);
     // Clone the repository
     let repo = match G2Repository::clone(url, temp_dir.path()) {
         Ok(repo) => {
@@ -231,7 +257,8 @@ mod tests {
         // We try to open this project's repository
         let path_buf = env::current_dir().unwrap();
         let location = RepoLocation::Filesystem(path_buf);
-        let loaded_repo = clone_or_load(&location).unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let loaded_repo = runtime.block_on(clone_or_load(&location)).unwrap();
         if let LocalRepo { path, .. } = loaded_repo {
             assert_eq!(path, location.to_str());
         }
@@ -256,7 +283,8 @@ mod tests {
         // We try to open this project's repository
         let path_buf = env::current_dir().unwrap();
         let location = RepoLocation::Filesystem(path_buf);
-        let loaded_repo = clone_or_load(&location).unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let loaded_repo = runtime.block_on(clone_or_load(&location)).unwrap();
         let oid = Oid::from_str("fe849e49cfe6239068ab45fa6680979c59e1bbd9").unwrap();
         if let LocalRepo { repository, .. } = loaded_repo {
             let commit = repository.find_commit(oid).unwrap();
@@ -277,7 +305,8 @@ mod tests {
     fn clone_remote_repo() {
         init();
         let location = RepoLocation::Server("https://github.com/rust-lang/git2-rs.git".to_string());
-        let loaded_repo = clone_or_load(&location).unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let loaded_repo = runtime.block_on(clone_or_load(&location)).unwrap();
         if let RemoteRepo { url, .. } = loaded_repo {
             assert_eq!(url, location.to_str());
         }

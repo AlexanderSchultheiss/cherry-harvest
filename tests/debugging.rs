@@ -26,7 +26,8 @@ fn traditional_lsh_finds_exact() {
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
     let lsh_search = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
     let methods = vec![exact_diff, lsh_search];
-    let (_, results) = cherry_harvest::search_with_multiple(&[&repo], &methods);
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let (_, results) = runtime.block_on(cherry_harvest::search_with_multiple(&[&repo], &methods));
 
     let mut exact_results = HashSet::new();
     let mut lsh_results = HashSet::new();
@@ -75,7 +76,8 @@ fn tmp_debug() {
     let exact_diff = Box::<ExactDiffMatch>::default() as Box<dyn SearchMethod>;
     let lsh_search = Box::new(TraditionalLSH::new(8, 100, 5, 0.7)) as Box<dyn SearchMethod>;
     let methods = vec![exact_diff];
-    let (_, results) = cherry_harvest::search_with_multiple(&[&repo], &methods);
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let (_, results) = runtime.block_on(cherry_harvest::search_with_multiple(&[&repo], &methods));
 
     let mut exact_results = HashSet::new();
     let mut lsh_results = HashSet::new();

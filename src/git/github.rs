@@ -3,18 +3,18 @@ mod extensions;
 use crate::error::{Error, ErrorKind};
 use crate::git::github::extensions::ForksExt;
 use crate::git::GitRepository;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use http::Uri;
-use log::{debug, error, info};
+use log::{debug, error};
 use octocrab::models::{Repository as OctoRepo, RepositoryId};
 use octocrab::Page;
 use once_cell::sync::Lazy;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::Mutex;
-use tokio::time;
+
+use super::RequestCooldown;
 
 /// A ForkNetwork comprises repositories that are connected through parent-child relationships
 /// depending on whether one repo has been forked from the other. The network has the following
@@ -213,52 +213,11 @@ impl Display for ForkNetwork {
     }
 }
 
-#[derive(Default)]
-struct GitHubCooldown(VecDeque<DateTime<Utc>>);
+static STATIC_COOLDOWN_INSTANCE: Lazy<arc_swap::ArcSwap<Mutex<RequestCooldown>>> =
+    Lazy::new(|| arc_swap::ArcSwap::from_pointee(Mutex::new(RequestCooldown::default())));
 
-static STATIC_INSTANCE: Lazy<arc_swap::ArcSwap<Mutex<GitHubCooldown>>> =
-    Lazy::new(|| arc_swap::ArcSwap::from_pointee(Mutex::new(GitHubCooldown::default())));
-
-impl GitHubCooldown {
-    // We assume that GitHub has a 60 seconds global cooldown
-    const GLOBAL_COOLDOWN: i64 = 60;
-
-    // max requests per GLOBAL_COOLDOWN
-    const MAX_REQUESTS: usize = 10;
-
-    fn instance() -> Arc<Mutex<GitHubCooldown>> {
-        STATIC_INSTANCE.load().clone()
-    }
-
-    async fn wait_for_global_cooldown(&mut self) {
-        let now = Utc::now();
-        let mut wait_time = None;
-
-        // Remove previous timestamps that have cooled down
-        while let Some(timestamp) = self.0.front() {
-            let seconds_passed = now.signed_duration_since(timestamp).num_seconds();
-            if seconds_passed > GitHubCooldown::GLOBAL_COOLDOWN {
-                // Clean all cooled down timestamps
-                self.0.pop_front();
-                continue;
-            } else {
-                let offset = 5;
-                wait_time =
-                    Some((GitHubCooldown::GLOBAL_COOLDOWN - seconds_passed + offset) as u64);
-                break;
-            }
-        }
-
-        if self.0.len() < GitHubCooldown::MAX_REQUESTS {
-            // No need to wait, if we can do more requests
-        } else if let Some(wait_time) = wait_time {
-            // We have to wait, because we cannot do more requests
-            info!("GitHub requires cooldown. Waiting for {wait_time} seconds");
-            time::sleep(Duration::from_secs(wait_time)).await;
-        }
-        // Add a new timestamp that represents the last call
-        self.0.push_back(Utc::now());
-    }
+fn cooldown_instance() -> Arc<Mutex<RequestCooldown>> {
+    STATIC_COOLDOWN_INSTANCE.load().clone()
 }
 
 /// Retrieves the forks for the given repository. This function collects forks until all forks have
@@ -277,7 +236,7 @@ async fn retrieve_forks(octo_repo: &OctoRepo, max_forks: Option<usize>) -> Optio
 
     // Retrieve the first page with forks
     debug!("retrieve_forks");
-    let gh = GitHubCooldown::instance();
+    let gh = cooldown_instance();
     // Lock the global cooldown tracker until the request completed
     let mut gh_lock = gh.lock().await;
     gh_lock.wait_for_global_cooldown().await;
@@ -359,7 +318,7 @@ pub async fn search_query(
     results_per_page: u8,
 ) -> Result<Page<OctoRepo>, octocrab::Error> {
     // Lock the global cooldown tracker until the request completed
-    let gh = GitHubCooldown::instance();
+    let gh = cooldown_instance();
     let mut gh_lock = gh.lock().await;
     gh_lock.wait_for_global_cooldown().await;
     octocrab::instance()
@@ -394,7 +353,7 @@ pub async fn get_page<T: serde::de::DeserializeOwned>(
 ) -> Result<Option<Page<T>>, octocrab::Error> {
     debug!("get_page");
     // Lock the global cooldown tracker until the request completed
-    let gh = GitHubCooldown::instance();
+    let gh = cooldown_instance();
     let mut gh_lock = gh.lock().await;
     gh_lock.wait_for_global_cooldown().await;
 
@@ -404,7 +363,7 @@ pub async fn get_page<T: serde::de::DeserializeOwned>(
 pub async fn search_repositories(query: &str) -> Result<Page<OctoRepo>, octocrab::Error> {
     debug!("search_repositories");
     // Lock the global cooldown tracker until the request completed
-    let gh = GitHubCooldown::instance();
+    let gh = cooldown_instance();
     let mut gh_lock = gh.lock().await;
     gh_lock.wait_for_global_cooldown().await;
 
