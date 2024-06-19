@@ -42,11 +42,8 @@ async fn init() {
     }
 }
 
-// TODO: Track which repos failed to clone so that they can be retried
 // TODO: Track which repository a certain commit identified as cherry or pick comes from;
 // currently, we only track the seed repo of a ForkNetwork
-// TODO: Update error handling to no longer panic on possible errors (address unwrap and panic)
-// TODO: Update error handling so that errors are represented in the saved results
 // TODO: Trace commits to all repositories and branches in which they appear in (required for analysis)
 // TODO: More filter options for GitHub sampling (e.g., number of commits, number of forks)
 // TODO: Try to improve performance of ANN similarity search by using FAISS
@@ -115,8 +112,9 @@ fn main() {
     };
 
     let harvested_file = Path::new("output/harvested.yaml");
+    let failure_file = Path::new("output/failed.yaml");
     let harvest_tracker = Arc::new(Mutex::new(
-        HarvestTracker::load_harvest_tracker(harvested_file).unwrap(),
+        HarvestTracker::load_harvest_tracker(harvested_file, failure_file).unwrap(),
     ));
 
     let results_folder = Path::new("output/results/");
@@ -149,9 +147,19 @@ fn main() {
             repo_full_name.as_ref().unwrap_or(&repo_name)
         );
 
-        let (total_commits_count, results) = runtime.block_on(
+        let (total_commits_count, results) = match runtime.block_on(
             cherry_harvest::search_with_multiple(&network.repositories(), &methods),
-        );
+        ) {
+            Ok(r) => r,
+            Err(_) => {
+                harvest_tracker
+                    .lock()
+                    .unwrap()
+                    .add_error(repo_name)
+                    .unwrap();
+                return;
+            }
+        };
 
         *total_commits.lock().unwrap() += total_commits_count;
 
@@ -177,7 +185,11 @@ fn main() {
                 .or_default() += 1;
         }
 
-        harvest_tracker.lock().unwrap().add(repo_name).unwrap();
+        harvest_tracker
+            .lock()
+            .unwrap()
+            .add_success(repo_name)
+            .unwrap();
     });
 
     let total_commits = total_commits.lock().unwrap();
