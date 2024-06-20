@@ -15,7 +15,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 use std::time::Duration;
-use temp_dir::TempDir;
+use tempfile::TempDir;
 use tokio::time;
 
 pub use util::clone_or_load;

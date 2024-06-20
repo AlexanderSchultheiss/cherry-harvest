@@ -9,7 +9,6 @@ use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
-use temp_dir::TempDir;
 use tokio::sync::Mutex;
 
 use super::RequestCooldown;
@@ -50,7 +49,7 @@ async fn load_local_repo(path: &Path, path_name: &str) -> Result<LoadedRepositor
 // We assume that GitHub cloning has a 60 seconds global cooldown
 const GLOBAL_COOLDOWN: i64 = 60;
 // max clones per GLOBAL_COOLDOWN
-const MAX_REQUESTS: usize = 25;
+const MAX_REQUESTS: usize = 10;
 
 static STATIC_COOLDOWN_INSTANCE: Lazy<arc_swap::ArcSwap<Mutex<RequestCooldown>>> =
     Lazy::new(|| {
@@ -69,7 +68,7 @@ async fn clone_remote_repo(url: &str) -> Result<LoadedRepository, Error> {
     profile_fn!(clone_remote_repo);
     // In case of repositories hosted online
     // Create a new temporary directory into which the repo can be cloned
-    let temp_dir = TempDir::new().unwrap();
+    let temp_dir = tempfile::Builder::new().tempdir_in("./repo_cache")?;
 
     info!(
         "start cloning of {} into {}",

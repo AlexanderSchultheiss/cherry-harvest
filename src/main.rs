@@ -10,10 +10,10 @@ use cherry_harvest::{
 use log::LevelFilter;
 use rayon::prelude::*;
 use std::collections::HashMap;
-use std::fs;
 use std::path::Path;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
+use std::{env, fs};
 
 async fn init() {
     let _ = env_logger::builder()
@@ -122,84 +122,94 @@ fn main() {
     let total_number_of_cherries: Arc<Mutex<HashMap<String, usize>>> =
         Arc::new(Mutex::new(HashMap::new()));
     let total_commits = Arc::new(Mutex::new(0));
-    sample.into_repos().into_par_iter().for_each(|repo| {
-        if harvest_tracker.lock().unwrap().contains(&repo.name) {
-            // Only process repos that have not been harvested yet
-            info!("already harvested {}. [skip]", repo.name);
-            return;
-        }
-        info!("harvesting {}", repo.name);
-        let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
-        let methods = vec![message_based];
-
-        let repo_language = repo.language.clone();
-        let repo_name = repo.name.clone();
-        let repo_full_name = repo.full_name.clone();
-
-        let network = if max_forks == 0 {
-            ForkNetwork::single(repo)
-        } else {
-            runtime.block_on(ForkNetwork::build_from(repo, Some(max_forks)))
-        };
-
-        info!(
-            "{} repositories in network of {}",
-            network.len(),
-            repo_full_name.as_ref().unwrap_or(&repo_name)
-        );
-
-        let (total_commits_count, results) = match runtime.block_on(
-            cherry_harvest::search_with_multiple(&network.repositories(), &methods),
-        ) {
-            Ok(r) => r,
-            Err(_) => {
-                harvest_tracker
-                    .lock()
-                    .unwrap()
-                    .add_error(repo_name)
-                    .unwrap();
+    let num_repos = sample.repos().len();
+    // Change the number of threads to use; too many threads will crash the network
+    env::set_var("RAYON_NUM_THREADS", "5");
+    sample
+        .into_repos()
+        .into_par_iter()
+        .enumerate()
+        .for_each(|(repo_number, repo)| {
+            if harvest_tracker.lock().unwrap().contains(&repo.name) {
+                // Only process repos that have not been harvested yet
+                info!(
+                    "already harvested {repo_number} of {num_repos}: {}. [skip]",
+                    repo.name
+                );
                 return;
             }
-        };
+            info!("harvesting {repo_number} of {num_repos}: {}", repo.name);
+            let message_based = Box::<MessageScan>::default() as Box<dyn SearchMethod>;
+            let methods = vec![message_based];
 
-        *total_commits.lock().unwrap() += total_commits_count;
+            let repo_language = repo.language.clone();
+            let repo_name = repo.name.clone();
+            let repo_full_name = repo.full_name.clone();
 
-        // TODO: improve results storage
-        if !results.is_empty() {
-            let mut result_map = HashMap::new();
-            result_map.insert("repo_name", repo_full_name.unwrap());
-            match repo_language {
-                Some(lang) => {
-                    result_map.insert("language", lang.to_string());
+            let network = if max_forks == 0 {
+                ForkNetwork::single(repo)
+            } else {
+                runtime.block_on(ForkNetwork::build_from(repo, Some(max_forks)))
+            };
+
+            info!(
+                "{} repositories in network of {}",
+                network.len(),
+                repo_full_name.as_ref().unwrap_or(&repo_name)
+            );
+
+            let (total_commits_count, results) = match runtime.block_on(
+                cherry_harvest::search_with_multiple(&network.repositories(), &methods),
+            ) {
+                Ok(r) => r,
+                Err(_) => {
+                    harvest_tracker
+                        .lock()
+                        .unwrap()
+                        .add_error(repo_name)
+                        .unwrap();
+                    return;
                 }
-                None => {
-                    result_map.insert("language", "None".to_string());
+            };
+
+            *total_commits.lock().unwrap() += total_commits_count;
+
+            // TODO: improve results storage
+            if !results.is_empty() {
+                let mut result_map = HashMap::new();
+                result_map.insert("repo_name", repo_full_name.unwrap());
+                match repo_language {
+                    Some(lang) => {
+                        result_map.insert("language", lang.to_string());
+                    }
+                    None => {
+                        result_map.insert("language", "None".to_string());
+                    }
                 }
+                result_map.insert("total_number_of_results", results.len().to_string());
+                result_map.insert("total_number_of_commits", total_commits_count.to_string());
+                let results = serde_yaml::to_string(&(&result_map, &results)).unwrap();
+                let results_file =
+                    results_folder.join(Path::new(&format!("{}.yaml", &network.source().name)));
+                fs::write(results_file, results).unwrap();
             }
-            result_map.insert("total_number_of_results", results.len().to_string());
-            result_map.insert("total_number_of_commits", total_commits_count.to_string());
-            let results = serde_yaml::to_string(&(&result_map, &results)).unwrap();
-            let results_file =
-                results_folder.join(Path::new(&format!("{}.yaml", &network.source().name)));
-            fs::write(results_file, results).unwrap();
-        }
 
-        for result in results {
-            let name = result.search_method().to_string();
-            // Increment the number of results for this search method
-            *total_number_of_cherries
+            for result in results {
+                let name = result.search_method().to_string();
+                // Increment the number of results for this search method
+                *total_number_of_cherries
+                    .lock()
+                    .unwrap()
+                    .entry(name)
+                    .or_default() += 1;
+            }
+
+            harvest_tracker
                 .lock()
                 .unwrap()
-                .entry(name)
-                .or_default() += 1;
-        }
-
-        harvest_tracker
-            .lock()
-            .unwrap()
-            .add_success(repo_name)
-            .unwrap();
-    });
+                .add_success(repo_name)
+                .unwrap();
+        });
 
     let total_commits = total_commits.lock().unwrap();
     for (name, count) in total_number_of_cherries.lock().unwrap().iter() {
