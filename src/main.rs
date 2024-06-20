@@ -15,11 +15,16 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 use std::{env, fs};
 
+const NUM_THREADS: usize = 5;
+
 async fn init() {
     let _ = env_logger::builder()
         .is_test(true)
         .filter_level(LevelFilter::Info)
         .try_init();
+
+    // Change the number of threads to use; too many threads will crash the network
+    env::set_var("RAYON_NUM_THREADS", NUM_THREADS.to_string());
 
     let token = fs::read_to_string(".github-api-token").map(|s| match !s.is_empty() {
         true => Some(s.trim().to_owned()),
@@ -123,8 +128,6 @@ fn main() {
         Arc::new(Mutex::new(HashMap::new()));
     let total_commits = Arc::new(Mutex::new(0));
     let num_repos = sample.repos().len();
-    // Change the number of threads to use; too many threads will crash the network
-    env::set_var("RAYON_NUM_THREADS", "5");
     sample
         .into_repos()
         .into_par_iter()
